@@ -13,7 +13,7 @@
 
 volatile sig_atomic_t serverRunning = true;
 
-void	Server::closeAllFds() {
+void	Server:: closeAllFds() {
 	std::cout << "closing all fds" <<std::endl;
 	for (int i = 0; i < m_connectedFds.size(); i++) {
 		close(m_connectedFds[i].fd);
@@ -24,7 +24,6 @@ void	Server::closeAllFds() {
 void signalHandler(int sig) {
 	std::cout << "Program interrupted by SIGINT" <<std::endl;
 	serverRunning = false;
-	std::cout << "ServerRunning: " << serverRunning << std::endl;
 }
 
 int Server::serverSetup() {
@@ -40,7 +39,7 @@ int Server::serverSetup() {
 		perror("fcntl error");
 		return 1;
 	}
-	/* sets the fd to non blocking meaning accept wont block if there are currently no clients waiting to connect */
+	/* sets the fd to non blocking meaning accept won't block if there are currently no clients waiting to connect */
 	if (fcntl(m_tcpServerFd, F_SETFL, flags | O_NONBLOCK) < 0) { 
 		perror("fcntl F_SETFL error");
 		return 1;
@@ -66,7 +65,6 @@ int Server::serverSetup() {
 		return 1;
 	}
 	std::cout << "[ SERVER IS LISTENING ]" << std::endl;
-
 	return 0;
 }
 
@@ -97,7 +95,7 @@ void Server::recieveRequest(Client& client) {
 	if (bytes == 0) {
 		time_t timestamp;
 		time(&timestamp);
-		std::cout << ctime(&timestamp);																			// displays the exact time a client disconnected
+		std::cout << ctime(&timestamp);					// displays the exact time a client disconnected
 		std::cout << client.getClientIp() << " disconnected\n" << std::endl;
 		eraseClient(client.getClientFd());
 		return;
@@ -140,6 +138,7 @@ std::string readFile() {
 	}
 	char buffer[1086];
 	ssize_t bytes = read(fileFd, buffer, sizeof(buffer));
+	buffer[bytes] = '\0';
 	std::cout << buffer << std::endl;
 	close(fileFd);
 	std::string string = buffer;
@@ -227,8 +226,6 @@ int Server::serverCore() {
 					m_connectedFds[i].events = POLLIN;																							// TO DO: should only be done after the full send-buffer is cleared. resets the events to lookout for to POLLIN
 				}
 			}
-			if (!serverRunning)
-				closeAllFds();
 		}
 	}
 	return 0;

@@ -28,7 +28,10 @@ class Server {
 			m_tcpAddressLen(sizeof(sockaddr_in)), m_clientAddressLen(sizeof(m_clientAddress)) {
 			std::cout << "Server object Created" << std::endl;
 		}
-		~Server() {std::cout << "Server object destroyed" << std::endl;};
+		~Server() {
+			std::cout << "Server object destroyed" << std::endl;
+			closeAllFds();
+		}
 		const GlobalConfig& getParsedConfig() { return m_config; }
 		int 	setTcpAddress() {
 			std::memset(&m_tcpAddress, 0, sizeof(sockaddr_in));

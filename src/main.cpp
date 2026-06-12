@@ -28,6 +28,5 @@ int main(int argc, char **argv) {
 		exitProgram(1, "Connections");
 	}
 	std::cout << "Entering serverCore" << std::endl;
-	
 	server.serverCore();
 }
