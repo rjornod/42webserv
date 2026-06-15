@@ -71,6 +71,7 @@ int Server::serverSetup() {
 void Server::recieveRequest(Client& client) {
 	ssize_t	bytes;
 	char		buffer[4096];
+	// TO DO: check for errors in recv (-1 and 0) and remove client on error
 	bytes = recv(client.getClientFd(), buffer, sizeof(buffer), 0);
 	if (bytes > 0) {
 		client.appendToBuffer(buffer, bytes); // the data appended to the buffer here will be the request
@@ -131,24 +132,42 @@ void Server::eraseClient(int fd) {
 	}							
 }
 
-std::string readFile() {
+std::string Server::readFile(Client& client) {
+	std::string string;
 	int fileFd = open("www/index.html", O_RDONLY);
 	if (fileFd < 0) {
 		std::cout << "error" << std::endl;
+		eraseClient(client.getClientFd());
+		return string; // TO DO: FIX THIS RETURN
 	}
 	char buffer[1086];
-	ssize_t bytes = read(fileFd, buffer, sizeof(buffer));
-	buffer[bytes] = '\0';
+
+	while (true)
+	{
+		ssize_t bytes = read(fileFd, buffer, sizeof(buffer));
+		if (bytes > 0) {
+			// std::cout << buffer << std::endl;
+			string.append(buffer, static_cast<size_t>(bytes));
+			continue;
+		}
+		if (bytes == 0) {
+			break;
+		}
+		if (bytes == -1) {
+			eraseClient(client.getClientFd());
+		}
+		// buffer[bytes] = '\0';
+		// return string;
+	}
+	// buffer[bytes] = '\0';
 	std::cout << buffer << std::endl;
 	close(fileFd);
-	std::string string = buffer;
 	return string;
 }
 
 void Server::sendResponse(Client& client) {
-	// std::string body = "This is the message you requested!";
-	std::string body = readFile();
-	std::cout << client.getClientBuffer() << std::endl;
+	std::string body = readFile(client);
+	std::cout << client.getClientSendBuffer() << std::endl;
 	std::string response;
 	response += "HTTP/1.1 200 OK\r\n";
 	response += "Content-Type: text/html\r\n";
@@ -161,11 +180,13 @@ void Server::sendResponse(Client& client) {
 	if (sentBytes > 0) {
 		 std::cout << "Sent message successfully" << std::endl;
 	}
-	else if (sentBytes < 0) {
+	else if (sentBytes == 0 || sentBytes == -1) {
+		eraseClient(client.getClientFd());
 		perror("send()");
 		return ;
 	}
-	client.getClientBuffer().clear();
+	// TO DO: clear buffer only after all bytes are confirmed to have been sent
+	client.getClientSendBuffer().clear();
 }
 
 int Server::serverCore() {
@@ -174,12 +195,14 @@ int Server::serverCore() {
 		int clientFd;
 		int returnValue = poll(m_connectedFds.data(), m_connectedFds.size(), -1); // timeout set to -1 for an infinite timeout
 		if (returnValue < 0) {
+			if (errno == EINTR) {
+						continue;
+			}
 			perror("poll");
 			return 1;
 		}
 		if (m_connectedFds[0].revents & POLLIN) {
 			while (true) {
-				// m_clientAddressLen = sizeof(m_clientAddress); // done in constructor
 				clientFd = accept(m_tcpServerFd, 
 									 reinterpret_cast<sockaddr *>(&m_clientAddress), &m_clientAddressLen);
 				if (clientFd < 0) {

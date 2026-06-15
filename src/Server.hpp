@@ -32,8 +32,8 @@ class Server {
 			std::cout << "Server object destroyed" << std::endl;
 			closeAllFds();
 		}
-		const GlobalConfig& getParsedConfig() { return m_config; }
-		int 	setTcpAddress() {
+		const GlobalConfig& getParsedConfig() {return m_config;}
+		int 								setTcpAddress() 	{
 			std::memset(&m_tcpAddress, 0, sizeof(sockaddr_in));
 			m_tcpAddress.sin_family = AF_INET; 					// dictates a socket will use ipv4 addressing
 			m_tcpAddress.sin_addr.s_addr = INADDR_ANY; 	// allows a server to accept traffic across any local ip address
@@ -41,11 +41,12 @@ class Server {
 		}
 		const std::vector<pollfd> &getConnectedFds() const {return m_connectedFds;}
 
-		int 	serverSetup();
-		int 	connections();
-		int 	serverCore();
-		void 	recieveRequest(Client& client);
-		void	eraseClient(int fd);
-		void 	sendResponse(Client& client);
-		void	closeAllFds();
+		int 				serverSetup();
+		int 				connections();
+		int 				serverCore();
+		void 				recieveRequest(Client& client);
+		void				eraseClient(int fd);
+		void 				sendResponse(Client& client);
+		void				closeAllFds();
+		std::string	readFile(Client& client);
 };
