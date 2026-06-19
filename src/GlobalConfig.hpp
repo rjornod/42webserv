@@ -15,4 +15,5 @@ class GlobalConfig {
 		void createServerConfig() {
 			m_serverConfigs.emplace_back();
 		}
+		int parseConfig(char* pathToFile);
 };
