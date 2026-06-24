@@ -3,7 +3,7 @@
 
 std::ostream &operator<<(std::ostream &out, const HttpRequest &request) {
 
-  out << "Method: " << request.getMethod() << std::endl;
+  out << "Method: " << to_string(request.getMethod()) << std::endl;
   out << "URI: " << request.getURI() << std::endl;
   out << "Version: " << request.getVersion() << std::endl;
   out << "Headers: " << std::endl;

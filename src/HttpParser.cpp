@@ -1,4 +1,5 @@
 #include "../include/HttpParser.hpp"
+#include "../include/HttpMethod.hpp"
 
 HttpParser::~HttpParser() {}
 
@@ -67,6 +68,18 @@ void HttpParser::parseHeaders() {
 
 }
 
+HttpMethod parseMethod(const std::string& method) {
+
+  if (method == "GET")
+    return HttpMethod::GET;
+  if (method == "POST")
+    return HttpMethod::POST;
+  if (method == "DELETE")
+    return HttpMethod::DELETE;
+  else
+    return HttpMethod::UNKNOWN;
+
+}
 
 bool HttpParser::parseRequestLine(HttpRequest& request){
   
@@ -83,12 +96,26 @@ bool HttpParser::parseRequestLine(HttpRequest& request){
   std::string method = firstLine.substr(0, firstSpace);
   std::string uri = firstLine.substr(firstSpace + 1, secondSpace - firstSpace - 1);
   std::string version = firstLine.substr(secondSpace + 1);
-  request.setMethod(method);
+
+  request.setMethod(parseMethod(method));
   request.setURI(uri);
   request.setVersion(version);
   
   return true;
 }
+
+
+// HttpMethod parseMethod(const std::string& method)
+// {
+//     static const std::unordered_map<std::string, HttpMethod> methods{
+//         {"GET", HttpMethod::GET},
+//         {"POST", HttpMethod::POST},
+//         {"DELETE", HttpMethod::DELETE}
+//     };
+
+//     auto it = methods.find(method);
+//     return (it != methods.end()) ? it->second : HttpMethod::UNKNOWN;
+// }
 
 // std::vector<std::string> HttpParser::split_lines(const std::string& text) {
 
