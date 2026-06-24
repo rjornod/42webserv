@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <iostream>
 #include "HttpRequest.hpp"
 #include "../interfaces/IHttpParser.hpp"
@@ -18,8 +19,10 @@ class HttpParser : public IHttpParser {
 
     HttpRequest parse();
     void splitHeadersBody();
-    std::vector<std::string> split_lines(const std::string& text);
-    bool parseStartLine(HttpRequest& request);
+    void parseHeaders();
+    bool parseRequestLine(HttpRequest& request);
+    // std::vector<std::string> split_lines(const std::string& text);
+    // bool parseStartLine(HttpRequest& request);
 
   private:
 
@@ -27,6 +30,6 @@ class HttpParser : public IHttpParser {
     std::string m_headersString;
     std::string m_body;
     std::vector<std::string> m_startLine;
-    std::vector<std::string> m_headers;
+    std::unordered_map<std::string, std::string> m_headers;
 
 };
