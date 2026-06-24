@@ -20,7 +20,7 @@ class ServerConfig {
 			std::cout << "ServerConfig object destroyed" <<std::endl;
 		};
 		void setDefaultValues() {
-			m_port = 8081;
+			m_port = 8080;
 			m_host = "127.0.0.1";
 			m_serverName = "Test";
 			m_clientMaxBodySize = 3500;

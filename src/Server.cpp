@@ -5,11 +5,17 @@
 #include <string>
 #include <ctime>			// ctime
 #include <sstream>		//ostringstream
-#include <iterator>		// distance()
 #include <algorithm>	// std::find
 #include <csignal>		//signal()
 #include "Server.hpp"
 #include "Client.hpp"
+#define RED     "\x1b[31m"
+#define GREEN   "\x1b[32m"
+#define YELLOW  "\x1b[33m"
+#define BLUE    "\x1b[34m"
+#define MAGENTA "\x1b[35m"
+#define CYAN    "\x1b[36m"
+#define RESET   "\x1b[0m"
 
 volatile sig_atomic_t serverRunning = true;
 
@@ -63,7 +69,7 @@ int Server::serverSetup() {
 		perror("listen");
 		return 1;
 	}
-	std::cout << "[ SERVER IS LISTENING ]" << std::endl;
+	std::cout << BLUE << "[ SERVER IS LISTENING ]" << RESET << std::endl;
 	return 0;
 }
 
@@ -73,6 +79,7 @@ bool Server::recieveRequest(Client& client) {
 	// TO DO: check for errors in recv (-1 and 0) and remove client on error
 	bytes = recv(client.getClientFd(), buffer, sizeof(buffer), 0);
 	if (bytes > 0) {
+		client.setClientState(READING_REQUEST);
 		client.appendToBuffer(buffer, bytes, RECIEVE); // the data appended to the buffer here will be the request
 		/**
 		 ** The buffer should keep being appended to until the request is complete.
@@ -83,11 +90,14 @@ bool Server::recieveRequest(Client& client) {
 		 ** The response should then be built on a new string (?) to then be sent to the client
 		 * 
 		 **/
-
+		client.setClientState(REQUEST_COMPLETE);
 		// this loop should only happen AFTER the full request has come in
-		if (buildResponse(client))																// check if build response gave an error
-			return true;
-		// std::cout <<"-------------------" << client.getClientRecieveBuffer() << "_____________________" << std::endl;
+		if (buildResponse(client)){																// check if build response gave an error
+			std::cout << "build response error with fd: "<< client.getClientFd() <<" \n";
+			return true;}
+		
+		std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  client.getClientFd() << RESET << "-------------------" << std::endl;
+		std::cout << client.getClientRecieveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;
 		for (int i = 1; i < m_connectedFds.size(); i++) {					// loop that goes through every member of the pollfd struct 
 			if (m_connectedFds[i].fd == client.getClientFd()) {	
 				m_connectedFds[i].events |= POLLOUT; 									// |= bitwise OR operator, adds POLLOUT to the list of flags to watch out for
@@ -98,8 +108,7 @@ bool Server::recieveRequest(Client& client) {
 	if (bytes == 0) {
 		time_t timestamp;
 		time(&timestamp);
-		std::cout << ctime(&timestamp);					// displays the exact time a client disconnected
-		std::cout << client.getClientIp() << " disconnected\n" << std::endl;
+		std::cout << client.getClientIp() << RED << " disconnected at:\n" << RESET << ctime(&timestamp) <<  std::endl;
 		return true;
 	}
 	if (bytes < 0) {
@@ -126,7 +135,8 @@ void Server::eraseClient(int fd) {
 			m_connectedFds.pop_back();										// erases the last element in the vector, which is now the disconnected client
 			break ; 																			// break after removal to not keep scanning the vector
 		}
-	}							
+	}		
+	std::cout << RED << "Clients connected: " << RESET << m_connectedClients.size() << std::endl;
 }
 
 bool Server::readFile(Client& client) {
@@ -154,8 +164,11 @@ bool Server::readFile(Client& client) {
 
 bool Server::buildResponse(Client& client) {
 	std::string headers;
-	if (readFile(client))							// check if readFile returned an error
-		return true;
+	client.setClientState(BUILDING_RESPONSE);
+	if (readFile(client)) {							// check if readFile returned an error
+		std::cout << "readfile error" << std::endl;
+		return true; 
+	}
 	headers += "HTTP/1.1 200 OK\r\n";
 	headers += "Content-Type: text/html\r\n";
 	headers += "Content-Length: " + std::to_string(client.getClientSendBuffer().size()) + "\r\n";
@@ -167,14 +180,14 @@ bool Server::buildResponse(Client& client) {
 
 bool Server::sendResponse(Client& client) {
 	size_t 	sentBytes = 0;
-	size_t	offset = client.getBytesSent();
-	size_t	remaining = client.getClientSendBuffer().size() - offset;																			// calculates the remaining bytes we need to send
-	sentBytes = send(client.getClientFd(), client.getClientSendBuffer().c_str() + offset, remaining, 0); 	// it makes sure to only the data we havent sent if spread among multiple calls
+	client.setBytesLeftToSend(client.getClientSendBuffer().size() - client.getBytesSent());					// calculates the remaining bytes we need to send
+	sentBytes = send(client.getClientFd(), client.getClientSendBuffer().c_str() + client.getBytesSent(), client.getBytesLeftToSend(), 0); 	// makes sure to only send the data we havent sent (if spread among multiple calls)
 	if (sentBytes > 0) {
-		//  std::cout << client.getClientSendBuffer() << std::endl;
+		// std::cout << YELLOW << "sent bytes: " << sentBytes << RESET << std::endl;
 		 client.setBytesSent(client.getBytesSent() + sentBytes);
 		 if (client.getBytesSent() == client.getClientSendBuffer().size()) {
 			client.getClientSendBuffer().clear();								// sendBuffer gets cleared if we finished sending everything
+			client.getClientRecieveBuffer().clear();						// recieveBuffer also gets cleared
 			client.setBytesSent(0);															// bytesSent gets reset if we finished sending everything
 		 }
 	}
@@ -182,15 +195,17 @@ bool Server::sendResponse(Client& client) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK) {				// if there is no more data to send at the moment, we ignore these errors
 			return false;   
 		}
-		perror("send()");
-		return true;
+		else {
+			perror("send()");
+			return true;
+		}
 	}
 	return false;
 }
 
 int Server::serverCore() {
+	signal(SIGINT, signalHandler);
 	while (serverRunning) {
-		signal(SIGINT, signalHandler);
 		int clientFd;
 		int returnValue = poll(m_connectedFds.data(), m_connectedFds.size(), -1); // timeout set to -1 for an infinite timeout
 		if (returnValue < 0) {
@@ -205,7 +220,7 @@ int Server::serverCore() {
 				clientFd = accept(m_tcpServerFd, 
 									 reinterpret_cast<sockaddr *>(&m_clientAddress), &m_clientAddressLen);
 				if (clientFd < 0) {
-					if (errno == EAGAIN || errno == EWOULDBLOCK)						// when there is no more clients to accept() it returns -1 with these errnos. they are not real errors so we break to keep checking for clients without failure
+					if (errno == EAGAIN || errno == EWOULDBLOCK)						// when there are no more clients to accept() it returns -1 with these errnos. they are not real errors so we break to keep checking for clients without failure
 						break;
 					perror("accept");
 					break;
@@ -221,9 +236,12 @@ int Server::serverCore() {
 						close(clientFd);
 						continue;
 				}
-				m_connectedFds.push_back(pollfd{clientFd, POLLIN, 0});																		// creates a new pollfd struct initialized with the clientFd and inserts it in the poll struct
-				std::cout << "Client connected " << inet_ntoa(m_clientAddress.sin_addr) << ":" 
+				m_connectedFds.push_back(pollfd{clientFd, POLLIN, 0}); 		// creates a new pollfd struct initialized with the clientFd and inserts it in the poll struct
+				time_t timestamp;
+				time(&timestamp);
+				std::cout << GREEN << "New client connected: " << RESET << inet_ntoa(m_clientAddress.sin_addr) << ":" 
 				<< ntohs(m_clientAddress.sin_port) << std::endl;
+				std::cout << ctime(&timestamp) << std::endl;					// displays the exact time a client connected											
 				/* creates a client object directly on m_connectedClients and initializes the fd and ip address */
 				m_connectedClients.try_emplace(clientFd, clientFd, inet_ntoa(m_clientAddress.sin_addr));	// only inserts if clientFd is not present. clientfd is the map key, clientFd and inet_ntoa() are sent to the Client constructor
 			}
@@ -241,6 +259,7 @@ int Server::serverCore() {
             if (recieveRequest(it->second)) {																							// it->second passes the client object to recieve. it->first would pass the fd 
 							eraseClient(m_connectedFds[i].fd);
 							i--;
+							continue;
 						} 																									
         }
 			}
@@ -252,20 +271,14 @@ int Server::serverCore() {
 						i--;
 						continue;
 					}
-					if (it->second.getClientSendBuffer().empty())
-						m_connectedFds[i].events = POLLIN;					
+					if (it->second.getClientSendBuffer().empty()){																	// if we finished sending our response we add POLLIN to events to again listen for data being sent
+						m_connectedFds[i].events = POLLIN;	
+					}				
 					else 
-						m_connectedFds[i].events = POLLIN | POLLOUT;
+						m_connectedFds[i].events = POLLOUT;																						// if we didnt finish sending everything, keep POLLOUT in events to keep sending data
 					}
 			}
 		}
 	}
 	return 0;
 }
-
-/*
-the server seems to block after two browser windows open on the index.html
-after ctrl c i can see all the objects that were created being destroyed
-i cant see the objects being created
-if i wait a bit after the first two clients connect, the second one times out and its possible to connect other clients after this
-*/
