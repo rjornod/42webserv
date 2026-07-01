@@ -40,13 +40,13 @@ class Server {
 			return 0;
 		}
 		const std::vector<pollfd> &getConnectedFds() const {return m_connectedFds;}
-
 		int 				serverSetup();
 		int 				connections();
 		int 				serverCore();
-		void 				recieveRequest(Client& client);
+		bool 				recieveRequest(Client& client);
+		bool				buildResponse(Client& client);
+		bool 				sendResponse(Client& client);
 		void				eraseClient(int fd);
-		void 				sendResponse(Client& client);
 		void				closeAllFds();
-		std::string	readFile(Client& client);
+		bool				readFile(Client& client);
 };

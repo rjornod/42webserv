@@ -5,11 +5,17 @@
 #include <string>
 #include <ctime>			// ctime
 #include <sstream>		//ostringstream
-#include <iterator>		// distance()
 #include <algorithm>	// std::find
 #include <csignal>		//signal()
 #include "Server.hpp"
 #include "Client.hpp"
+#define RED     "\x1b[31m"
+#define GREEN   "\x1b[32m"
+#define YELLOW  "\x1b[33m"
+#define BLUE    "\x1b[34m"
+#define MAGENTA "\x1b[35m"
+#define CYAN    "\x1b[36m"
+#define RESET   "\x1b[0m"
 
 volatile sig_atomic_t serverRunning = true;
 
@@ -20,7 +26,6 @@ void	Server:: closeAllFds() {
 	}
 }
 
-// TO DO: Handle signals to not leak fds or memory
 void signalHandler(int sig) {
 	std::cout << "Program interrupted by SIGINT" <<std::endl;
 	serverRunning = false;
@@ -64,17 +69,18 @@ int Server::serverSetup() {
 		perror("listen");
 		return 1;
 	}
-	std::cout << "[ SERVER IS LISTENING ]" << std::endl;
+	std::cout << BLUE << "[ SERVER IS LISTENING ]" << RESET << std::endl;
 	return 0;
 }
 
-void Server::recieveRequest(Client& client) {
+bool Server::recieveRequest(Client& client) {
 	ssize_t	bytes;
 	char		buffer[4096];
 	// TO DO: check for errors in recv (-1 and 0) and remove client on error
 	bytes = recv(client.getClientFd(), buffer, sizeof(buffer), 0);
 	if (bytes > 0) {
-		client.appendToBuffer(buffer, bytes); // the data appended to the buffer here will be the request
+		client.setClientState(READING_REQUEST);
+		client.appendToBuffer(buffer, bytes, RECIEVE); // the data appended to the buffer here will be the request
 		/**
 		 ** The buffer should keep being appended to until the request is complete.
 		 ** I guess the HTTP parsing would go in here.
@@ -84,8 +90,14 @@ void Server::recieveRequest(Client& client) {
 		 ** The response should then be built on a new string (?) to then be sent to the client
 		 * 
 		 **/
-
+		client.setClientState(REQUEST_COMPLETE);
 		// this loop should only happen AFTER the full request has come in
+		if (buildResponse(client)){																// check if build response gave an error
+			std::cout << "build response error with fd: "<< client.getClientFd() <<" \n";
+			return true;}
+		
+		std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  client.getClientFd() << RESET << "-------------------" << std::endl;
+		std::cout << client.getClientRecieveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;
 		for (int i = 1; i < m_connectedFds.size(); i++) {					// loop that goes through every member of the pollfd struct 
 			if (m_connectedFds[i].fd == client.getClientFd()) {	
 				m_connectedFds[i].events |= POLLOUT; 									// |= bitwise OR operator, adds POLLOUT to the list of flags to watch out for
@@ -96,28 +108,22 @@ void Server::recieveRequest(Client& client) {
 	if (bytes == 0) {
 		time_t timestamp;
 		time(&timestamp);
-		std::cout << ctime(&timestamp);					// displays the exact time a client disconnected
-		std::cout << client.getClientIp() << " disconnected\n" << std::endl;
-		eraseClient(client.getClientFd());
-		return;
+		std::cout << client.getClientIp() << RED << " disconnected at:\n" << RESET << ctime(&timestamp) <<  std::endl;
+		return true;
 	}
 	if (bytes < 0) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK)  // when a socket is set to non blocking, operations that would wait instead return one of these error immediately. Ignore for non blocking behavior
-			return;
+			return false;
 		perror("recv");
-		eraseClient(client.getClientFd());
-		return;
+		return true;
 	}
+	return false;
 }
 
 int Server::connections() {
 	m_connectedFds.emplace_back(pollfd{m_tcpServerFd, POLLIN, 0}); // add the listening socket fd to the poll list 
 	m_connectedFds[0].events = (POLLIN);
 	return 0;
-}
-
-void debugMessage(std::string msg) {
-	std::cout << msg << std::endl;
 }
 
 void Server::eraseClient(int fd) {
@@ -129,69 +135,77 @@ void Server::eraseClient(int fd) {
 			m_connectedFds.pop_back();										// erases the last element in the vector, which is now the disconnected client
 			break ; 																			// break after removal to not keep scanning the vector
 		}
-	}							
+	}		
+	std::cout << RED << "Clients connected: " << RESET << m_connectedClients.size() << std::endl;
 }
 
-std::string Server::readFile(Client& client) {
-	std::string string;
+bool Server::readFile(Client& client) {
+	// std::string string;
 	int fileFd = open("www/index.html", O_RDONLY);
 	if (fileFd < 0) {
 		std::cout << "error" << std::endl;
-		eraseClient(client.getClientFd());
-		return string; // TO DO: FIX THIS RETURN
+		return true;
 	}
-	char buffer[1086];
+	char buffer[100];
+	ssize_t bytes;
 
-	while (true)
+	while ((bytes = read(fileFd, buffer, sizeof(buffer))) > 0)
 	{
-		ssize_t bytes = read(fileFd, buffer, sizeof(buffer));
-		if (bytes > 0) {
-			// std::cout << buffer << std::endl;
-			string.append(buffer, static_cast<size_t>(bytes));
-			continue;
-		}
-		if (bytes == 0) {
+		if (bytes > 0) 
+			client.getClientSendBuffer().append(buffer, bytes);
+		else if (bytes == 0)
 			break;
-		}
-		if (bytes == -1) {
-			eraseClient(client.getClientFd());
-		}
-		// buffer[bytes] = '\0';
-		// return string;
+		else if (bytes == -1)
+			return true;
 	}
-	// buffer[bytes] = '\0';
-	std::cout << buffer << std::endl;
 	close(fileFd);
-	return string;
+	return false;
 }
 
-void Server::sendResponse(Client& client) {
-	std::string body = readFile(client);
-	std::cout << client.getClientSendBuffer() << std::endl;
-	std::string response;
-	response += "HTTP/1.1 200 OK\r\n";
-	response += "Content-Type: text/html\r\n";
-	response += "Content-Length: " + std::to_string(body.size()) + "\r\n";
-	response += "Connection: keep-alive\r\n";
-	response += "\r\n";
-	response += body;
-	int sentBytes = 0;
-	sentBytes = send(client.getClientFd(), response.c_str(), response.size(), 0);
+bool Server::buildResponse(Client& client) {
+	std::string headers;
+	client.setClientState(BUILDING_RESPONSE);
+	if (readFile(client)) {							// check if readFile returned an error
+		std::cout << "readfile error" << std::endl;
+		return true; 
+	}
+	headers += "HTTP/1.1 200 OK\r\n";
+	headers += "Content-Type: text/html\r\n";
+	headers += "Content-Length: " + std::to_string(client.getClientSendBuffer().size()) + "\r\n";
+	headers += "Connection: keep-alive\r\n";
+	headers += "\r\n";
+	client.getClientSendBuffer().insert(0, headers);
+	return false;
+}
+
+bool Server::sendResponse(Client& client) {
+	size_t 	sentBytes = 0;
+	client.setBytesLeftToSend(client.getClientSendBuffer().size() - client.getBytesSent());					// calculates the remaining bytes we need to send
+	sentBytes = send(client.getClientFd(), client.getClientSendBuffer().c_str() + client.getBytesSent(), client.getBytesLeftToSend(), 0); 	// makes sure to only send the data we havent sent (if spread among multiple calls)
 	if (sentBytes > 0) {
-		 std::cout << "Sent message successfully" << std::endl;
+		// std::cout << YELLOW << "sent bytes: " << sentBytes << RESET << std::endl;
+		 client.setBytesSent(client.getBytesSent() + sentBytes);
+		 if (client.getBytesSent() == client.getClientSendBuffer().size()) {
+			client.getClientSendBuffer().clear();								// sendBuffer gets cleared if we finished sending everything
+			client.getClientRecieveBuffer().clear();						// recieveBuffer also gets cleared
+			client.setBytesSent(0);															// bytesSent gets reset if we finished sending everything
+		 }
 	}
-	else if (sentBytes == 0 || sentBytes == -1) {
-		eraseClient(client.getClientFd());
-		perror("send()");
-		return ;
+	else if (sentBytes < 0) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK) {				// if there is no more data to send at the moment, we ignore these errors
+			return false;   
+		}
+		else {
+			perror("send()");
+			return true;
+		}
 	}
-	// TO DO: clear buffer only after all bytes are confirmed to have been sent
-	client.getClientSendBuffer().clear();
+	return false;
 }
 
 int Server::serverCore() {
+	signal(SIGINT, signalHandler);
 	while (serverRunning) {
-		signal(SIGINT, signalHandler);
 		int clientFd;
 		int returnValue = poll(m_connectedFds.data(), m_connectedFds.size(), -1); // timeout set to -1 for an infinite timeout
 		if (returnValue < 0) {
@@ -206,7 +220,7 @@ int Server::serverCore() {
 				clientFd = accept(m_tcpServerFd, 
 									 reinterpret_cast<sockaddr *>(&m_clientAddress), &m_clientAddressLen);
 				if (clientFd < 0) {
-					if (errno == EAGAIN || errno == EWOULDBLOCK)						// when there is no more clients to accept() it returns -1 with these errnos. they are not real errors so we break to keep checking for clients without failure
+					if (errno == EAGAIN || errno == EWOULDBLOCK)						// when there are no more clients to accept() it returns -1 with these errnos. they are not real errors so we break to keep checking for clients without failure
 						break;
 					perror("accept");
 					break;
@@ -222,9 +236,12 @@ int Server::serverCore() {
 						close(clientFd);
 						continue;
 				}
-				m_connectedFds.push_back(pollfd{clientFd, POLLIN, 0});																		// creates a new pollfd struct initialized with the clientFd and inserts it in the poll struct
-				std::cout << "Client connected " << inet_ntoa(m_clientAddress.sin_addr) << ":" 
+				m_connectedFds.push_back(pollfd{clientFd, POLLIN, 0}); 		// creates a new pollfd struct initialized with the clientFd and inserts it in the poll struct
+				time_t timestamp;
+				time(&timestamp);
+				std::cout << GREEN << "New client connected: " << RESET << inet_ntoa(m_clientAddress.sin_addr) << ":" 
 				<< ntohs(m_clientAddress.sin_port) << std::endl;
+				std::cout << ctime(&timestamp) << std::endl;					// displays the exact time a client connected											
 				/* creates a client object directly on m_connectedClients and initializes the fd and ip address */
 				m_connectedClients.try_emplace(clientFd, clientFd, inet_ntoa(m_clientAddress.sin_addr));	// only inserts if clientFd is not present. clientfd is the map key, clientFd and inet_ntoa() are sent to the Client constructor
 			}
@@ -239,15 +256,27 @@ int Server::serverCore() {
 			if (m_connectedFds[i].revents & POLLIN) { 																					// socket has fresh data for us
  				auto it = m_connectedClients.find(m_connectedFds[i].fd);
         if (it != m_connectedClients.end()) {
-            recieveRequest(it->second); 																									// it->second passes the client object to recieve. it->first would pass the fd 
+            if (recieveRequest(it->second)) {																							// it->second passes the client object to recieve. it->first would pass the fd 
+							eraseClient(m_connectedFds[i].fd);
+							i--;
+							continue;
+						} 																									
         }
 			}
 			if (m_connectedFds[i].revents & POLLOUT) { 																					// the socket is ready to recieve data
 				auto it = m_connectedClients.find(m_connectedFds[i].fd);
         if (it != m_connectedClients.end()) {
-					sendResponse(it->second);
-					m_connectedFds[i].events = POLLIN;																							// TO DO: should only be done after the full send-buffer is cleared. resets the events to lookout for to POLLIN
-				}
+					if (sendResponse(it->second)) {
+						eraseClient(m_connectedFds[i].fd);
+						i--;
+						continue;
+					}
+					if (it->second.getClientSendBuffer().empty()){																	// if we finished sending our response we add POLLIN to events to again listen for data being sent
+						m_connectedFds[i].events = POLLIN;	
+					}				
+					else 
+						m_connectedFds[i].events = POLLOUT;																						// if we didnt finish sending everything, keep POLLOUT in events to keep sending data
+					}
 			}
 		}
 	}

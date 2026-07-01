@@ -26,10 +26,10 @@ class ServerConfig {
 			m_clientMaxBodySize = 3500;
 			locationConfigs.emplace_back(); // calls default constructor of LocationConfig
 		}
-		int 				getPort() const { return m_port; } 
-		std::string getHost() const { return m_host; }
-		std::string getServerName() const { return m_serverName; }
-		int 				getClientMaxBody() const { return m_clientMaxBodySize; }
+		int 				getPort() const 					{ return m_port; } 
+		std::string getHost() const 					{ return m_host; }
+		std::string getServerName() const 		{ return m_serverName; }
+		int 				getClientMaxBody() const 	{ return m_clientMaxBodySize; }
 		void 				printValues() const {
 			std::cout << "PORT: " << m_port << "\nHOST: " << m_host << "\nSERVER NAME: " << m_serverName << "\nCLIENT MAX BODY SIZE: " << m_clientMaxBodySize << std::endl;
 		}
