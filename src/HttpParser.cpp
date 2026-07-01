@@ -1,7 +1,7 @@
 #include "../include/HttpParser.hpp"
 #include "../include/HttpMethod.hpp"
 
-HttpParser::~HttpParser() {}
+// HttpParser::~HttpParser() {}
 
 HttpRequest HttpParser::parse() {
 

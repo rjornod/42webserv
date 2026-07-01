@@ -12,7 +12,7 @@ class HttpParser : public IHttpParser {
   public:
 
     HttpParser(std::string reqText) : m_reqText(reqText) {}
-    ~HttpParser();
+    ~HttpParser() {}
 
     std::string getHeaders() {return m_headersString;}
     std::string getBody() {return m_body;}
