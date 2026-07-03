@@ -7,12 +7,15 @@ HttpRequest HttpParser::parse() {
 
   HttpRequest request;
 
-  this->parseRequestLine(request);
-  this->splitHeadersBody();
-  this->parseHeaders();
-  request.setHeaders(this->m_headers);
-  request.setBody(this->m_body);
-
+  parseRequestLine(request);
+  splitHeadersBody();
+  parseHeaders();
+  request.setHeaders(m_headers);
+  request.setBody(m_body);
+  int contentLength = -1;
+  if (m_headers.find("Content-Length") != m_headers.end())
+    int contentLength = stoi(m_headers["Content-Lenght"]);
+  std::cout << "Content-Length: " << contentLength << std::endl;
   return request;
 
 }
