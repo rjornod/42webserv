@@ -36,7 +36,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -Iinclude -c $< -o $@
 
-parserTest: $(P_TEST)
+ptest: $(P_TEST)
 
 $(P_TEST): $(OBJ_DIR)/testParser.o $(OBJ_CORE)
 	$(CXX) $(CXXFLAGS) -Iinclude -Iinterfaces $(OBJ_DIR)/testParser.o $(OBJ_CORE) -o $(P_TEST)

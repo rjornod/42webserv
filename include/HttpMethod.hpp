@@ -1,10 +1,10 @@
 #pragma once
 
 enum class HttpMethod {
+    UNKNOWN,
     GET,
     POST,
-    DELETE,
-    UNKNOWN
+    DELETE
 };
 
 constexpr const char* to_string(HttpMethod method)
