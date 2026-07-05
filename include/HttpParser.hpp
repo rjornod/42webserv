@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+// #include <algorithm>
 #include <unordered_map>
 #include <iostream>
 #include "HttpRequest.hpp"
@@ -12,25 +13,26 @@ class HttpParser : public IHttpParser {
 
   private:
 
-    std::string m_reqText;
-    std::string m_headersString;
+    // std::string m_reqText;
+    // std::string m_headersString;
+    // std::vector<std::string> m_startLine;
+    std::string m_buffer;
     std::string m_body;
-    std::vector<std::string> m_startLine;
     std::unordered_map<std::string, std::string> m_headers;
     bool m_reqLine;
     int m_expected;
     int m_available;
-    int m_contentLen;
+    // int m_contentLen;
     HttpParserState m_state;
     HttpRequest m_request;
 
   public:
 
-    HttpParser() : m_reqLine(false) {}
-    HttpParser(std::string reqText) : m_reqText(reqText) {}
+    HttpParser() : m_reqLine(false), m_expected(-1) {}
+    // HttpParser(std::string reqText) : m_reqText(reqText) {}
     ~HttpParser() {}
 
-    std::string getHeadersString() {return m_headersString;}
+    // std::string getHeadersString() {return m_headersString;}
     std::unordered_map<std::string, std::string> getHeaders() const {return m_headers;}
     std::string getBody() {return m_body;}
     int getExpected() const {return m_expected;}
@@ -40,15 +42,15 @@ class HttpParser : public IHttpParser {
 
     void setParserState(HttpParserState state) {m_state = state;}
 
-    HttpRequest parse();
+    // HttpRequest parse();
     bool partialParse(const std::string& reqString);
-    void splitHeadersBody();
-    void parseHeaders();
+    // void splitHeadersBody();
     void parsePartHeaders(int start, const std::string& reqString);
-    bool parseRequestLine(HttpRequest& request);
     bool parseReqLine(HttpRequest& request, const std::string& reqString);
     void buildRequest();
     void printHeaders();
+    // void parseHeaders();
+    // bool parseRequestLine(HttpRequest& request);
     // std::vector<std::string> split_lines(const std::string& text);
     // bool parseStartLine(HttpRequest& request);
 };
