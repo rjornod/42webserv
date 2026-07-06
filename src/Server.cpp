@@ -73,20 +73,20 @@ int Server::serverSetup() {
 	return 0;
 }
 
-bool Server::recieveRequest(Client& client) {
+bool Server::receiveRequest(Client& client) {
 	ssize_t	bytes;
 	char		buffer[4096];
 	// TO DO: check for errors in recv (-1 and 0) and remove client on error
 	bytes = recv(client.getClientFd(), buffer, sizeof(buffer), 0);
 	if (bytes > 0) {
 		client.setClientState(READING_REQUEST);
-		client.appendToBuffer(buffer, bytes, RECIEVE); // the data appended to the buffer here will be the request
+		client.appendToBuffer(buffer, bytes, RECEIVE); // the data appended to the buffer here will be the request
 		/**
 		 ** The buffer should keep being appended to until the request is complete.
 		 ** I guess the HTTP parsing would go in here.
 		 ** Once the requested is confirmed to be complete, it should mark the socket for POLLOUT
 		 * which means we are telling the kernel that we want to be notified as soon as the socket
-		 * is ready to recieve data
+		 * is ready to receive data
 		 ** The response should then be built on a new string (?) to then be sent to the client
 		 * 
 		 **/
@@ -97,7 +97,7 @@ bool Server::recieveRequest(Client& client) {
 			return true;}
 		
 		std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  client.getClientFd() << RESET << "-------------------" << std::endl;
-		std::cout << client.getClientRecieveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;
+		std::cout << client.getClientReceiveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;
 		for (int i = 1; i < m_connectedFds.size(); i++) {					// loop that goes through every member of the pollfd struct 
 			if (m_connectedFds[i].fd == client.getClientFd()) {	
 				m_connectedFds[i].events |= POLLOUT; 									// |= bitwise OR operator, adds POLLOUT to the list of flags to watch out for
@@ -187,7 +187,7 @@ bool Server::sendResponse(Client& client) {
 		 client.setBytesSent(client.getBytesSent() + sentBytes);
 		 if (client.getBytesSent() == client.getClientSendBuffer().size()) {
 			client.getClientSendBuffer().clear();								// sendBuffer gets cleared if we finished sending everything
-			client.getClientRecieveBuffer().clear();						// recieveBuffer also gets cleared
+			client.getClientReceiveBuffer().clear();						// receiveBuffer also gets cleared
 			client.setBytesSent(0);															// bytesSent gets reset if we finished sending everything
 		 }
 	}
@@ -256,14 +256,14 @@ int Server::serverCore() {
 			if (m_connectedFds[i].revents & POLLIN) { 																					// socket has fresh data for us
  				auto it = m_connectedClients.find(m_connectedFds[i].fd);
         if (it != m_connectedClients.end()) {
-            if (recieveRequest(it->second)) {																							// it->second passes the client object to recieve. it->first would pass the fd 
+            if (receiveRequest(it->second)) {																							// it->second passes the client object to receive. it->first would pass the fd 
 							eraseClient(m_connectedFds[i].fd);
 							i--;
 							continue;
 						} 																									
         }
 			}
-			if (m_connectedFds[i].revents & POLLOUT) { 																					// the socket is ready to recieve data
+			if (m_connectedFds[i].revents & POLLOUT) { 																					// the socket is ready to receive data
 				auto it = m_connectedClients.find(m_connectedFds[i].fd);
         if (it != m_connectedClients.end()) {
 					if (sendResponse(it->second)) {

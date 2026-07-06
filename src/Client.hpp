@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 #define SEND 1
-#define RECIEVE 2
+#define RECEIVE 2
 //client states
 #define NEW_CONNECTION 3
 #define READING_REQUEST 4
@@ -16,7 +16,7 @@ class Client {
 		int 				m_clientFd;
 		std::string m_clientIp;
 		int					m_clientPort;
-		std::string	m_recieveBuffer;
+		std::string	m_receiveBuffer;
 		std::string	m_sendBuffer;
 		bool				m_keepAlive;
 		size_t			m_bytesSent;
@@ -40,7 +40,7 @@ class Client {
 		/* getters and setters */
 		const int						getClientFd() 																		{return m_clientFd;}
 		const std::string& 	getClientIp() 																		{return m_clientIp;}
-		std::string& 				getClientRecieveBuffer() 													{return m_recieveBuffer;}
+		std::string& 				getClientReceiveBuffer() 													{return m_receiveBuffer;}
 		std::string& 				getClientSendBuffer() 														{return m_sendBuffer;}
 		const bool 					getKeepAlive() 																		{return m_keepAlive;}
 		const size_t				getBytesSent()																		{return m_bytesSent;}
@@ -48,7 +48,7 @@ class Client {
 		bool								getClientState() 																	{return m_clientState;}
 		void								setClientFd(int clientFd) 												{m_clientFd = clientFd;} 
 		void								setClientIp(std::string clientIp) 								{m_clientIp = clientIp;}
-		void								setClientRecieveBuffer(std::string clientBuffer)	{m_recieveBuffer = clientBuffer;}
+		void								setClientReceiveBuffer(std::string clientBuffer)	{m_receiveBuffer = clientBuffer;}
 		void								setClientSendBuffer(std::string clientBuffer)			{m_sendBuffer = clientBuffer;}
 		void								setKeepAlive(bool keepAlive) 											{m_keepAlive = keepAlive;}
 		void								setBytesSent(size_t bytes)												{m_bytesSent = bytes;}
@@ -56,8 +56,8 @@ class Client {
 		void								setClientState(bool state)												{m_clientState = state;}
 		/* other member functions*/
 		void	appendToBuffer(std::string data, size_t len, int operation) {
-			if (operation == RECIEVE) {
-				m_recieveBuffer.append(data.c_str(), len);
+			if (operation == RECEIVE) {
+				m_receiveBuffer.append(data.c_str(), len);
 			}
 			else if (operation == SEND) {
 				m_sendBuffer.append(data.c_str(), len);
