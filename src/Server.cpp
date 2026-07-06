@@ -79,7 +79,8 @@ bool Server::receiveRequest(Client& client) {
 	// TO DO: check for errors in recv (-1 and 0) and remove client on error
 	bytes = recv(client.getClientFd(), buffer, sizeof(buffer), 0);
 	if (bytes > 0) {
-		client.setClientState(READING_REQUEST);
+		client.setLastActivity();
+		client.setClientState(ClientState::ReadingRequest);
 		client.appendToBuffer(buffer, bytes, RECEIVE); // the data appended to the buffer here will be the request
 		/**
 		 ** The buffer should keep being appended to until the request is complete.
@@ -90,7 +91,7 @@ bool Server::receiveRequest(Client& client) {
 		 ** The response should then be built on a new string (?) to then be sent to the client
 		 * 
 		 **/
-		client.setClientState(REQUEST_COMPLETE);
+		client.setClientState(ClientState::RequestFinished);
 		// this loop should only happen AFTER the full request has come in
 		if (buildResponse(client)){																// check if build response gave an error
 			std::cout << "build response error with fd: "<< client.getClientFd() <<" \n";
@@ -164,7 +165,7 @@ bool Server::readFile(Client& client) {
 
 bool Server::buildResponse(Client& client) {
 	std::string headers;
-	client.setClientState(BUILDING_RESPONSE);
+	client.setClientState(ClientState::BuildingResponse);
 	if (readFile(client)) {							// check if readFile returned an error
 		std::cout << "readfile error" << std::endl;
 		return true; 
@@ -181,15 +182,17 @@ bool Server::buildResponse(Client& client) {
 bool Server::sendResponse(Client& client) {
 	size_t 	sentBytes = 0;
 	client.setBytesLeftToSend(client.getClientSendBuffer().size() - client.getBytesSent());					// calculates the remaining bytes we need to send
+	client.setClientState(ClientState::SendingResponse);
 	sentBytes = send(client.getClientFd(), client.getClientSendBuffer().c_str() + client.getBytesSent(), client.getBytesLeftToSend(), 0); 	// makes sure to only send the data we havent sent (if spread among multiple calls)
 	if (sentBytes > 0) {
-		// std::cout << YELLOW << "sent bytes: " << sentBytes << RESET << std::endl;
 		 client.setBytesSent(client.getBytesSent() + sentBytes);
 		 if (client.getBytesSent() == client.getClientSendBuffer().size()) {
-			client.getClientSendBuffer().clear();								// sendBuffer gets cleared if we finished sending everything
-			client.getClientReceiveBuffer().clear();						// receiveBuffer also gets cleared
-			client.setBytesSent(0);															// bytesSent gets reset if we finished sending everything
-		 }
+			client.getClientSendBuffer().clear();																// sendBuffer gets cleared if we finished sending everything
+			client.getClientReceiveBuffer().clear();														// receiveBuffer also gets cleared
+			client.setBytesSent(0);																							// bytesSent gets reset if we finished sending everything
+			client.setClientState(ClientState::ReadingRequest);									// reset ClientState back to readingRequest after response is sent
+			// client.setLastActivity(); 																				TO DO: figure out if we need to update the timestamp here
+		}
 	}
 	else if (sentBytes < 0) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK) {				// if there is no more data to send at the moment, we ignore these errors
@@ -207,7 +210,7 @@ int Server::serverCore() {
 	signal(SIGINT, signalHandler);
 	while (serverRunning) {
 		int clientFd;
-		int returnValue = poll(m_connectedFds.data(), m_connectedFds.size(), -1); // timeout set to -1 for an infinite timeout
+		int returnValue = poll(m_connectedFds.data(), m_connectedFds.size(), 5000); // poll fires up every 5 miliseconds to check on all the clients
 		if (returnValue < 0) {
 			if (errno == EINTR) {
 						continue;

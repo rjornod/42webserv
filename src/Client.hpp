@@ -1,12 +1,10 @@
 #pragma once
+
 #include <iostream>
+#include "ClientState.hpp"
 #define SEND 1
 #define RECEIVE 2
 //client states
-#define NEW_CONNECTION 3
-#define READING_REQUEST 4
-#define REQUEST_COMPLETE 5
-#define BUILDING_RESPONSE 6
 #define KEEP_ALIVE 7
 #define CLOSING 8
 #define CLOSED 9
@@ -21,15 +19,16 @@ class Client {
 		bool				m_keepAlive;
 		size_t			m_bytesSent;
 		size_t			m_bytesLeftToSend;
-		bool				m_clientState;
+		ClientState	m_clientState;
+		time_t			m_lastActivity;							// stores the time since the client requested something
 	public:
-		Client(int clientFd,const std::string& clientIp) {
+		Client(int clientFd, const std::string& clientIp) {
 			m_clientFd = clientFd;
 			m_clientIp = clientIp;
 			m_keepAlive = true;
-			m_clientState = NEW_CONNECTION;
+			m_clientState = ClientState::ReadingRequest;
 			m_bytesSent = 0;
-			m_bytesSent = 0;
+			m_lastActivity = time(nullptr);
 			std::cout << "Client Object created\nClientFd: " << m_clientFd 
 								<< "\nClient Ip: " << m_clientIp << std::endl;
 
@@ -45,7 +44,8 @@ class Client {
 		const bool 					getKeepAlive() 																		{return m_keepAlive;}
 		const size_t				getBytesSent()																		{return m_bytesSent;}
 		const size_t				getBytesLeftToSend()															{return m_bytesLeftToSend;}
-		bool								getClientState() 																	{return m_clientState;}
+		ClientState					getClientState() 																	{return m_clientState;}
+		time_t							getLastActivity()																	{return m_lastActivity;}
 		void								setClientFd(int clientFd) 												{m_clientFd = clientFd;} 
 		void								setClientIp(std::string clientIp) 								{m_clientIp = clientIp;}
 		void								setClientReceiveBuffer(std::string clientBuffer)	{m_receiveBuffer = clientBuffer;}
@@ -53,7 +53,8 @@ class Client {
 		void								setKeepAlive(bool keepAlive) 											{m_keepAlive = keepAlive;}
 		void								setBytesSent(size_t bytes)												{m_bytesSent = bytes;}
 		void								setBytesLeftToSend(size_t bytes)									{m_bytesLeftToSend = bytes;}
-		void								setClientState(bool state)												{m_clientState = state;}
+		void								setClientState(ClientState state)									{m_clientState = state;}
+		void 								setLastActivity()																	{m_lastActivity = time(nullptr)}
 		/* other member functions*/
 		void	appendToBuffer(std::string data, size_t len, int operation) {
 			if (operation == RECEIVE) {
