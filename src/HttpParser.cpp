@@ -123,7 +123,6 @@ bool HttpParser::parseHeaders() {
 
     //Extract one header from the buffer
     std::string header = m_buffer.substr(0, end);
-    std::cout << "Header found: " << std::endl << header << std::endl;
     // Consume the header from the buffer
     m_buffer.erase(0, end + 2);
 
@@ -139,7 +138,6 @@ bool HttpParser::parseHeaders() {
       return false;
     }
     m_headers.insert({getHeaderName(header), getHeaderValue(header)});
-    printHeaders();
   }
 }
 

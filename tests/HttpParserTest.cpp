@@ -5,7 +5,7 @@
 class HttpParserTest : public ::testing::Test {
 
   protected:
-  
+
     std::string validGetRequest;
     std::string requestHelloWorld;
 
@@ -43,5 +43,48 @@ TEST_F(HttpParserTest, ParsesGetRequestLine) {
     EXPECT_EQ(req.getMethod(), HttpMethod::GET);
     EXPECT_EQ(req.getURI(), "/index.html");
     EXPECT_EQ(req.getVersion(), "HTTP/1.1");
+}
+
+//TO DO -- change this test to be more general and write smaller ones to test stages
+TEST_F(HttpParserTest, ParsesRequestReceivedInChunks) {
+    HttpParser parser;
+    
+    std::string reqLine0 =
+        "GET /index.html";
+
+    std::string reqLine1 =
+        " HTTP/1.1\r\n";
+    
+    parser.partialParse(reqLine0);
+
+    EXPECT_EQ(parser.getParserState(), HttpParserState::REQUEST_LINE);
+
+    parser.partialParse(reqLine1);
+
+    EXPECT_EQ(parser.getRequest().getMethod(), HttpMethod::GET);
+    EXPECT_EQ(parser.getRequest().getURI(), "/index.html");
+    EXPECT_EQ(parser.getRequest().getVersion(), "HTTP/1.1");
+    EXPECT_EQ(parser.getParserState(), HttpParserState::HEADERS);
+
+    std::string headers0 = 
+    "Host: loca";
+    
+    std::string headers1 =
+        "lhost\r\n"
+        "User-Agent: Test\r\n";
+
+    std::string end = 
+        "\r\n";
+    
+    parser.partialParse(headers0);
+    parser.partialParse(headers1);
+
+    EXPECT_EQ(parser.getRequest().getHeaders().size(), 0);
+    EXPECT_EQ(parser.getParserState(), HttpParserState::HEADERS);
+
+    parser.partialParse(end);
+
+    EXPECT_EQ(parser.getRequest().getHeaders().size(), 2);
+    EXPECT_EQ(parser.getParserState(), HttpParserState::COMPLETE);
 }
 
