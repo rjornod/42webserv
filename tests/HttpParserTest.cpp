@@ -5,40 +5,29 @@
 class HttpParserTest : public ::testing::Test {
 
   protected:
-    // HttpParser parser;
-    // HttpRequest request;
-    // std::string validGetRequest;
+  
+    std::string validGetRequest;
+    std::string requestHelloWorld;
 
-    std::string makeGoodGetRequest() {
-        return
-            "GET /index.html HTTP/1.1\r\n"
-            "Host: localhost\r\n"
-            "User-Agent: test\r\n"
-            "\r\n";
-    }
-
-    std::string makeHelloWorld() {
-        return 
+    void SetUp() override {
+        validGetRequest =
+          "GET /index.html HTTP/1.1\r\n"
+          "Host: localhost\r\n"
+          "User-Agent: Test\r\n"
+          "\r\n";
+        requestHelloWorld = 
             "GET / HTTP/1.1\r\n"
             "Host: localhost\r\n"
             "\r\n";
     }
 
 
-    // void SetUp() override {
-    //   validGetRequest =
-    //       "GET / HTTP/1.1\r\n"
-    //       "Host: localhost\r\n"
-    //       "User-Agent: Test\r\n"
-    //       "\r\n";
-    // }
-
-
 };
 
 TEST_F(HttpParserTest, ParsesSimplestRequest) {
-    HttpParser parser(makeHelloWorld());
-    HttpRequest request = parser.parse();
+    HttpParser parser;
+    parser.partialParse(requestHelloWorld);
+    HttpRequest request = parser.getRequest();
 
     EXPECT_EQ(request.getMethod(), HttpMethod::GET);
     EXPECT_EQ(request.getURI(), "/");
@@ -47,8 +36,9 @@ TEST_F(HttpParserTest, ParsesSimplestRequest) {
 }
 
 TEST_F(HttpParserTest, ParsesGetRequestLine) {
-    HttpParser parser(makeGoodGetRequest());
-    HttpRequest req = parser.parse();
+    HttpParser parser;
+    parser.partialParse(validGetRequest);
+    HttpRequest req = parser.getRequest();
 
     EXPECT_EQ(req.getMethod(), HttpMethod::GET);
     EXPECT_EQ(req.getURI(), "/index.html");
