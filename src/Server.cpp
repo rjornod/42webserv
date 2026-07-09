@@ -141,7 +141,7 @@ void Server::eraseClient(int fd) {
 
 bool Server::readFile(Client& client) {
 	// std::string string;
-	int fileFd = open("www/index.html", O_RDONLY);
+	int fileFd = open("data/www/index.html", O_RDONLY);
 	if (fileFd < 0) {
 		std::cout << "error" << std::endl;
 		return true;

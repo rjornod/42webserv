@@ -4,7 +4,7 @@ CXX = c++
 CXXFLAGS += -std=c++17
 SRC_DIR = ./src
 OBJ_DIR = ./obj
-SRC_SERV = main.cpp Server.cpp
+SRC_SERV = main.cpp Server.cpp ConfigParser.cpp ConfigTokenizer.cpp
 # SRC_CLI = client.cpp
 OBJ_SERV = $(SRC_SERV:%.cpp=$(OBJ_DIR)/%.o)
 OBJ_CLI = $(SRC_CLI:%.cpp=$(OBJ_DIR)/%.o)

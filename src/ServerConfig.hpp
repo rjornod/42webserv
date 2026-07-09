@@ -10,7 +10,6 @@ class ServerConfig {
 		std::string									m_host;
 		std::string									m_serverName;
 		int 												m_clientMaxBodySize;
-
 	public:
 		ServerConfig() {
 			std::cout << "ServerConfig object created" <<std::endl; 

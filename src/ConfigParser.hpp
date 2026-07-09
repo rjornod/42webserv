@@ -1,12 +1,20 @@
 #pragma once
 #include <iostream>
+#include <vector>
 #include "GlobalConfig.hpp"
+#define RED     "\x1b[31m"
+#define GREEN   "\x1b[32m"
+#define YELLOW  "\x1b[33m"
+#define BLUE    "\x1b[34m"
+#define MAGENTA "\x1b[35m"
+#define CYAN    "\x1b[36m"
+#define RESET   "\x1b[0m"
 
 class ConfigParser {
 	private:
-		int data; // mock data
+
 	public:
-		ConfigParser(char *pathToConfig) {};
+		ConfigParser(){} 
 		~ConfigParser() {};
-		void parseFile() { return;};
+
 };
