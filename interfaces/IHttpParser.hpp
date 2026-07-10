@@ -1,6 +1,6 @@
 #pragma once
 
-#include "HttpRequest.hpp"
+#include "../include/HttpRequest.hpp"
 
 class IHttpParser {
 
@@ -9,6 +9,6 @@ class IHttpParser {
     virtual ~IHttpParser() {}
 
     
-
+    virtual void partialParse(const std::string& chunk) = 0;
 
 };

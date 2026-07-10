@@ -2,10 +2,12 @@
 
 #include "HttpResponse.hpp"
 
-class IHttpSerializer {
+class IResponseWriter {
   
   public:
     
-    virtual ~IHttpSerializer() {}
+    virtual ~IResponseWriter() {}
+
+  
 
 };
