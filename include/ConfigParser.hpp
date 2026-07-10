@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include "GlobalConfig.hpp"
+#include "TokenType.hpp"
 #define RED     "\x1b[31m"
 #define GREEN   "\x1b[32m"
 #define YELLOW  "\x1b[33m"
@@ -10,18 +11,21 @@
 #define CYAN    "\x1b[36m"
 #define RESET   "\x1b[0m"
 
-class ConfigTokenizer {
+class ConfigParser {
 	private:
-		std::string m_configPath;
-		std::vector<std::string> tokens;
+	std::vector<std::string>	m_tokens;
+		std::string 						m_configPath;
+		std::string 						m_buffer;
 	public:
-		ConfigTokenizer(char *pathToConfig){
+		ConfigParser(char *pathToConfig){
 			m_configPath = pathToConfig;
 			std::cout << GREEN << "Config File Path: " << RESET << m_configPath << std::endl;
 		} 
-			
-		~ConfigTokenizer() {};
-		bool parseFile();
-		bool initialFileCheck(std::fstream& file);
-		void tokenize(std::fstream& file);
+
+		~ConfigParser() {};
+		bool 	parseFile();
+		bool 	initialFileCheck(std::fstream& file);
+		void 	tokenize(std::fstream& file);
+		Token	findToken();
+		void 	removeWhiteSpaces();
 };

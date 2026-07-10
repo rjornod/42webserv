@@ -3,7 +3,7 @@ CXX = c++
 CXXFLAGS += -std=c++17
 SRC_DIR = ./src
 OBJ_DIR = ./obj
-SRC_CORE = Server.cpp HttpParser.cpp HttpRequest.cpp ConfigTokenizer.cpp
+SRC_CORE = Server.cpp HttpParser.cpp HttpRequest.cpp ConfigParser.cpp
 OBJ_CORE = $(SRC_CORE:%.cpp=$(OBJ_DIR)/%.o)
 
 GTEST_REPO = https://github.com/google/googletest.git

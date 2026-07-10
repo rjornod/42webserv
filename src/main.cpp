@@ -1,8 +1,8 @@
-#include "Client.hpp"
-#include "Server.hpp"
-#include "ConfigParser.hpp"
-#include "ConfigTokenizer.hpp"
-#include "GlobalConfig.hpp"
+#include "../include/Client.hpp"
+#include "../include/Server.hpp"
+#include "../include/ConfigParser.hpp"
+// #include "../include/ConfigParser.hpp"
+#include "../include/GlobalConfig.hpp"
 
 void exitProgram(int errorCode, std::string reason) {
 	std::cerr << "Error: " << reason << std::endl;
@@ -13,7 +13,7 @@ void exitProgram(int errorCode, std::string reason) {
 int main(int argc, char **argv) {
 	if (argc < 2)
 		exitProgram(-1, "Usage ./webserv <path/to/configfile>");
-	ConfigTokenizer config(argv[1]); 
+	ConfigParser config(argv[1]); 
 	if (config.parseFile()) {
 		exitProgram(1, "ConfigParser");
 	}

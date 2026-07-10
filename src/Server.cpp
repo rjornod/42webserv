@@ -7,8 +7,8 @@
 #include <sstream>		//ostringstream
 #include <algorithm>	// std::find
 #include <csignal>		//signal()
-#include "Server.hpp"
-#include "Client.hpp"
+#include "../include/Server.hpp"
+#include "../include/Client.hpp"
 #define RED     "\x1b[31m"
 #define GREEN   "\x1b[32m"
 #define YELLOW  "\x1b[33m"
