@@ -3,6 +3,7 @@
 #include <iostream>
 #include "../include/ConfigParser.hpp"
 #include "ConfigParser.hpp"
+#include "../include/TokenType.hpp"
 
 
 bool ConfigParser::initialFileCheck(std::fstream& file) {
@@ -39,10 +40,13 @@ void ConfigParser::tokenize(std::fstream& file) {
 			i++;
 			continue;
 		}
-	
-		if (m_buffer[i] == '{' || m_buffer[i] == '}') {
-			m_tokens.push_back(std::string(1, m_buffer[i]));
+		if (m_buffer[i] == '{') {
+			m_tokens.emplace_back(Token{TokenType::OpenBrace, std::string(1, m_buffer[i])});
 			// std::cout << "Token position: " << i <<" - "  << i << ": '" << m_buffer[i] << "'" << std::endl;
+			++i;
+		}
+		else if (m_buffer[i] == '}') {
+			m_tokens.emplace_back(Token{TokenType::ClosingBrace, std::string(1,m_buffer[i])});
 			++i;
 		}
 		else {
@@ -50,10 +54,10 @@ void ConfigParser::tokenize(std::fstream& file) {
 			while (!isspace(m_buffer[i]) && m_buffer[i] != ';') {
 				++i;
 			}
-			m_tokens.push_back(m_buffer.substr(tokenStart, i - tokenStart));
+			m_tokens.emplace_back(Token{TokenType::Word, m_buffer.substr(tokenStart, i - tokenStart)});
 			// std::cout << "Token position: " << tokenStart <<" - "  << i << ": '" << m_buffer.substr(tokenStart, i - tokenStart) << "'" << std::endl;
 			if (m_buffer[i] == ';') {
-				m_tokens.push_back(std::string(1, m_buffer[i]));
+				m_tokens.emplace_back(Token{TokenType::Semicolon, std::string(1, m_buffer[i])});
 				// std::cout << "Token position: " << i <<" - "  << i << ": '" << m_buffer[i] << "'" << std::endl;
 				i++;
 			}
@@ -62,6 +66,6 @@ void ConfigParser::tokenize(std::fstream& file) {
 	}
 	std::cout << BLUE << "----Printing tokens vector---" << std::endl;
 	for (int i = 0; i < m_tokens.size(); i++) {
-		std::cout << "'" << RED <<  m_tokens[i] << RESET << "'" << std::endl;
+		std::cout << i << " - " <<  m_tokens[i] << std::endl;
 	}
 }

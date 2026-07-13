@@ -13,7 +13,8 @@
 
 class ConfigParser {
 	private:
-	std::vector<std::string>	m_tokens;
+	// std::vector<std::string>	m_tokens;
+		std::vector<Token>	m_tokens;
 		std::string 						m_configPath;
 		std::string 						m_buffer;
 	public:
