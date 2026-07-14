@@ -27,6 +27,8 @@ class ConfigParser {
 		bool 	parseFile();
 		bool 	initialFileCheck(std::fstream& file);
 		void 	tokenize(std::fstream& file);
-		Token	findToken();
-		void 	removeWhiteSpaces();
+		int 	handleBraces(int index);
+		int 	handleSemicolon(int index);
+		int		handleWord(int index);
+		int		skipComments(int index);
 };

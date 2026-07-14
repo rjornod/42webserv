@@ -4,10 +4,9 @@
 #define RESET   "\x1b[0m"
 
 enum class TokenType {
-	Directive,
+	Word,
 	OpenBrace,
 	ClosingBrace,
-	Word,
 	Semicolon,
 };
 
