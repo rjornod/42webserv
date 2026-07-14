@@ -11,13 +11,8 @@ class ServerConfig {
 		std::string									m_serverName;
 		int 												m_clientMaxBodySize;
 	public:
-		ServerConfig() {
-			std::cout << "ServerConfig object created" <<std::endl; 
-			setDefaultValues();
-		}
-		~ServerConfig() {
-			std::cout << "ServerConfig object destroyed" <<std::endl;
-		};
+		ServerConfig() {setDefaultValues();}
+		~ServerConfig() {};
 		void setDefaultValues() {
 			m_port = 8080;
 			m_host = "127.0.0.1";

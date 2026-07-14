@@ -9,8 +9,8 @@ class LocationConfig {
 		std::vector<std::string>	m_allowedMethods;
 
 	public:
-		LocationConfig() { std::cout << "LocationConfig object created" <<std::endl; setDefaultValues(); };
-		~LocationConfig() {std::cout << "LocationConfig object destroyed" <<std::endl;};
+		LocationConfig() {setDefaultValues(); };
+		~LocationConfig() {};
 		LocationConfig(const LocationConfig& other){std::cout << "LocationConfig copy constructor called" << std::endl;}
 		void setDefaultValues() {
 			m_path = "/example/path";

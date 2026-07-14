@@ -15,13 +15,13 @@ class ConfigParser {
 	private:
 	// std::vector<std::string>	m_tokens;
 		std::vector<Token>	m_tokens;
-		std::string 						m_configPath;
-		std::string 						m_buffer;
+		std::string 				m_configPath;
+		std::string 				m_buffer;
 	public:
 		ConfigParser(char *pathToConfig){
 			m_configPath = pathToConfig;
 			std::cout << GREEN << "Config File Path: " << RESET << m_configPath << std::endl;
-		} 
+		}
 
 		~ConfigParser() {};
 		bool 	parseFile();
