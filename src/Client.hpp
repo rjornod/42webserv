@@ -1,35 +1,43 @@
 #pragma once
+
 #include <iostream>
+#include "ClientState.hpp"
 #define SEND 1
-#define RECIEVE 2
+#define RECEIVE 2
 //client states
-#define NEW_CONNECTION 3
-#define READING_REQUEST 4
-#define REQUEST_COMPLETE 5
-#define BUILDING_RESPONSE 6
 #define KEEP_ALIVE 7
 #define CLOSING 8
 #define CLOSED 9
+#define RED     "\x1b[31m"
+#define GREEN   "\x1b[32m"
+#define YELLOW  "\x1b[33m"
+#define BLUE    "\x1b[34m"
+#define MAGENTA "\x1b[35m"
+#define CYAN    "\x1b[36m"
+#define RESET   "\x1b[0m"
 
 class Client {
 	private:
 		int 				m_clientFd;
 		std::string m_clientIp;
 		int					m_clientPort;
-		std::string	m_recieveBuffer;
+		std::string	m_receiveBuffer;
 		std::string	m_sendBuffer;
 		bool				m_keepAlive;
 		size_t			m_bytesSent;
 		size_t			m_bytesLeftToSend;
-		bool				m_clientState;
+		ClientState	m_clientState;
+		time_t			m_lastActivity;							// stores the time since the client requested something
+		bool				m_shouldDisconnect;					// marks a client for disconnection
 	public:
-		Client(int clientFd,const std::string& clientIp) {
+		Client(int clientFd, const std::string& clientIp) {
 			m_clientFd = clientFd;
 			m_clientIp = clientIp;
 			m_keepAlive = true;
-			m_clientState = NEW_CONNECTION;
+			m_clientState = ClientState::ReadingRequest;
 			m_bytesSent = 0;
-			m_bytesSent = 0;
+			m_lastActivity = time(nullptr);
+			m_shouldDisconnect = false;
 			std::cout << "Client Object created\nClientFd: " << m_clientFd 
 								<< "\nClient Ip: " << m_clientIp << std::endl;
 
@@ -40,27 +48,45 @@ class Client {
 		/* getters and setters */
 		const int						getClientFd() 																		{return m_clientFd;}
 		const std::string& 	getClientIp() 																		{return m_clientIp;}
-		std::string& 				getClientRecieveBuffer() 													{return m_recieveBuffer;}
+		std::string& 				getClientReceiveBuffer() 													{return m_receiveBuffer;}
 		std::string& 				getClientSendBuffer() 														{return m_sendBuffer;}
 		const bool 					getKeepAlive() 																		{return m_keepAlive;}
 		const size_t				getBytesSent()																		{return m_bytesSent;}
 		const size_t				getBytesLeftToSend()															{return m_bytesLeftToSend;}
-		bool								getClientState() 																	{return m_clientState;}
+		ClientState					getClientState() 																	{return m_clientState;}
+		time_t							getLastActivity()																	{return m_lastActivity;}
+		bool								getShouldDisconnect()															{return m_shouldDisconnect;}
 		void								setClientFd(int clientFd) 												{m_clientFd = clientFd;} 
 		void								setClientIp(std::string clientIp) 								{m_clientIp = clientIp;}
-		void								setClientRecieveBuffer(std::string clientBuffer)	{m_recieveBuffer = clientBuffer;}
+		void								setClientReceiveBuffer(std::string clientBuffer)	{m_receiveBuffer = clientBuffer;}
 		void								setClientSendBuffer(std::string clientBuffer)			{m_sendBuffer = clientBuffer;}
 		void								setKeepAlive(bool keepAlive) 											{m_keepAlive = keepAlive;}
 		void								setBytesSent(size_t bytes)												{m_bytesSent = bytes;}
 		void								setBytesLeftToSend(size_t bytes)									{m_bytesLeftToSend = bytes;}
-		void								setClientState(bool state)												{m_clientState = state;}
+		void								setClientState(ClientState state)									{m_clientState = state;}
+		void 								setLastActivity()																	{m_lastActivity = time(nullptr);}
+		void								setShouldDisconnect(bool shouldDisconnect) 				{m_shouldDisconnect = shouldDisconnect;} 
+
 		/* other member functions*/
 		void	appendToBuffer(std::string data, size_t len, int operation) {
-			if (operation == RECIEVE) {
-				m_recieveBuffer.append(data.c_str(), len);
+			if (operation == RECEIVE) {
+				m_receiveBuffer.append(data.c_str(), len);
 			}
 			else if (operation == SEND) {
 				m_sendBuffer.append(data.c_str(), len);
 			}
     }
+		std::string printState() {
+			std::cout << "Client fd: " << m_clientFd << " - ";
+			if (m_clientState == ClientState::ReadingRequest)
+				return "ReadingRequest";
+			else if (m_clientState == ClientState::RequestFinished)
+				return "RequestFinished";
+			else if (m_clientState == ClientState::BuildingResponse)
+				return "BuildingResponse";
+			else if (m_clientState == ClientState::SendingResponse)
+				return "SendingResponse";
+			else
+				return "error";
+		};
 };

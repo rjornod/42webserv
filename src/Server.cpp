@@ -16,6 +16,10 @@
 #define MAGENTA "\x1b[35m"
 #define CYAN    "\x1b[36m"
 #define RESET   "\x1b[0m"
+#define HUP 0
+#define ERR 1
+#define	IN	2
+#define OUT 3
 
 volatile sig_atomic_t serverRunning = true;
 
@@ -73,31 +77,29 @@ int Server::serverSetup() {
 	return 0;
 }
 
-bool Server::recieveRequest(Client& client) {
+void Server::receiveRequest(Client& client) {
 	ssize_t	bytes;
 	char		buffer[4096];
 	// TO DO: check for errors in recv (-1 and 0) and remove client on error
 	bytes = recv(client.getClientFd(), buffer, sizeof(buffer), 0);
 	if (bytes > 0) {
-		client.setClientState(READING_REQUEST);
-		client.appendToBuffer(buffer, bytes, RECIEVE); // the data appended to the buffer here will be the request
+		client.setLastActivity();
+		client.setClientState(ClientState::ReadingRequest);
+		client.appendToBuffer(buffer, bytes, RECEIVE); // the data appended to the buffer here will be the request
 		/**
 		 ** The buffer should keep being appended to until the request is complete.
 		 ** I guess the HTTP parsing would go in here.
 		 ** Once the requested is confirmed to be complete, it should mark the socket for POLLOUT
 		 * which means we are telling the kernel that we want to be notified as soon as the socket
-		 * is ready to recieve data
+		 * is ready to receive data
 		 ** The response should then be built on a new string (?) to then be sent to the client
 		 * 
 		 **/
-		client.setClientState(REQUEST_COMPLETE);
+		client.setClientState(ClientState::RequestFinished);
 		// this loop should only happen AFTER the full request has come in
-		if (buildResponse(client)){																// check if build response gave an error
-			std::cout << "build response error with fd: "<< client.getClientFd() <<" \n";
-			return true;}
-		
+		buildResponse(client);																// check if build response gave an error
 		std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  client.getClientFd() << RESET << "-------------------" << std::endl;
-		std::cout << client.getClientRecieveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;
+		std::cout << client.getClientReceiveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;
 		for (int i = 1; i < m_connectedFds.size(); i++) {					// loop that goes through every member of the pollfd struct 
 			if (m_connectedFds[i].fd == client.getClientFd()) {	
 				m_connectedFds[i].events |= POLLOUT; 									// |= bitwise OR operator, adds POLLOUT to the list of flags to watch out for
@@ -109,15 +111,14 @@ bool Server::recieveRequest(Client& client) {
 		time_t timestamp;
 		time(&timestamp);
 		std::cout << client.getClientIp() << RED << " disconnected at:\n" << RESET << ctime(&timestamp) <<  std::endl;
-		return true;
+		client.setShouldDisconnect(true);
 	}
 	if (bytes < 0) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK)  // when a socket is set to non blocking, operations that would wait instead return one of these error immediately. Ignore for non blocking behavior
-			return false;
+			client.setShouldDisconnect(false);
 		perror("recv");
-		return true;
+		client.setShouldDisconnect(true);
 	}
-	return false;
 }
 
 int Server::connections() {
@@ -162,12 +163,24 @@ bool Server::readFile(Client& client) {
 	return false;
 }
 
-bool Server::buildResponse(Client& client) {
+/*
+	TO DO: figure out if there should be a timeout to disconnect users after a set time
+*/
+void Server::checkTimeouts() {
+	for (auto it = m_connectedClients.begin(); it != m_connectedClients.end(); ++it) {
+		if (time(nullptr) - it->second.getLastActivity() > 60
+			 && it->second.getClientState() == ClientState::ReadingRequest) {
+					// it->second.setShouldDisconnect(true);
+		}
+	}
+}
+
+void Server::buildResponse(Client& client) {
 	std::string headers;
-	client.setClientState(BUILDING_RESPONSE);
-	if (readFile(client)) {							// check if readFile returned an error
+	client.setClientState(ClientState::BuildingResponse);
+	if (readFile(client)) {																								// check if readFile returned an error
 		std::cout << "readfile error" << std::endl;
-		return true; 
+		client.setShouldDisconnect(true);
 	}
 	headers += "HTTP/1.1 200 OK\r\n";
 	headers += "Content-Type: text/html\r\n";
@@ -175,39 +188,70 @@ bool Server::buildResponse(Client& client) {
 	headers += "Connection: keep-alive\r\n";
 	headers += "\r\n";
 	client.getClientSendBuffer().insert(0, headers);
-	return false;
+	client.setShouldDisconnect(false);
 }
 
-bool Server::sendResponse(Client& client) {
+void Server::sendResponse(Client& client) {
 	size_t 	sentBytes = 0;
 	client.setBytesLeftToSend(client.getClientSendBuffer().size() - client.getBytesSent());					// calculates the remaining bytes we need to send
+	client.setClientState(ClientState::SendingResponse);
 	sentBytes = send(client.getClientFd(), client.getClientSendBuffer().c_str() + client.getBytesSent(), client.getBytesLeftToSend(), 0); 	// makes sure to only send the data we havent sent (if spread among multiple calls)
 	if (sentBytes > 0) {
-		// std::cout << YELLOW << "sent bytes: " << sentBytes << RESET << std::endl;
 		 client.setBytesSent(client.getBytesSent() + sentBytes);
 		 if (client.getBytesSent() == client.getClientSendBuffer().size()) {
-			client.getClientSendBuffer().clear();								// sendBuffer gets cleared if we finished sending everything
-			client.getClientRecieveBuffer().clear();						// recieveBuffer also gets cleared
-			client.setBytesSent(0);															// bytesSent gets reset if we finished sending everything
-		 }
+			client.getClientSendBuffer().clear();																// sendBuffer gets cleared if we finished sending everything
+			client.getClientReceiveBuffer().clear();														// receiveBuffer also gets cleared
+			client.setBytesSent(0);																							// bytesSent gets reset if we finished sending everything
+			client.setClientState(ClientState::ReadingRequest);									// reset ClientState back to readingRequest after response is sent
+			// client.setLastActivity(); 																				// TO DO: figure out if we need to update the timestamp here
+		}
 	}
 	else if (sentBytes < 0) {
-		if (errno == EAGAIN || errno == EWOULDBLOCK) {				// if there is no more data to send at the moment, we ignore these errors
-			return false;   
+		if (errno == EAGAIN || errno == EWOULDBLOCK) {												// if there is no more data to send at the moment, we ignore these errors
+			client.setShouldDisconnect(false);   
 		}
 		else {
 			perror("send()");
-			return true;
+			client.setShouldDisconnect(true);
 		}
 	}
-	return false;
+	client.setShouldDisconnect(false);
+}
+
+bool	Server::handleIncoming(int fd) {
+	auto it = m_connectedClients.find(fd);
+	if (it != m_connectedClients.end()) {
+		receiveRequest(it->second);
+		if (it->second.getShouldDisconnect() == true) {																							// it->second passes the client object to receive. it->first would pass the fd 
+			eraseClient(fd);
+			return true;																																							// client got disconnected
+		}																						
+	}
+	return false;																																									// client is still connected
+}
+
+bool	Server::handleOutgoing(size_t i) {
+	auto it = m_connectedClients.find(m_connectedFds[i].fd);
+	if (it != m_connectedClients.end()) {
+		sendResponse(it->second);
+		if (it->second.getShouldDisconnect() == true) {
+			eraseClient(m_connectedFds[i].fd);
+			return true;																																	// client got disconnected
+		}
+		if (it->second.getClientSendBuffer().empty()){																	// if we finished sending our response we add POLLIN to events to again listen for data being sent
+			m_connectedFds[i].events = POLLIN;	
+		}				
+		else 
+			m_connectedFds[i].events = POLLOUT;																						// if we didnt finish sending everything, keep POLLOUT in events to keep sending data
+		}
+		return false;																																		// client is still connected
 }
 
 int Server::serverCore() {
 	signal(SIGINT, signalHandler);
 	while (serverRunning) {
 		int clientFd;
-		int returnValue = poll(m_connectedFds.data(), m_connectedFds.size(), -1); // timeout set to -1 for an infinite timeout
+		int returnValue = poll(m_connectedFds.data(), m_connectedFds.size(), 0); // 0 timeout makes poll constantly check all the clients
 		if (returnValue < 0) {
 			if (errno == EINTR) {
 						continue;
@@ -215,6 +259,7 @@ int Server::serverCore() {
 			perror("poll");
 			return 1;
 		}
+		// checkTimeouts();
 		if (m_connectedFds[0].revents & POLLIN) {
 			while (true) {
 				clientFd = accept(m_tcpServerFd, 
@@ -254,29 +299,16 @@ int Server::serverCore() {
 				continue;																																					// continue so we dont check for POLLIN and POLLOUT for the deleted client
 			}
 			if (m_connectedFds[i].revents & POLLIN) { 																					// socket has fresh data for us
- 				auto it = m_connectedClients.find(m_connectedFds[i].fd);
-        if (it != m_connectedClients.end()) {
-            if (recieveRequest(it->second)) {																							// it->second passes the client object to recieve. it->first would pass the fd 
-							eraseClient(m_connectedFds[i].fd);
-							i--;
-							continue;
-						} 																									
-        }
+ 				if (handleIncoming(m_connectedFds[i].fd)) {
+					i--;
+					continue;
+				} 																									
 			}
-			if (m_connectedFds[i].revents & POLLOUT) { 																					// the socket is ready to recieve data
-				auto it = m_connectedClients.find(m_connectedFds[i].fd);
-        if (it != m_connectedClients.end()) {
-					if (sendResponse(it->second)) {
-						eraseClient(m_connectedFds[i].fd);
-						i--;
-						continue;
-					}
-					if (it->second.getClientSendBuffer().empty()){																	// if we finished sending our response we add POLLIN to events to again listen for data being sent
-						m_connectedFds[i].events = POLLIN;	
-					}				
-					else 
-						m_connectedFds[i].events = POLLOUT;																						// if we didnt finish sending everything, keep POLLOUT in events to keep sending data
-					}
+			if (m_connectedFds[i].revents & POLLOUT) {
+				if (handleOutgoing(i)) {																													// if client was removed decrease the index
+					i--;
+					continue;
+				}
 			}
 		}
 	}
