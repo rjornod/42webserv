@@ -13,7 +13,6 @@
 
 class ConfigParser {
 	private:
-	// std::vector<std::string>	m_tokens;
 		std::vector<Token>	m_tokens;
 		std::string 				m_configPath;
 		std::string 				m_buffer;
@@ -22,13 +21,16 @@ class ConfigParser {
 			m_configPath = pathToConfig;
 			std::cout << GREEN << "Config File Path: " << RESET << m_configPath << std::endl;
 		}
-
 		~ConfigParser() {};
-		bool 	parseFile();
+		
+		bool 	processConfig();
 		bool 	initialFileCheck(std::fstream& file);
 		void 	tokenize(std::fstream& file);
 		int 	handleBraces(int index);
-		int 	handleSemicolon(int index);
+		int 	handleEndDirective(int index);
 		int		handleWord(int index);
 		int		skipComments(int index);
+		bool	parseTokens();
+		bool	parseBlock(int index, bool isGlobal);
+		bool	parseDirective();
 };

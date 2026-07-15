@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
 	if (argc < 2)
 		exitProgram(-1, "Usage ./webserv <path/to/configfile>");
 	ConfigParser config(argv[1]); 
-	if (config.parseFile()) {
+	if (config.processConfig()) {
 		exitProgram(1, "ConfigParser");
 	}
 	GlobalConfig globalConfig;

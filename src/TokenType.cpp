@@ -7,5 +7,5 @@ std::ostream& operator<<(std::ostream& out, const TokenType& type)
 
 std::ostream& operator<<(std::ostream& out, const Token& token)
 {
-    return out << MAGENTA << "type: " << RESET << token.type << "," << MAGENTA << " value: '" << RESET << token.value << "'";
+    return out << MAGENTA << "type: " << RESET << token.type << "," << MAGENTA << " value: "<< RESET << "'" << token.value << "'";
 }

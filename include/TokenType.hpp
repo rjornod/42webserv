@@ -5,9 +5,9 @@
 
 enum class TokenType {
 	Word,
-	OpenBrace,
-	ClosingBrace,
-	Semicolon,
+	StartBlock,
+	EndBlock,
+	EndDirective,
 };
 
 struct Token {
@@ -19,9 +19,9 @@ constexpr const char* to_string(TokenType type)
 {
     switch (type) {
       case TokenType::Word: return "Word";
-      case TokenType::OpenBrace:   return "OpenBrace";
-      case TokenType::ClosingBrace: return "ClosingBrace";
-			case TokenType::Semicolon: return "Semicolon";
+      case TokenType::StartBlock:   return "StartBlock";
+      case TokenType::EndBlock: return "EndBlock";
+			case TokenType::EndDirective: return "EndDirective";
     }
     return "ERROR";
 }
