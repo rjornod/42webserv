@@ -32,5 +32,6 @@ class ConfigParser {
 		int		skipComments(int index);
 		bool	parseTokens();
 		bool	parseBlock(int index, bool isGlobal);
-		bool	parseDirective();
+		bool	parseDirective(int index);
+		bool	checkAllBraces();
 };

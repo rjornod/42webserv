@@ -67,8 +67,28 @@ int ConfigParser::skipComments(int i) {
 	return i;
 }
 
+bool ConfigParser::checkAllBraces() {
+	int braceFound = 0;
+	for (int i = 0; i < m_tokens.size(); i++) {
+		if (m_tokens[i].type == TokenType::StartBlock)
+			braceFound++;
+		if (m_tokens[i].type == TokenType::EndBlock)
+			braceFound--;
+	}
+	if (braceFound != 0)
+		return true;
+	return false;
+}
+
 bool ConfigParser::parseTokens() {
 	int  i = 0;
+	int isGlobal = 0;
+	if (checkAllBraces()) {
+		std::cout << RED << "Not all braces are closed" << RESET << std::endl;
+		return true;
+	}
+	else
+		std::cout << "All braces are paired" << std::endl;
 	if (m_tokens[i].type != TokenType::Word || m_tokens[i].value != "server") {
 		std::cout << RED << "ServerBlock not Found" << RESET << std::endl;
 		return true;
@@ -78,6 +98,8 @@ bool ConfigParser::parseTokens() {
 		std::cout << RED << "Block not correctly initialized" << RESET << std::endl;
 		return true;
 	}
+	i++;
+	parseBlock(i, 1);
 	return false;
 }
 
@@ -86,18 +108,23 @@ bool ConfigParser::parseBlock(int i, bool isGlobal)
 	if (isGlobal) {
 		if (m_tokens[i].value != "server")
 			return true;
-		else if (m_tokens[i].value != "location")
+	else if (m_tokens[i].value != "location")
 				return true;
-		}
-		while (m_tokens[i].type != TokenType::EndBlock) {
-			if (parseDirective())
-				return true;
-		}
+	}
+	i++;
+	while (m_tokens[i].type != TokenType::EndBlock) {
+		if (parseDirective(i))
+			return true;
+		i++;
+	}
 	return false;
 }
 
-bool ConfigParser::parseDirective()
+bool ConfigParser::parseDirective(int i)
 {
+	if (m_tokens[i].type != TokenType::Word)
+		return true;
+	
 	return false;
 }
 
