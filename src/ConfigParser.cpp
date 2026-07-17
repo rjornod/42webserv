@@ -3,8 +3,10 @@
 #include <iostream>
 #include "../include/ConfigParser.hpp"
 #include "ConfigParser.hpp"
+#include "../include/ConfigParseExecption.hpp"
 #include "../include/TokenType.hpp"
 
+int  tokenIndex = 0;
 
 bool ConfigParser::initialFileCheck(std::fstream& file) {
 	
@@ -25,8 +27,12 @@ bool ConfigParser::processConfig() {
 	if (initialFileCheck(file))
 		return true;
 	tokenize(file);
-	if (parseTokens())
+	try {
+		parseTokens();
+	} catch (const ConfigParseException& e) {
+		std::cerr << RED << "Config error: " << RESET << e.what() << std::endl;
 		return true;
+	}
 	return false;
 }
 
@@ -88,42 +94,44 @@ bool ConfigParser::parseTokens() {
 		return true;
 	}
 	else
-		std::cout << "All braces are paired" << std::endl;
-	if (m_tokens[i].type != TokenType::Word || m_tokens[i].value != "server") {
-		std::cout << RED << "ServerBlock not Found" << RESET << std::endl;
+		std::cout << GREEN << "All braces are paired" << RESET << std::endl;
+	if (m_tokens[tokenIndex].value != "server" || m_tokens[tokenIndex + 1].type != TokenType::StartBlock) {
+		throw ConfigParseException("only server{} allowed as a global directive");
 		return true;
 	}
-	i++;
-	if (m_tokens[i].type != TokenType::StartBlock || m_tokens[i].value != "{") {
-		std::cout << RED << "Block not correctly initialized" << RESET << std::endl;
+	// if (m_tokens[tokenIndex].type != TokenType::StartBlock) {
+	// 	std::cout << RED << "Block not correctly initialized" << RESET << std::endl;
+	// 	return true;
+	// }
+	tokenIndex++;
+	if (parseBlock(true)) 
 		return true;
-	}
-	i++;
-	parseBlock(i, 1);
 	return false;
 }
 
-bool ConfigParser::parseBlock(int i, bool isGlobal)
+bool ConfigParser::parseBlock(bool isGlobal)
 {
 	if (isGlobal) {
-		if (m_tokens[i].value != "server")
+		if (m_tokens[tokenIndex].value != "server")
 			return true;
-	else if (m_tokens[i].value != "location")
-				return true;
+	else if (m_tokens[tokenIndex].value != "location")
+		return true;
 	}
-	i++;
-	while (m_tokens[i].type != TokenType::EndBlock) {
-		if (parseDirective(i))
+	tokenIndex++;
+	while (m_tokens[tokenIndex].type != TokenType::EndBlock) {
+		if (parseDirective())
 			return true;
-		i++;
+		tokenIndex++;
 	}
 	return false;
 }
 
-bool ConfigParser::parseDirective(int i)
+bool ConfigParser::parseDirective()
 {
-	if (m_tokens[i].type != TokenType::Word)
-		return true;
+	while (m_tokens[tokenIndex].type != TokenType::EndDirective) {
+		if (m_tokens[tokenIndex].type != TokenType::Word)
+			return true;
+	}
 	
 	return false;
 }
@@ -158,9 +166,9 @@ void ConfigParser::tokenize(std::fstream& file) {
 		}
 	}
 	// printing to debug tokens
-	std::cout << BLUE << "----Printing tokens vector---" << RESET << std::endl;
-	for (int i = 0; i < m_tokens.size(); i++) {
-		std::cout << i << " - " <<  m_tokens[i] << std::endl;
-	}
-		std::cout << BLUE << "-----------------------------" << RESET << std::endl;
+	// std::cout << BLUE << "----Printing tokens vector---" << RESET << std::endl;
+	// for (int i = 0; i < m_tokens.size(); i++) {
+	// 	std::cout << i << " - " <<  m_tokens[i] << std::endl;
+	// }
+	// 	std::cout << BLUE << "-----------------------------" << RESET << std::endl;
 }

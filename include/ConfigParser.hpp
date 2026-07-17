@@ -31,7 +31,7 @@ class ConfigParser {
 		int		handleWord(int index);
 		int		skipComments(int index);
 		bool	parseTokens();
-		bool	parseBlock(int index, bool isGlobal);
-		bool	parseDirective(int index);
+		bool	parseBlock(bool isGlobal);
+		bool	parseDirective();
 		bool	checkAllBraces();
 };
