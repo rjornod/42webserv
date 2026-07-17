@@ -1,7 +1,6 @@
 #pragma once
 #include <iostream>
-#define MAGENTA "\x1b[35m"
-#define RESET   "\x1b[0m"
+#include "Colors.hpp"
 
 enum class TokenType {
 	Word,
