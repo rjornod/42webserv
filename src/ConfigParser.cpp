@@ -1,10 +1,12 @@
 #include <fstream>
 #include <filesystem>
 #include <iostream>
+#include <string>  
 #include "../include/ConfigParser.hpp"
-#include "ConfigParser.hpp"
 #include "../include/ConfigParseExecption.hpp"
 #include "../include/TokenType.hpp"
+#include "../include/DirectiveType.hpp"
+#include "ConfigParser.hpp"
 
 int  tokenIndex = 0;
 
@@ -16,7 +18,7 @@ bool ConfigParser::initialFileCheck(std::fstream& file) {
 	}
 	bool isEmpty = file.peek() == EOF;
 	if (isEmpty){
-		std::cout << RED << "File is empty" << RESET << std::endl;
+		std::cout << RED << "File Error: " << RESET << " File is empty" << RESET << std::endl;
 		return true;
 	}
 	return false;
@@ -26,11 +28,18 @@ bool ConfigParser::processConfig() {
 	std::fstream file(m_configPath);
 	if (initialFileCheck(file))
 		return true;
-	tokenize(file);
+	try {
+		tokenize(file);
+	}
+	catch(const ConfigParseException& e) {
+		std::cerr << RED << "File Error: " << RESET << e.what() << '\n';
+		return true;
+	}
 	try {
 		parseTokens();
-	} catch (const ConfigParseException& e) {
-		std::cerr << RED << "Config error: " << RESET << e.what() << std::endl;
+	}
+	catch (const ConfigParseException& e) {
+		std::cerr << RED << "Config Error: " << RESET << e.what() << std::endl;
 		return true;
 	}
 	return false;
@@ -73,7 +82,7 @@ int ConfigParser::skipComments(int i) {
 	return i;
 }
 
-bool ConfigParser::checkAllBraces() {
+void ConfigParser::checkAllBraces() {
 	int braceFound = 0;
 	for (int i = 0; i < m_tokens.size(); i++) {
 		if (m_tokens[i].type == TokenType::StartBlock)
@@ -82,58 +91,116 @@ bool ConfigParser::checkAllBraces() {
 			braceFound--;
 	}
 	if (braceFound != 0)
-		return true;
-	return false;
+		throw ConfigParseException("Detected unmatched brace");
+	else
+		std::cout << GREEN << "All braces are paired\n" << RESET <<std::endl;
 }
 
-bool ConfigParser::parseTokens() {
+void ConfigParser::parseTokens() {
 	int  i = 0;
 	int isGlobal = 0;
-	if (checkAllBraces()) {
-		std::cout << RED << "Not all braces are closed" << RESET << std::endl;
-		return true;
-	}
-	else
-		std::cout << GREEN << "All braces are paired" << RESET << std::endl;
+	checkAllBraces();
+	// check if server block exists
 	if (m_tokens[tokenIndex].value != "server" || m_tokens[tokenIndex + 1].type != TokenType::StartBlock) {
-		throw ConfigParseException("only server{} allowed as a global directive");
-		return true;
+		throw ConfigParseException("Only server{} allowed as a global directive");
 	}
-	// if (m_tokens[tokenIndex].type != TokenType::StartBlock) {
-	// 	std::cout << RED << "Block not correctly initialized" << RESET << std::endl;
-	// 	return true;
-	// }
-	tokenIndex++;
-	if (parseBlock(true)) 
-		return true;
-	return false;
+	else {
+		m_config.createServerConfig();
+		parseBlock(true);
+	}
 }
 
-bool ConfigParser::parseBlock(bool isGlobal)
+void ConfigParser::parseBlock(bool isGlobal)
 {
+	std::cout << "parsing block. tokens values is:" << m_tokens[tokenIndex].value << "\n";
 	if (isGlobal) {
 		if (m_tokens[tokenIndex].value != "server")
-			return true;
-	else if (m_tokens[tokenIndex].value != "location")
-		return true;
+			throw ConfigParseException("Only server{} allowed as a global directive");
 	}
+	else if (m_tokens[tokenIndex].value != "location") {
+		throw ConfigParseException("Directive in server block is malformed " + m_tokens[tokenIndex].value);
+	}
+	std::cout << "block is location or server\n";
+	tokenIndex++;
 	tokenIndex++;
 	while (m_tokens[tokenIndex].type != TokenType::EndBlock) {
-		if (parseDirective())
-			return true;
+		std::cout << "scanning directives\n";
+		parseDirective();
 		tokenIndex++;
 	}
-	return false;
 }
 
-bool ConfigParser::parseDirective()
+void ConfigParser::parseDirective()
 {
+	std::cout << "parsing directive. token is '" << m_tokens[tokenIndex].value <<"'\n"; 
 	while (m_tokens[tokenIndex].type != TokenType::EndDirective) {
-		if (m_tokens[tokenIndex].type != TokenType::Word)
-			return true;
+		if (m_tokens[tokenIndex].type != TokenType::Word || m_tokens[tokenIndex + 1].type != TokenType::Word)
+			throw ConfigParseException("Directive is malformed");
+		handleDirective();
+		tokenIndex++;
+		tokenIndex++;
 	}
-	
-	return false;
+}
+
+void ConfigParser::handleListen() {
+	tokenIndex++;
+	int port = std::stoi(m_tokens[tokenIndex].value);
+	m_config.getServerConfigs().back().setPort(port);
+	std::cout << m_config.getServerConfigs().back().getPort();
+}
+
+void ConfigParser::handleServerName() {
+	tokenIndex++;
+	m_config.getServerConfigs().back().setServerName(m_tokens[tokenIndex].value);
+}
+
+void ConfigParser::handleRoot() {
+	tokenIndex++;
+	m_config.getServerConfigs().back().setRoot(m_tokens[tokenIndex].value);
+}
+
+void ConfigParser::handleIndex() {
+	tokenIndex++;
+	m_config.getServerConfigs().back().setIndex(m_tokens[tokenIndex].value);
+}
+
+void ConfigParser::handleBodySize() {
+	tokenIndex++;
+	int bodySize = std::stoi(m_tokens[tokenIndex].value);
+	m_config.getServerConfigs().back().setBodySize(bodySize);
+}
+
+void ConfigParser::handleDirective() {
+	switch(directiveFromString(m_tokens[tokenIndex].value)) {
+		case DirectiveType::Listen:
+			handleListen();
+			break;
+		case DirectiveType::Name:
+			handleServerName();
+			break;
+		case DirectiveType::Root:
+			handleRoot();
+			break;
+		case DirectiveType::Index:
+			handleIndex();
+			break;
+		case DirectiveType::ErrorPage:
+			std::cout << "Directive: ErrorPage\n";
+			break;
+		case DirectiveType::Location:
+			std::cout << "Directive: Location\n";
+			break;
+		case DirectiveType::AutoIndex:
+			std::cout << "Directive: AutoIndex\n";
+			break;
+		case DirectiveType::MaxBodySize:
+			std::cout << "Directive: MaxBodySize\n";
+			break;
+		case DirectiveType::Unknown:
+			std::cout << "Unknown Directive\n";
+			break;
+	}
+
 }
 
 void ConfigParser::tokenize(std::fstream& file) {
@@ -165,6 +232,8 @@ void ConfigParser::tokenize(std::fstream& file) {
 			}
 		}
 	}
+	if (m_tokens.empty())
+		throw ConfigParseException("File doesn't have any server block");
 	// printing to debug tokens
 	// std::cout << BLUE << "----Printing tokens vector---" << RESET << std::endl;
 	// for (int i = 0; i < m_tokens.size(); i++) {

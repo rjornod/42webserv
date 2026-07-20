@@ -2,29 +2,40 @@
 #include <iostream>
 #include <vector>
 #include "LocationConfig.hpp"
+#include "Colors.hpp"
 
 class ServerConfig {
 	private:
 		std::vector<LocationConfig>	locationConfigs;
-		int 												m_port;
-		std::string									m_host;
+		int 												m_listenPort;
 		std::string									m_serverName;
+		std::string									m_root;
 		int 												m_clientMaxBodySize;
+		std::string									m_index;
+		std::string									m_errorPage;
+		bool												m_autoIndex;
 	public:
-		ServerConfig() {setDefaultValues();}
+		ServerConfig() {setDefaultValues(); std::cout << "serverobject created\n";}
 		~ServerConfig() {};
 		void setDefaultValues() {
-			m_port = 8080;
-			m_host = "127.0.0.1";
+			m_listenPort = 8080;
 			m_serverName = "Test";
 			m_clientMaxBodySize = 3500;
 			locationConfigs.emplace_back(); // calls default constructor of LocationConfig
 		}
-		int 				getPort() const 					{ return m_port; } 
-		std::string getHost() const 					{ return m_host; }
-		std::string getServerName() const 		{ return m_serverName; }
-		int 				getClientMaxBody() const 	{ return m_clientMaxBodySize; }
+		int 				getPort() const 									{ return m_listenPort; } 
+		std::string getServerName() const 						{ return m_serverName; }
+		int 				getClientMaxBody() const 					{ return m_clientMaxBodySize; }
+		void				setPort(int port)									{ m_listenPort = port; }
+		void				setServerName(std::string name)		{ m_serverName = name; }
+		void				setIndex(std::string index)				{ m_index = index;}
+		void				setRoot(std::string root)					{ m_root = root;}
+		void				setBodySize(int size)							{ m_clientMaxBodySize = size;}
 		void 				printValues() const {
-			std::cout << "PORT: " << m_port << "\nHOST: " << m_host << "\nSERVER NAME: " << m_serverName << "\nCLIENT MAX BODY SIZE: " << m_clientMaxBodySize << std::endl;
+			std::cout << GREEN << "PORT: " << RESET << m_listenPort 
+								<< GREEN << "\nSERVER NAME: " << RESET << m_serverName
+								<< GREEN << "\nROOT: " << RESET << m_root
+								<< GREEN << "\nINDEX: " << RESET << m_index  
+								<< GREEN << "\nCLIENT MAX BODY SIZE: " << RESET << m_clientMaxBodySize << std::endl;
 		}
 };

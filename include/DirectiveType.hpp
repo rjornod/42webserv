@@ -11,8 +11,7 @@ enum class DirectiveType {
 	Location,
 	AutoIndex,
 	MaxBodySize,
-	CgiHandler,
-	Unknown,
+	Unknown
 };
 
 DirectiveType directiveFromString(const std::string& name) {
@@ -24,6 +23,5 @@ DirectiveType directiveFromString(const std::string& name) {
 	if (name == "location") 						return DirectiveType::Location;
 	if (name == "autoindex") 						return DirectiveType::AutoIndex;
 	if (name == "client_max_body_size") return DirectiveType::MaxBodySize;
-	if (name == "cgi_handler") 					return DirectiveType::CgiHandler;
 	return DirectiveType::Unknown;
 }
