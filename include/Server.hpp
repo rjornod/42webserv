@@ -20,7 +20,7 @@ class Server {
 		struct sockaddr_in 					m_tcpAddress;				// struct holding IP_v4 address information, used to specify where to connect, bind or listen for traffic 
 		socklen_t 									m_tcpAddressLen;		// contains the length of the socket
 		int 												m_tcpServerFd;			// fd that will be used for the listening socket of the server
-		std::string 								m_buffer;						// stores the messages recieved from the clients
+		std::string 								m_buffer;						// stores the messages received from the clients
 		struct sockaddr_in					m_clientAddress;		// struct holding IPv4 info about the client
 		socklen_t										m_clientAddressLen;	// containts the length of the client socket
 	public:
@@ -29,8 +29,8 @@ class Server {
 			std::cout << "Server object Created" << std::endl;
 		}
 		~Server() {
-			std::cout << "Server object destroyed" << std::endl;
 			closeAllFds();
+			std::cout << "Server object destroyed" << std::endl;
 		}
 		const GlobalConfig& getParsedConfig() {return m_config;}
 		int 								setTcpAddress() 	{
@@ -40,13 +40,16 @@ class Server {
 			return 0;
 		}
 		const std::vector<pollfd> &getConnectedFds() const {return m_connectedFds;}
-		int 				serverSetup();
-		int 				connections();
-		int 				serverCore();
-		bool 				recieveRequest(Client& client);
-		bool				buildResponse(Client& client);
-		bool 				sendResponse(Client& client);
-		void				eraseClient(int fd);
-		void				closeAllFds();
-		bool				readFile(Client& client);
+		int 		serverSetup();
+		int 		connections();
+		int 		serverCore();
+		void 		receiveRequest(Client& client);
+		void		buildResponse(Client& client);
+		void 		sendResponse(Client& client);
+		void		eraseClient(int fd);
+		void		closeAllFds();
+		bool		readFile(Client& client);
+		void		checkTimeouts();
+		bool		handleIncoming(int fd);
+		bool		handleOutgoing(size_t i);
 };
