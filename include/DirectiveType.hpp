@@ -25,3 +25,4 @@ DirectiveType directiveFromString(const std::string& name) {
 	if (name == "client_max_body_size") return DirectiveType::MaxBodySize;
 	return DirectiveType::Unknown;
 }
+

@@ -6,9 +6,14 @@
 #include "../include/ConfigParseExecption.hpp"
 #include "../include/TokenType.hpp"
 #include "../include/DirectiveType.hpp"
+#include "../include/LocationDirectiveType.hpp"
 #include "ConfigParser.hpp"
 
 int  tokenIndex = 0;
+
+static void incTokenIndex(int amount) {
+	tokenIndex += amount;
+}
 
 bool ConfigParser::initialFileCheck(std::fstream& file) {
 	
@@ -101,7 +106,8 @@ void ConfigParser::parseTokens() {
 	int isGlobal = 0;
 	checkAllBraces();
 	// check if server block exists
-	if (m_tokens[tokenIndex].value != "server" || m_tokens[tokenIndex + 1].type != TokenType::StartBlock) {
+	if (tokenIndex + 1 >= m_tokens.size() || m_tokens[tokenIndex].value != "server"
+		|| m_tokens[tokenIndex + 1].type != TokenType::StartBlock) {
 		throw ConfigParseException("Only server{} allowed as a global directive");
 	}
 	else {
@@ -112,7 +118,6 @@ void ConfigParser::parseTokens() {
 
 void ConfigParser::parseBlock(bool isGlobal)
 {
-	std::cout << "parsing block. tokens values is:" << m_tokens[tokenIndex].value << "\n";
 	if (isGlobal) {
 		if (m_tokens[tokenIndex].value != "server")
 			throw ConfigParseException("Only server{} allowed as a global directive");
@@ -120,11 +125,12 @@ void ConfigParser::parseBlock(bool isGlobal)
 	else if (m_tokens[tokenIndex].value != "location") {
 		throw ConfigParseException("Directive in server block is malformed " + m_tokens[tokenIndex].value);
 	}
-	std::cout << "block is location or server\n";
-	tokenIndex++;
-	tokenIndex++;
+	if (m_tokens[tokenIndex].value == "location")			// if its a location block, increment an extra time (location has one more parameter than server)
+		tokenIndex++;					
+
+	tokenIndex++;																			// skip server or location token
+	tokenIndex++;																			// skip StartBlock token
 	while (m_tokens[tokenIndex].type != TokenType::EndBlock) {
-		std::cout << "scanning directives\n";
 		parseDirective();
 		tokenIndex++;
 	}
@@ -132,13 +138,30 @@ void ConfigParser::parseBlock(bool isGlobal)
 
 void ConfigParser::parseDirective()
 {
-	std::cout << "parsing directive. token is '" << m_tokens[tokenIndex].value <<"'\n"; 
 	while (m_tokens[tokenIndex].type != TokenType::EndDirective) {
-		if (m_tokens[tokenIndex].type != TokenType::Word || m_tokens[tokenIndex + 1].type != TokenType::Word)
+		if (m_tokens[tokenIndex].value == "location") {
+			if (tokenIndex + 2 >= m_tokens.size() || m_tokens[tokenIndex + 1].type != TokenType::Word
+				|| m_tokens[tokenIndex + 2].type != TokenType::StartBlock)
+				throw ConfigParseException("Location directive is malformed");
+			else 
+				parseBlock(false);				// change to parseLocationDirectives later
+				break;
+		}
+		else if (tokenIndex + 2 >= m_tokens.size() || m_tokens[tokenIndex].type != TokenType::Word  // TO DO: maybe remove these checks here and check inside each directive
+			|| m_tokens[tokenIndex + 1].type != TokenType::Word || m_tokens[tokenIndex + 2].type != TokenType::EndDirective) {
 			throw ConfigParseException("Directive is malformed");
+		}
 		handleDirective();
 		tokenIndex++;
-		tokenIndex++;
+	}
+}
+
+
+
+void ConfigParser::parseLocationDirectives() {
+	incTokenIndex(3);
+	while (m_tokens[tokenIndex].type != TokenType::EndBlock) {
+		handleLocationDirective();
 	}
 }
 
@@ -146,28 +169,75 @@ void ConfigParser::handleListen() {
 	tokenIndex++;
 	int port = std::stoi(m_tokens[tokenIndex].value);
 	m_config.getServerConfigs().back().setPort(port);
-	std::cout << m_config.getServerConfigs().back().getPort();
+	std::cout << GREEN << "LISTEN OK\n" << RESET;
 }
 
 void ConfigParser::handleServerName() {
 	tokenIndex++;
 	m_config.getServerConfigs().back().setServerName(m_tokens[tokenIndex].value);
+	std::cout << GREEN << "NAME OK\n" << RESET;
 }
 
 void ConfigParser::handleRoot() {
 	tokenIndex++;
 	m_config.getServerConfigs().back().setRoot(m_tokens[tokenIndex].value);
+	std::cout << GREEN << "ROOT OK\n" << RESET;
 }
 
 void ConfigParser::handleIndex() {
 	tokenIndex++;
 	m_config.getServerConfigs().back().setIndex(m_tokens[tokenIndex].value);
+	std::cout << GREEN << "INDEX OK\n" << RESET;
+}
+
+void ConfigParser::handleLocation() {
+	tokenIndex++;
+	parseBlock(false);
+	std::cout << GREEN << "LOCATION OK\n" << RESET;
 }
 
 void ConfigParser::handleBodySize() {
 	tokenIndex++;
 	int bodySize = std::stoi(m_tokens[tokenIndex].value);
 	m_config.getServerConfigs().back().setBodySize(bodySize);
+	std::cout << GREEN << "SIZE OK\n" << RESET;
+}
+
+void ConfigParser::handleUnknown() {
+	throw ConfigParseException("Illegal directive detected");
+}
+
+void ConfigParser::handleLocationDirective() {
+	switch(locationDirectiveFromString(m_tokens[tokenIndex].value)) {
+		case LocationDirectiveType::Root:
+			std::cout << "Directive: Root\n";
+			break;
+		case LocationDirectiveType::AutoIndex:
+			std::cout << "Directive: AutoIndex\n";
+			break;
+		case LocationDirectiveType::MaxBodySize:
+			std::cout << "Directive: MaxBodySize\n";
+			break;
+		case LocationDirectiveType::Index:
+			std::cout << "Directive: Index\n";
+			break;
+		case LocationDirectiveType::ErrorPage:
+			std::cout << "Directive: ErrorPage\n";
+			break;
+		case LocationDirectiveType::UploadStore:
+			std::cout << "Directive: UploadStore\n";
+			break;
+		case LocationDirectiveType::LimitExcept:
+			std::cout << "Directive: LimitExcept\n";
+			break;
+		case LocationDirectiveType::Return:
+			std::cout << "Directive: Return\n";
+			break;
+		case LocationDirectiveType::Unknown:
+			handleUnknown();
+			std::cout << "Unknown Directive\n";
+			break;
+	}
 }
 
 void ConfigParser::handleDirective() {
@@ -188,15 +258,17 @@ void ConfigParser::handleDirective() {
 			std::cout << "Directive: ErrorPage\n";
 			break;
 		case DirectiveType::Location:
-			std::cout << "Directive: Location\n";
+			handleLocation();
+			// std::cout << "Directive: Location\n";
 			break;
 		case DirectiveType::AutoIndex:
 			std::cout << "Directive: AutoIndex\n";
 			break;
 		case DirectiveType::MaxBodySize:
-			std::cout << "Directive: MaxBodySize\n";
+			handleBodySize();
 			break;
 		case DirectiveType::Unknown:
+			handleUnknown();
 			std::cout << "Unknown Directive\n";
 			break;
 	}

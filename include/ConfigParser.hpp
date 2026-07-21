@@ -28,11 +28,15 @@ class ConfigParser {
 		void	parseTokens();
 		void	parseBlock(bool isGlobal);
 		void	parseDirective();
+		void	parseLocationDirectives();
 		void	checkAllBraces();
 		void 	handleDirective();
+		void	handleLocationDirective();
 		void	handleListen();
 		void 	handleServerName();
 		void	handleRoot();
 		void	handleIndex();
 		void	handleBodySize();
+		void	handleLocation();
+		void	handleUnknown();
 };
