@@ -6,21 +6,31 @@ class LocationConfig {
 	private:
 		std::string 							m_path;
 		std::string 							m_root;
-		std::vector<std::string>	m_allowedMethods;
+		bool											m_autoIndex;
+		std::vector<std::string>	m_limitExcept;
+		int												m_maxBodySize;
+		std::string								m_index;
+		std::vector<std::string>	m_errorPages;
+		std::string								m_upload_store;
+		std::string								m_return;
+		
+
 
 	public:
-		LocationConfig() {setDefaultValues(); };
-		~LocationConfig() {};
-		LocationConfig(const LocationConfig& other){std::cout << "LocationConfig copy constructor called" << std::endl;}
+		LocationConfig() 														{setDefaultValues(); std::cout << "location config object created\n"; };
+		~LocationConfig() 													{};
+		LocationConfig(const LocationConfig& other)	{std::cout << "LocationConfig copy constructor called" << std::endl;}
 		void setDefaultValues() {
 			m_path = "/example/path";
 			m_root = "/";
-			m_allowedMethods.push_back("GET");
-			m_allowedMethods.push_back("POST");
+			m_limitExcept.push_back("GET");
+			m_limitExcept.push_back("POST");
 		}
+		void 				setPath(std::string path)	{ m_path = path; }
+		std::string getPath()									{ return m_path; }
 };
 
-/**
+/* *
  * 
  * for a webserv project would you then add connected fds to the pollfd struct so that poll will monitor them
  	ServerConfig:

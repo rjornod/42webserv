@@ -39,4 +39,5 @@ class ConfigParser {
 		void	handleBodySize();
 		void	handleLocation();
 		void	handleUnknown();
+		void	handleAutoIndex();
 };

@@ -125,14 +125,15 @@ void ConfigParser::parseBlock(bool isGlobal)
 	else if (m_tokens[tokenIndex].value != "location") {
 		throw ConfigParseException("Directive in server block is malformed " + m_tokens[tokenIndex].value);
 	}
-	if (m_tokens[tokenIndex].value == "location")			// if its a location block, increment an extra time (location has one more parameter than server)
-		tokenIndex++;					
+	// if (m_tokens[tokenIndex].value == "location") {											// if its a location block, increment an extra time (location has one more parameter than server)
+	// 	tokenIndex++;
+	// 	m_config.getServerConfigs().back().createLocationConfig();				// a location was found so we creat a new location object
+	// }					
+	incTokenIndex(2);																										// skip server or location token and StartBlock token
 
-	tokenIndex++;																			// skip server or location token
-	tokenIndex++;																			// skip StartBlock token
 	while (m_tokens[tokenIndex].type != TokenType::EndBlock) {
 		parseDirective();
-		tokenIndex++;
+		tokenIndex++;		
 	}
 }
 
@@ -143,25 +144,32 @@ void ConfigParser::parseDirective()
 			if (tokenIndex + 2 >= m_tokens.size() || m_tokens[tokenIndex + 1].type != TokenType::Word
 				|| m_tokens[tokenIndex + 2].type != TokenType::StartBlock)
 				throw ConfigParseException("Location directive is malformed");
-			else 
-				parseBlock(false);				// change to parseLocationDirectives later
-				break;
+			else {
+				m_config.getServerConfigs().back().createLocationConfig();	
+				parseLocationDirectives();
+			}
+			break;
 		}
 		else if (tokenIndex + 2 >= m_tokens.size() || m_tokens[tokenIndex].type != TokenType::Word  // TO DO: maybe remove these checks here and check inside each directive
 			|| m_tokens[tokenIndex + 1].type != TokenType::Word || m_tokens[tokenIndex + 2].type != TokenType::EndDirective) {
+			std::cout << m_tokens[tokenIndex] <<"\n";
 			throw ConfigParseException("Directive is malformed");
 		}
 		handleDirective();
-		tokenIndex++;
+		tokenIndex++;		
 	}
 }
 
-
-
 void ConfigParser::parseLocationDirectives() {
-	incTokenIndex(3);
+	tokenIndex++; 																												// skip location token
+	m_config.getServerConfigs().back().getLocationConfigs().back().setPath(m_tokens[tokenIndex].value);
+	incTokenIndex(2);
 	while (m_tokens[tokenIndex].type != TokenType::EndBlock) {
-		handleLocationDirective();
+		while (m_tokens[tokenIndex].type != TokenType::EndDirective) {
+			handleLocationDirective();
+			tokenIndex++;
+		}
+		tokenIndex++;
 	}
 }
 
@@ -204,7 +212,13 @@ void ConfigParser::handleBodySize() {
 }
 
 void ConfigParser::handleUnknown() {
-	throw ConfigParseException("Illegal directive detected");
+	std::cout << m_tokens[tokenIndex] << "\n";
+	throw ConfigParseException("Unknown directive detected");
+}
+
+void ConfigParser::handleAutoIndex() {
+	tokenIndex++;
+	std::cout << GREEN << "AUTO INDEX: " << RESET << m_tokens[tokenIndex].value << "\n"; // TO DO: value needs to be stored
 }
 
 void ConfigParser::handleLocationDirective() {
@@ -213,24 +227,30 @@ void ConfigParser::handleLocationDirective() {
 			std::cout << "Directive: Root\n";
 			break;
 		case LocationDirectiveType::AutoIndex:
-			std::cout << "Directive: AutoIndex\n";
+			handleAutoIndex();
 			break;
 		case LocationDirectiveType::MaxBodySize:
+			tokenIndex++;
 			std::cout << "Directive: MaxBodySize\n";
 			break;
 		case LocationDirectiveType::Index:
+			tokenIndex++;
 			std::cout << "Directive: Index\n";
 			break;
 		case LocationDirectiveType::ErrorPage:
+			tokenIndex++;
 			std::cout << "Directive: ErrorPage\n";
 			break;
 		case LocationDirectiveType::UploadStore:
+			tokenIndex++;
 			std::cout << "Directive: UploadStore\n";
 			break;
 		case LocationDirectiveType::LimitExcept:
+			tokenIndex++;
 			std::cout << "Directive: LimitExcept\n";
 			break;
 		case LocationDirectiveType::Return:
+			tokenIndex++;
 			std::cout << "Directive: Return\n";
 			break;
 		case LocationDirectiveType::Unknown:
@@ -256,6 +276,7 @@ void ConfigParser::handleDirective() {
 			break;
 		case DirectiveType::ErrorPage:
 			std::cout << "Directive: ErrorPage\n";
+			tokenIndex++;
 			break;
 		case DirectiveType::Location:
 			handleLocation();
@@ -263,6 +284,7 @@ void ConfigParser::handleDirective() {
 			break;
 		case DirectiveType::AutoIndex:
 			std::cout << "Directive: AutoIndex\n";
+			tokenIndex++;
 			break;
 		case DirectiveType::MaxBodySize:
 			handleBodySize();
