@@ -17,7 +17,7 @@ jobs:
 
       - name: Verify that executable exists
         run: |
-          if [ -f webserver ]; then
+          if [ -f webserv ]; then
             echo "✅ Executable built successfully"
           else
             echo "❌ Executable not found"
