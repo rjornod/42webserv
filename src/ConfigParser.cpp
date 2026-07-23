@@ -100,7 +100,6 @@ void ConfigParser::checkAllBraces() {
 	else
 		std::cout << GREEN << "All braces are paired\n" << RESET <<std::endl;
 }
-
 void ConfigParser::parseTokens() {
 	int  i = 0;
 	int isGlobal = 0;
@@ -124,13 +123,8 @@ void ConfigParser::parseBlock(bool isGlobal)
 	}
 	else if (!isValue(m_tokens[tokenIndex], "location")) {
 		throw ConfigParseException("Directive in server block is malformed " + m_tokens[tokenIndex].value);
-	}
-	// if (m_tokens[tokenIndex].value == "location") {											// if its a location block, increment an extra time (location has one more parameter than server)
-	// 	tokenIndex++;
-	// 	m_config.getServerConfigs().back().createLocationConfig();				// a location was found so we creat a new location object
-	// }					
+	}				
 	incTokenIndex(2);																										// skip server or location token and StartBlock token
-
 	while (!isType(m_tokens[tokenIndex], TokenType::EndBlock)) {
 		parseDirective();
 		tokenIndex++;		
@@ -139,8 +133,8 @@ void ConfigParser::parseBlock(bool isGlobal)
 
 void ConfigParser::parseDirective()
 {
-	while (m_tokens[tokenIndex].type != TokenType::EndDirective) {
-		if (m_tokens[tokenIndex].value == "location") {
+	while (!isType(m_tokens[tokenIndex], TokenType::EndDirective)) {
+		if (isValue(m_tokens[tokenIndex], "location")) {
 			if (tokenIndex + 2 >= m_tokens.size() || !isType(m_tokens[tokenIndex + 1], TokenType::Word)
 				|| !isType(m_tokens[tokenIndex + 2], TokenType::StartBlock))
 				throw ConfigParseException("Location directive is malformed");
@@ -150,11 +144,11 @@ void ConfigParser::parseDirective()
 			}
 			break;
 		}
-		else if (tokenIndex + 2 >= m_tokens.size() || !isType(m_tokens[tokenIndex], TokenType::Word)  // TO DO: maybe remove these checks here and check inside each directive
-			|| !isType(m_tokens[tokenIndex + 1], TokenType::Word) || !isType(m_tokens[tokenIndex + 2], TokenType::EndDirective)) {
-			std::cout << m_tokens[tokenIndex] <<"\n";
-			throw ConfigParseException("Directive is malformed");
-		}
+		// else if (tokenIndex + 2 >= m_tokens.size() || !isType(m_tokens[tokenIndex], TokenType::Word)  // TO DO: maybe remove these checks here and check inside each directive
+		// 	|| !isType(m_tokens[tokenIndex + 1], TokenType::Word) || !isType(m_tokens[tokenIndex + 2], TokenType::EndDirective)) {
+		// 	std::cout << m_tokens[tokenIndex] <<"\n";
+		// 	throw ConfigParseException("Directive is malformed");
+		// }
 		handleDirective();
 		tokenIndex++;		
 	}
@@ -194,7 +188,16 @@ void ConfigParser::handleRoot() {
 
 void ConfigParser::handleIndex() {
 	tokenIndex++;
-	m_config.getServerConfigs().back().setIndex(m_tokens[tokenIndex].value);
+	if (!isType(m_tokens[tokenIndex], TokenType::Word))
+		throw ConfigParseException("Index directive malformed");
+	// check if the current token is a Word and is not the same as a known directive
+	while (tokenIndex < m_tokens.size() && 
+				isValidToken(m_tokens[tokenIndex])) {
+		m_config.getServerConfigs().back().setIndex(m_tokens[tokenIndex].value);		
+		tokenIndex++;
+	}
+	if (!isType(m_tokens[tokenIndex], TokenType::EndDirective)) 
+		throw ConfigParseException("Index directive is missing a semicolon");
 	std::cout << GREEN << "INDEX OK\n" << RESET;
 }
 
@@ -337,12 +340,13 @@ void ConfigParser::printTokens() {
 		std::cout << BLUE << "-----------------------------" << RESET << std::endl;
 }
 
-bool ConfigParser::isToken(const Token& token, const std::string& expectedValue, TokenType expectedType) {
-	return token.value== expectedValue && token.type == expectedType;
+bool ConfigParser::isValidToken(const Token& token) {
+	return 	isType(m_tokens[tokenIndex], TokenType::Word) && 
+					!knownDirectives.count(m_tokens[tokenIndex].value);
 }
 
 bool	ConfigParser::isType(const Token& token, TokenType expectedType) {
-		return token.type == expectedType;
+	return token.type == expectedType;
 }
 
 bool	ConfigParser::isValue(const Token& token, const std::string& expectedValue) {

@@ -11,7 +11,7 @@ class ServerConfig {
 		std::string									m_serverName;
 		std::string									m_root;
 		int 												m_clientMaxBodySize;
-		std::string									m_index;
+		std::vector<std::string>		m_index;
 		std::string									m_errorPage;
 		bool												m_autoIndex;
 	public:
@@ -29,15 +29,23 @@ class ServerConfig {
 		std::vector<LocationConfig> &getLocationConfigs()	{ return locationConfigs;}
 		void				setPort(int port)											{ m_listenPort = port; }
 		void				setServerName(std::string name)				{ m_serverName = name; }
-		void				setIndex(std::string index)						{ m_index = index;}
+		void				setIndex(std::string index)						{ m_index.emplace_back(index);}
 		void				setRoot(std::string root)							{ m_root = root;}
 		void				setBodySize(int size)									{ m_clientMaxBodySize = size;}
 		void				createLocationConfig()								{ locationConfigs.emplace_back();}
+		void				printIndex() const {
+			std::cout << GREEN << "INDEX: " << RESET;
+			for (int i = 0; i < m_index.size(); i++) {
+				std::cout << m_index[i] << " ";
+			}
+			std::cout << "\n";
+		}
 		void 				printValues() const {
 			std::cout << GREEN << "PORT: " << RESET << m_listenPort 
 								<< GREEN << "\nSERVER NAME: " << RESET << m_serverName
 								<< GREEN << "\nROOT: " << RESET << m_root
-								<< GREEN << "\nINDEX: " << RESET << m_index  
+								// << GREEN << "\nINDEX: " << RESET << printIndex()  
 								<< GREEN << "\nCLIENT MAX BODY SIZE: " << RESET << m_clientMaxBodySize << std::endl;
-		}
-};
+					printIndex();
+			}
+		};

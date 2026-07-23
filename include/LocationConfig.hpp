@@ -9,7 +9,7 @@ class LocationConfig {
 		bool											m_autoIndex;
 		std::vector<std::string>	m_limitExcept;
 		int												m_maxBodySize;
-		std::string								m_index;
+		std::vector<std::string>	m_index;
 		std::vector<std::string>	m_errorPages;
 		std::string								m_upload_store;
 		std::string								m_return;
@@ -17,7 +17,7 @@ class LocationConfig {
 
 
 	public:
-		LocationConfig() 														{setDefaultValues(); std::cout << "location config object created\n"; };
+		LocationConfig() 														{setDefaultValues(); };
 		~LocationConfig() 													{};
 		LocationConfig(const LocationConfig& other)	: m_path(other.m_path),
       m_root(other.m_root),
@@ -28,7 +28,7 @@ class LocationConfig {
       m_errorPages(other.m_errorPages),
       m_upload_store(other.m_upload_store),
       m_return(other.m_return) { 
-				std::cout << "LocationConfig copy constructor called" << std::endl;
+				// std::cout << "LocationConfig copy constructor called" << std::endl;
 		}
 		void setDefaultValues() {
 			m_path = "/example/path";

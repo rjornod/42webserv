@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <unordered_set>
 #include "GlobalConfig.hpp"
 #include "TokenType.hpp"
 #include "Colors.hpp"
@@ -41,7 +42,12 @@ class ConfigParser {
 		void	handleUnknown();
 		void	handleAutoIndex();
 		void	printTokens(); // for debug only
-		bool	isToken(const Token& token, const std::string& expectedValue, TokenType expectedType);
+		bool	isValidToken(const Token& token);
 		bool	isType(const Token& token, TokenType expectedType);
 		bool	isValue(const Token& token, const std::string& expectedValue);
+		std::unordered_set<std::string>	knownDirectives = {
+			"server", "listen", "server_name", "root", "index",
+    	"location", "methods", "autoindex", "return",
+    	"limit_except", "upload_store", "client_max_body_size"
+		};
 };
