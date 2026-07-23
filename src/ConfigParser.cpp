@@ -90,9 +90,9 @@ int ConfigParser::skipComments(int i) {
 void ConfigParser::checkAllBraces() {
 	int braceFound = 0;
 	for (int i = 0; i < m_tokens.size(); i++) {
-		if (m_tokens[i].type == TokenType::StartBlock)
+		if (isType(m_tokens[i], TokenType::StartBlock))
 			braceFound++;
-		if (m_tokens[i].type == TokenType::EndBlock)
+		if (isType(m_tokens[i], TokenType::EndBlock))
 			braceFound--;
 	}
 	if (braceFound != 0)
@@ -106,8 +106,8 @@ void ConfigParser::parseTokens() {
 	int isGlobal = 0;
 	checkAllBraces();
 	// check if server block exists
-	if (tokenIndex + 1 >= m_tokens.size() || m_tokens[tokenIndex].value != "server"
-		|| m_tokens[tokenIndex + 1].type != TokenType::StartBlock) {
+	if (tokenIndex + 1 >= m_tokens.size() || !isValue(m_tokens[tokenIndex], "server")
+		|| !isType(m_tokens[tokenIndex + 1], TokenType::StartBlock)) {
 		throw ConfigParseException("Only server{} allowed as a global directive");
 	}
 	else {
@@ -119,10 +119,10 @@ void ConfigParser::parseTokens() {
 void ConfigParser::parseBlock(bool isGlobal)
 {
 	if (isGlobal) {
-		if (m_tokens[tokenIndex].value != "server")
+		if (!isValue(m_tokens[tokenIndex], "server"))
 			throw ConfigParseException("Only server{} allowed as a global directive");
 	}
-	else if (m_tokens[tokenIndex].value != "location") {
+	else if (!isValue(m_tokens[tokenIndex], "location")) {
 		throw ConfigParseException("Directive in server block is malformed " + m_tokens[tokenIndex].value);
 	}
 	// if (m_tokens[tokenIndex].value == "location") {											// if its a location block, increment an extra time (location has one more parameter than server)
@@ -131,7 +131,7 @@ void ConfigParser::parseBlock(bool isGlobal)
 	// }					
 	incTokenIndex(2);																										// skip server or location token and StartBlock token
 
-	while (m_tokens[tokenIndex].type != TokenType::EndBlock) {
+	while (!isType(m_tokens[tokenIndex], TokenType::EndBlock)) {
 		parseDirective();
 		tokenIndex++;		
 	}
@@ -141,8 +141,8 @@ void ConfigParser::parseDirective()
 {
 	while (m_tokens[tokenIndex].type != TokenType::EndDirective) {
 		if (m_tokens[tokenIndex].value == "location") {
-			if (tokenIndex + 2 >= m_tokens.size() || m_tokens[tokenIndex + 1].type != TokenType::Word
-				|| m_tokens[tokenIndex + 2].type != TokenType::StartBlock)
+			if (tokenIndex + 2 >= m_tokens.size() || !isType(m_tokens[tokenIndex + 1], TokenType::Word)
+				|| !isType(m_tokens[tokenIndex + 2], TokenType::StartBlock))
 				throw ConfigParseException("Location directive is malformed");
 			else {
 				m_config.getServerConfigs().back().createLocationConfig();	
@@ -150,8 +150,8 @@ void ConfigParser::parseDirective()
 			}
 			break;
 		}
-		else if (tokenIndex + 2 >= m_tokens.size() || m_tokens[tokenIndex].type != TokenType::Word  // TO DO: maybe remove these checks here and check inside each directive
-			|| m_tokens[tokenIndex + 1].type != TokenType::Word || m_tokens[tokenIndex + 2].type != TokenType::EndDirective) {
+		else if (tokenIndex + 2 >= m_tokens.size() || !isType(m_tokens[tokenIndex], TokenType::Word)  // TO DO: maybe remove these checks here and check inside each directive
+			|| !isType(m_tokens[tokenIndex + 1], TokenType::Word) || !isType(m_tokens[tokenIndex + 2], TokenType::EndDirective)) {
 			std::cout << m_tokens[tokenIndex] <<"\n";
 			throw ConfigParseException("Directive is malformed");
 		}
@@ -164,8 +164,8 @@ void ConfigParser::parseLocationDirectives() {
 	tokenIndex++; 																												// skip location token
 	m_config.getServerConfigs().back().getLocationConfigs().back().setPath(m_tokens[tokenIndex].value);
 	incTokenIndex(2);
-	while (m_tokens[tokenIndex].type != TokenType::EndBlock) {
-		while (m_tokens[tokenIndex].type != TokenType::EndDirective) {
+	while (!isType(m_tokens[tokenIndex], TokenType::EndBlock)) {
+		while (!isType(m_tokens[tokenIndex], TokenType::EndDirective)) {
 			handleLocationDirective();
 			tokenIndex++;
 		}
@@ -294,7 +294,6 @@ void ConfigParser::handleDirective() {
 			std::cout << "Unknown Directive\n";
 			break;
 	}
-
 }
 
 void ConfigParser::tokenize(std::fstream& file) {
@@ -328,10 +327,24 @@ void ConfigParser::tokenize(std::fstream& file) {
 	}
 	if (m_tokens.empty())
 		throw ConfigParseException("File doesn't have any server block");
-	// printing to debug tokens
-	// std::cout << BLUE << "----Printing tokens vector---" << RESET << std::endl;
-	// for (int i = 0; i < m_tokens.size(); i++) {
-	// 	std::cout << i << " - " <<  m_tokens[i] << std::endl;
-	// }
-	// 	std::cout << BLUE << "-----------------------------" << RESET << std::endl;
+}
+
+void ConfigParser::printTokens() {
+	std::cout << BLUE << "----Printing tokens vector---" << RESET << std::endl;
+	for (int i = 0; i < m_tokens.size(); i++) {
+		std::cout << i << " - " <<  m_tokens[i] << std::endl;
+	}
+		std::cout << BLUE << "-----------------------------" << RESET << std::endl;
+}
+
+bool ConfigParser::isToken(const Token& token, const std::string& expectedValue, TokenType expectedType) {
+	return token.value== expectedValue && token.type == expectedType;
+}
+
+bool	ConfigParser::isType(const Token& token, TokenType expectedType) {
+		return token.type == expectedType;
+}
+
+bool	ConfigParser::isValue(const Token& token, const std::string& expectedValue) {
+	return token.value == expectedValue;
 }

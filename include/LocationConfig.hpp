@@ -19,7 +19,17 @@ class LocationConfig {
 	public:
 		LocationConfig() 														{setDefaultValues(); std::cout << "location config object created\n"; };
 		~LocationConfig() 													{};
-		LocationConfig(const LocationConfig& other)	{std::cout << "LocationConfig copy constructor called" << std::endl;}
+		LocationConfig(const LocationConfig& other)	: m_path(other.m_path),
+      m_root(other.m_root),
+      m_autoIndex(other.m_autoIndex),
+      m_limitExcept(other.m_limitExcept),
+      m_maxBodySize(other.m_maxBodySize),
+      m_index(other.m_index),
+      m_errorPages(other.m_errorPages),
+      m_upload_store(other.m_upload_store),
+      m_return(other.m_return) { 
+				std::cout << "LocationConfig copy constructor called" << std::endl;
+		}
 		void setDefaultValues() {
 			m_path = "/example/path";
 			m_root = "/";

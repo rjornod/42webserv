@@ -40,4 +40,8 @@ class ConfigParser {
 		void	handleLocation();
 		void	handleUnknown();
 		void	handleAutoIndex();
+		void	printTokens(); // for debug only
+		bool	isToken(const Token& token, const std::string& expectedValue, TokenType expectedType);
+		bool	isType(const Token& token, TokenType expectedType);
+		bool	isValue(const Token& token, const std::string& expectedValue);
 };
