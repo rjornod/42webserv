@@ -19,6 +19,7 @@ class HttpParser : public IHttpParser {
     int m_expectedBodyLen;
     HttpParserState m_state;
     HttpRequest m_request;
+    std::string m_errorMessage;
 
   public:
 
@@ -33,6 +34,7 @@ class HttpParser : public IHttpParser {
     int getExpectedBodyLen() const {return m_expectedBodyLen;}
     HttpRequest getRequest() const {return m_request;}
     HttpParserState getParserState() const {return m_state;}
+    std::string getErrorMessage() const {return m_errorMessage;}
     void setParserState(HttpParserState state) {m_state = state;}
 
     //New version with switch --------
@@ -42,6 +44,7 @@ class HttpParser : public IHttpParser {
     bool parseBody();
     void determineBodyLength();
     void buildRequest();
+    void reportErrors();
 
     //DEBUG
     void printHeaders();

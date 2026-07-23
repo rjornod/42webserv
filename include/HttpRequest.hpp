@@ -26,6 +26,7 @@ class HttpRequest {
 
   public: 
 
+    HttpRequest() : m_method(HttpMethod::UNKNOWN) {}
     HttpMethod getMethod() const {return m_method;}
     std::string getRequestLine() const {return m_requestLine;}
     std::string getURI() const {return m_rawPath;}
