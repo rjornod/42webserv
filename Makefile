@@ -1,4 +1,4 @@
-SERV = webserver
+SERV = webserv
 CXX = c++
 CXXFLAGS += -std=c++17
 SRC_DIR = ./src
