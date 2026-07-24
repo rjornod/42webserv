@@ -25,20 +25,17 @@ jobs:
           fi
   
   tests-http-parser:
-    if: github.ref_name == 'http'
+    if: |
+      (github.event_name == 'push' && github.ref_name == 'http') ||
+      (github.event_name == 'pull_request' && github.head_ref == 'http')
+      
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v6
 
-      - name: Build Http Parser Tests
+      - name: Build Google Tests on Http Parser
         run: make tests
 
-      - name: Verify that gtests (http parser) executable exists
-        run: |
-          if [ -f gtests ]; then
-            echo "✅ Executable built successfully"
-          else
-            echo "❌ Executable not found"
-            exit 1
-          fi
+      - name: Run Google Tests on Http Parser
+        run: ./gtests --gtest_color=yes
