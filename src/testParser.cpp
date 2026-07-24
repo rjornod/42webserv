@@ -40,6 +40,16 @@ int main() {
     "User-Agent: Test\r\n"
     "\r\n";
 
+  std::string invalidContentLen = 
+    "POST / HTTP/1.1\r\n"
+    "Host: developer.mozilla.org\r\n"
+    "User-Agent: curl/8.6.0\r\n"
+    "Accept: */*\r\n"
+    "Content-Type: application/json\r\n"
+    "content-length: 0\r\n"
+    "\r\n"
+    "{\"id\": \"42\"}";
+
   // HttpParser parser;
 
   // parser.partialParse(reqMethod);
@@ -53,11 +63,11 @@ int main() {
 
   // std::cout << "Buffer:" << std::endl << parser.getBuffer() << std::endl;
 
-  std::cout << std::endl << "Parsing request with missing version: " << std::endl << std::endl;
+  std::cout << std::endl << "Parsing request with ivalid content length: " << std::endl << std::endl;
 
   HttpParser parserError;
 
-  parserError.partialParse(missingVersion);
+  parserError.partialParse(invalidContentLen);
 
 
   std::cout << "------------------------- Request: ------------------" << std::endl << parserError.getRequest() << std::endl;

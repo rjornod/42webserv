@@ -10,6 +10,9 @@ class HttpParserTest : public ::testing::Test {
     std::string requestHelloWorld;
     std::string requestWithContentLength;
     std::string missingVersion;
+    std::string invalidMethod;
+    std::string headerMissingColon;
+    std::string invalidContentLen;
 
     void SetUp() override {
         validGetRequest =
@@ -37,6 +40,28 @@ class HttpParserTest : public ::testing::Test {
             "Host: localhost\r\n"
             "User-Agent: Test\r\n"
             "\r\n";
+        
+        invalidMethod = 
+            "GXT /index.html HTTP/1.1\r\n"
+            "Host: localhost\r\n"
+            "User-Agent: Test\r\n"
+            "\r\n";
+
+        headerMissingColon = 
+            "GET /index.html HTTP/1.1\r\n"
+            "Host: localhost\r\n"
+            "User-Agent Test\r\n"
+            "\r\n";
+
+        invalidContentLen = 
+            "POST / HTTP/1.1\r\n"
+            "Host: developer.mozilla.org\r\n"
+            "User-Agent: curl/8.6.0\r\n"
+            "Accept: */*\r\n"
+            "Content-Type: application/json\r\n"
+            "content-length: xx\r\n"
+            "\r\n"
+            "{\"id\": \"42\"}";
     }
 
 };
@@ -206,6 +231,7 @@ TEST_F(HttpParserTest, ParsesRequestReceivedInChunks) {
 //----------------------- ERRORS -------------
 
 // INVALID INPUT
+//Invalid Request Line -- Missing parts
 TEST_F(HttpParserTest, MissingHTTPVersion) {
     HttpParser parser;
 
@@ -215,6 +241,69 @@ TEST_F(HttpParserTest, MissingHTTPVersion) {
 }
 
 
+//Invalid Request Line -- Missing parts
+TEST_F(HttpParserTest, InvalidMethod) {
+    HttpParser parser;
 
+    parser.partialParse(invalidMethod);
+
+    EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
+}
+
+// Malformed headers -- missing colon
+TEST_F(HttpParserTest, MalformedHeadersMissingColon) {
+    HttpParser parser;
+
+    parser.partialParse(headerMissingColon);
+
+    EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
+}
+
+
+TEST_F(HttpParserTest, InvalidContentLength) {
+    HttpParser parser;
+
+    parser.partialParse(invalidContentLen);
+    EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
+}
 
 // INCOMPLETE INPUT
+
+TEST_F(HttpParserTest, EmptyRequest) {
+    HttpParser parser;
+
+    parser.partialParse("");
+    EXPECT_EQ(parser.getParserState(), HttpParserState::REQUEST_LINE);
+}
+
+TEST_F(HttpParserTest, MissingBlankLine) {
+    HttpParser parser;
+
+    std::string request =
+        "GET / HTTP/1.1\r\n"
+        "Host: example.com\r\n"
+        "User-Agent: test";
+
+    parser.partialParse(request);
+    EXPECT_EQ(parser.getParserState(), HttpParserState::HEADERS);
+}
+
+//Body size smaller than content length, Should just stay in BODY state
+TEST_F(HttpParserTest, BodyShorterThanContentLen) {
+    HttpParser parser;
+
+    std::string request =
+        "POST / HTTP/1.1\r\n"
+            "Host: developer.mozilla.org\r\n"
+            "User-Agent: curl/8.6.0\r\n"
+            "Accept: */*\r\n"
+            "Content-Type: application/json\r\n"
+            "content-length: 120\r\n"
+            "\r\n"
+            "{\"id\": \"42\"}";
+
+    parser.partialParse(request);
+
+    EXPECT_EQ(parser.getParserState(), HttpParserState::BODY);
+
+}

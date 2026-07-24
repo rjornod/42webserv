@@ -31,6 +31,10 @@ void HttpParser::partialParse(const std::string& chunk) {
         // buildRequest(); // Not sure
         return;
       }
+      if (m_expectedBodyLen == -1) {
+        reportErrors();
+        return;
+      }
       m_state = HttpParserState::BODY;
     
     case HttpParserState::BODY:
@@ -95,6 +99,7 @@ bool HttpParser::parseRequestLine() {
     return false;
   }
   //TO DO: Method, URI, Version validation
+  // Method
   m_request.setMethod(parseMethod(reqLine.substr(0, firstSpace)));
   if (m_request.getMethod() == HttpMethod::UNKNOWN) {
     m_state = HttpParserState::ERROR;
@@ -153,7 +158,7 @@ bool HttpParser::parseHeaders() {
     size_t colon = header.find(':');
     if (colon == std::string::npos) {
       m_state = HttpParserState::ERROR;
-      //TO DO -- set error message
+      m_errorMessage = "Header missing colon";
       return false;
     }
     m_headers.insert({getHeaderName(header), getHeaderValue(header)});
@@ -168,10 +173,41 @@ void HttpParser::determineBodyLength() {
     m_expectedBodyLen = 0;
     return;
   }
-  m_expectedBodyLen = std::stoi(it->second);
+  try {
+    m_expectedBodyLen = std::stoi(it->second);
+    if (m_expectedBodyLen < 0) {
+      m_errorMessage = "Content Length Out Of Range";
+      m_state = HttpParserState::ERROR;
+      m_expectedBodyLen = -1;
+      return;
+    }
+  }
+  catch (const std::invalid_argument& ia) {
+    m_errorMessage = "Invalid Content-Length";
+    m_state = HttpParserState::ERROR;
+    m_expectedBodyLen = -1;
+    return;
+  }
+  catch (const std::out_of_range& oor) {
+    m_errorMessage = "Content Length Out Of Range";
+    m_state = HttpParserState::ERROR;
+    m_expectedBodyLen = -1;
+    return;
+  }
+  catch (const std::exception& e) {
+    m_errorMessage = "Unknown error on Content-Length argument";
+    m_state = HttpParserState::ERROR;
+    m_expectedBodyLen = -1;
+    return;
+  }
+  
 }
 
 bool HttpParser::parseBody() {
+
+  if (m_expectedBodyLen == -1) {
+    return false;
+  }
 
   if (m_buffer.size() + m_body.size() < m_expectedBodyLen)
   {
