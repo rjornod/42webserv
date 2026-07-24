@@ -1,4 +1,4 @@
-name: Build
+name: CI
 run-name: ${{ github.actor }} is building the webserv
 
 on:
@@ -6,18 +6,37 @@ on:
   pull_request:
 
 jobs:
-  build:
+  build-webserver:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v6
 
-      - name: Build
+      - name: Build Web Server
         run: make
 
       - name: Verify that executable exists
         run: |
           if [ -f webserv ]; then
+            echo "✅ Executable built successfully"
+          else
+            echo "❌ Executable not found"
+            exit 1
+          fi
+  
+  tests-http-parser:
+    if: github.ref_name == 'http'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build Http Parser Tests
+        run: make tests
+
+      - name: Verify that gtests (http parser) executable exists
+        run: |
+          if [ -f gtests ]; then
             echo "✅ Executable built successfully"
           else
             echo "❌ Executable not found"
