@@ -41,13 +41,17 @@ class ConfigParser {
 		void	handleLocation();
 		void	handleUnknown();
 		void	handleAutoIndex();
+		void	handleErrorPages();
+		void	checkEndOfDirective(std::string directive);
 		void	printTokens(); // for debug only
 		bool	isValidToken(const Token& token);
 		bool	isType(const Token& token, TokenType expectedType);
 		bool	isValue(const Token& token, const std::string& expectedValue);
 		std::unordered_set<std::string>	knownDirectives = {
-			"server", "listen", "server_name", "root", "index",
-    	"location", "methods", "autoindex", "return",
-    	"limit_except", "upload_store", "client_max_body_size"
+				"server", "listen", "server_name", "root", "index",
+				"location", "methods", "autoindex", "return",
+				"limit_except", "upload_store", "client_max_body_size"
 		};
+		void 	incTokenIndex(int amount);
+
 };

@@ -12,7 +12,7 @@ class ServerConfig {
 		std::string									m_root;
 		int 												m_clientMaxBodySize;
 		std::vector<std::string>		m_index;
-		std::string									m_errorPage;
+		std::vector<std::string>		m_errorPages;
 		bool												m_autoIndex;
 	public:
 		ServerConfig() {setDefaultValues(); std::cout << "server config created\n";}
@@ -32,6 +32,8 @@ class ServerConfig {
 		void				setIndex(std::string index)						{ m_index.emplace_back(index);}
 		void				setRoot(std::string root)							{ m_root = root;}
 		void				setBodySize(int size)									{ m_clientMaxBodySize = size;}
+		void				setAutoIndex(bool isOn)								{ m_autoIndex = isOn;}
+		void				setErrorPages(std::string errorPage)	{ m_errorPages.emplace_back(errorPage);}
 		void				createLocationConfig()								{ locationConfigs.emplace_back();}
 		void				printIndex() const {
 			std::cout << GREEN << "INDEX: " << RESET;
@@ -40,12 +42,21 @@ class ServerConfig {
 			}
 			std::cout << "\n";
 		}
+		void				printErrorPages() const {
+			std::cout << GREEN << "ERROR PAGES: " << RESET;
+			for (int i = 0; i < m_errorPages.size(); i++) {
+				std::cout << m_errorPages[i] << " ";
+			}
+			std::cout << "\n";
+		}
 		void 				printValues() const {
 			std::cout << GREEN << "PORT: " << RESET << m_listenPort 
 								<< GREEN << "\nSERVER NAME: " << RESET << m_serverName
 								<< GREEN << "\nROOT: " << RESET << m_root
-								// << GREEN << "\nINDEX: " << RESET << printIndex()  
+								// << GREEN << "\nINDEX: " << RESET << printIndex()
+								<< GREEN << "\nAUTOINDEX: " << RESET << m_autoIndex  
 								<< GREEN << "\nCLIENT MAX BODY SIZE: " << RESET << m_clientMaxBodySize << std::endl;
 					printIndex();
+					printErrorPages();
 			}
 		};

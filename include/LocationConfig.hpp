@@ -1,18 +1,19 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <unordered_map>
 
 class LocationConfig {
 	private:
-		std::string 							m_path;
-		std::string 							m_root;
-		bool											m_autoIndex;
-		std::vector<std::string>	m_limitExcept;
-		int												m_maxBodySize;
-		std::vector<std::string>	m_index;
-		std::vector<std::string>	m_errorPages;
-		std::string								m_upload_store;
-		std::string								m_return;
+		std::string 													m_path;
+		std::string 													m_root;
+		bool																	m_autoIndex;
+		std::vector<std::string>							m_limitExcept;
+		int																		m_maxBodySize;
+		std::vector<std::string>							m_index;
+		std::unordered_map<int, std::string>	m_errorPages;
+		std::string														m_upload_store;
+		std::string														m_return;
 		
 
 
