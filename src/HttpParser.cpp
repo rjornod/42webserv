@@ -3,7 +3,7 @@
 
 void HttpParser::reportErrors() {
   if (m_state == HttpParserState::ERROR)
-    std::cout << "Error on parsing: " << m_errorMessage << std::endl;
+    std::cerr << "Error on parsing: " << m_errorMessage << std::endl;
 }
 
 void HttpParser::partialParse(const std::string& chunk) {
@@ -107,7 +107,13 @@ bool HttpParser::parseRequestLine() {
     return false;
   }
   m_request.setURI(reqLine.substr(firstSpace + 1, secondSpace - firstSpace - 1));
-  m_request.setVersion(reqLine.substr(secondSpace + 1));
+  std::string version = reqLine.substr(secondSpace + 1);
+  if (!validateHttpVersion(version)) {
+    m_state = HttpParserState::ERROR;
+    m_errorMessage = "Invalid Http Version";
+    return false;
+  } 
+  m_request.setVersion(version);
 
   // Remove request line from buffer
   m_buffer.erase(0, end + 2);
@@ -223,6 +229,35 @@ bool HttpParser::parseBody() {
   m_buffer.erase(0, m_expectedBodyLen);
 
   return true;
+}
+
+// VALIDATION ------
+
+bool isDigits(std::string_view s) {
+  return !s.empty() &&
+           std::all_of(s.begin(), s.end(),
+                       [](unsigned char c) { return std::isdigit(c); });
+}
+
+bool HttpParser::validateHttpVersion(std::string_view version) {
+
+  if (version.length() < 8)
+    return false;
+  std::string_view http = version.substr(0,5);
+  if (http != "HTTP/")
+    return false;
+  size_t point = version.find('.');
+  if (point == std::string::npos)
+    return false;
+  std::string_view major = version.substr(5, point - 5);
+  std::string_view minor = version.substr(point + 1);
+  if (!isDigits(major) || !isDigits(minor))
+    return false;
+  return true;
+}
+
+void HttpParser::clearParser() {
+  *this = HttpParser{};
 }
 
 // ------------ DEBUG -------------------

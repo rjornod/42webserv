@@ -241,12 +241,36 @@ TEST_F(HttpParserTest, MissingHTTPVersion) {
 }
 
 
-//Invalid Request Line -- Missing parts
+//Invalid Request Line -- Invalid Method
 TEST_F(HttpParserTest, InvalidMethod) {
     HttpParser parser;
 
     parser.partialParse(invalidMethod);
 
+    EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
+}
+
+//Invalid Request Line -- Invalid Version
+TEST_F(HttpParserTest, InvalidHttpVersion) {
+    HttpParser parser;
+
+    parser.partialParse("GET / HKKP/1.1\r\n");
+    EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
+    
+    parser.clearParser();
+    parser.partialParse("GET / HTTP1.1\r\n");
+    EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
+
+    parser.clearParser();
+    parser.partialParse("GET / HTTP/x.1\r\n");
+    EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
+
+    parser.clearParser();
+    parser.partialParse("GET / HTTP/f1.1\r\n");
+    EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
+
+    parser.clearParser();
+    parser.partialParse("GET / HTTP/1.\r\n");
     EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
 }
 

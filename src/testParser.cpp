@@ -50,29 +50,27 @@ int main() {
     "\r\n"
     "{\"id\": \"42\"}";
 
-  // HttpParser parser;
+  HttpParser parser;
 
-  // parser.partialParse(reqMethod);
-  // parser.partialParse(reqLineURI);
-  // parser.partialParse(reqHeaders);
-  // std::string state = to_string(parser.getParserState());
-  // std::cout << "State: " << state << std::endl;
+  parser.partialParse(reqWithBody);
+  std::string state = to_string(parser.getParserState());
+  std::cout << "State: " << state << std::endl;
 
-  // std::cout << "------------------------- Request: ------------------" << std::endl << parser.getRequest() << std::endl;
-  // std::cout << "-----------------------------------------------------" << std::endl;
-
-  // std::cout << "Buffer:" << std::endl << parser.getBuffer() << std::endl;
-
-  std::cout << std::endl << "Parsing request with ivalid content length: " << std::endl << std::endl;
-
-  HttpParser parserError;
-
-  parserError.partialParse(invalidContentLen);
-
-
-  std::cout << "------------------------- Request: ------------------" << std::endl << parserError.getRequest() << std::endl;
+  std::cout << "------------------------- Request: ------------------" << std::endl << parser.getRequest() << std::endl;
   std::cout << "-----------------------------------------------------" << std::endl;
-  std::cout << "State: " << to_string(parserError.getParserState()) << std::endl;
+
+  std::cout << "Buffer:" << std::endl << parser.getBuffer() << std::endl;
+
+  // std::cout << std::endl << "Parsing request with ivalid content length: " << std::endl << std::endl;
+
+  // HttpParser parserError;
+
+  // parserError.partialParse(invalidContentLen);
+
+
+  // std::cout << "------------------------- Request: ------------------" << std::endl << parserError.getRequest() << std::endl;
+  // std::cout << "-----------------------------------------------------" << std::endl;
+  // std::cout << "State: " << to_string(parserError.getParserState()) << std::endl;
 
   return 0;
 

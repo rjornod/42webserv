@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 #include <vector>
 #include <algorithm>
 #include <unordered_map>
@@ -27,7 +28,6 @@ class HttpParser : public IHttpParser {
     HttpParser() : m_expectedBodyLen(-1), m_state(HttpParserState::REQUEST_LINE) {}
     ~HttpParser() {}
 
-    // std::string getHeadersString() {return m_headersString;}
     std::unordered_map<std::string, std::string> getHeaders() const {return m_headers;}
     std::string getBody() const {return m_body;}
     std::string getBuffer() const {return m_buffer;}
@@ -46,21 +46,11 @@ class HttpParser : public IHttpParser {
     void buildRequest();
     void reportErrors();
 
+    //Mainly for the tests, clear the parser in order to reuse it
+    void clearParser();
+
+    bool validateHttpVersion(std::string_view version);
+
     //DEBUG
     void printHeaders();
-    
-    
-    // // Old version -- with bools
-    // bool partialParse(const std::string& reqString);
-    // bool parseReqLine(HttpRequest& request, const std::string& reqString);
-    // void parsePartHeaders(int start, const std::string& reqString);
-    
-    
-    
-    // HttpRequest parse();
-    // void splitHeadersBody();
-    // void parseHeaders();
-    // bool parseRequestLine(HttpRequest& request);
-    // std::vector<std::string> split_lines(const std::string& text);
-    // bool parseStartLine(HttpRequest& request);
 };
