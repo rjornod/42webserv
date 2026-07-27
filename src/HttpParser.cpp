@@ -6,7 +6,57 @@ void HttpParser::reportErrors() {
     std::cerr << "Error on parsing: " << m_errorMessage << std::endl;
 }
 
-void HttpParser::partialParse(const std::string& chunk) {
+// void HttpParser::partialParse(const std::string& chunk) {
+
+//   m_buffer += chunk;
+
+//   switch (getParserState()) {
+//     case HttpParserState::REQUEST_LINE:
+//       if (!parseRequestLine()) {
+//         reportErrors();
+//         return;
+//       }
+
+//       m_state = HttpParserState::HEADERS;
+
+//     case HttpParserState::HEADERS:
+//       if (!parseHeaders()) {
+//         reportErrors();
+//         return;
+//       }
+//       determineBodyLength();
+//       if (m_expectedBodyLen == 0) {
+//         m_request.setBody("");
+//         m_state = HttpParserState::COMPLETE;
+//         // buildRequest(); // Not sure
+//         return;
+//       }
+//       if (m_expectedBodyLen == -1) {
+//         reportErrors();
+//         return;
+//       }
+//       m_state = HttpParserState::BODY;
+    
+//     case HttpParserState::BODY:
+//       if (!parseBody()) {
+//         reportErrors();
+//         return;
+//       }
+//       m_state = HttpParserState::COMPLETE;
+
+//     case HttpParserState::COMPLETE:
+//       break;
+
+//     case HttpParserState::ERROR:
+//       std::cout << "Error on parsing: " << m_errorMessage << std::endl;
+      
+//     default:
+//       break;
+//   }
+  
+// }
+
+void HttpParser::parse(std::string_view chunk) {
 
   m_buffer += chunk;
 
@@ -18,6 +68,7 @@ void HttpParser::partialParse(const std::string& chunk) {
       }
 
       m_state = HttpParserState::HEADERS;
+      [[fallthrough]];
 
     case HttpParserState::HEADERS:
       if (!parseHeaders()) {
@@ -36,6 +87,7 @@ void HttpParser::partialParse(const std::string& chunk) {
         return;
       }
       m_state = HttpParserState::BODY;
+      [[fallthrough]];
     
     case HttpParserState::BODY:
       if (!parseBody()) {
@@ -43,6 +95,7 @@ void HttpParser::partialParse(const std::string& chunk) {
         return;
       }
       m_state = HttpParserState::COMPLETE;
+      [[fallthrough]];
 
     case HttpParserState::COMPLETE:
       break;
@@ -53,7 +106,6 @@ void HttpParser::partialParse(const std::string& chunk) {
     default:
       break;
   }
-  
 }
 
 void HttpParser::buildRequest() {
@@ -62,7 +114,7 @@ void HttpParser::buildRequest() {
   m_request.setBody(m_body);
 }
 
-HttpMethod parseMethod(const std::string& method) {
+HttpMethod parseMethod(std::string_view method) {
   
   if (method == "GET")
     return HttpMethod::GET;
@@ -75,6 +127,7 @@ HttpMethod parseMethod(const std::string& method) {
   
 }
 
+// IN PROGRESS: reformatting to use string_view
 bool HttpParser::parseRequestLine() {
 
   size_t end = m_buffer.find("\r\n", 0);
@@ -84,16 +137,16 @@ bool HttpParser::parseRequestLine() {
     return false;
   }
 
-  std::string reqLine = m_buffer.substr(0, end);
+  std::string_view reqLine = std::string_view(m_buffer).substr(0, end);
 
   size_t firstSpace = reqLine.find(' ');
-  if (firstSpace == std::string::npos) {
+  if (firstSpace == std::string_view::npos) {
     m_state = HttpParserState::ERROR;
     m_errorMessage = "Missing URI";
     return false;
   }
   size_t secondSpace = reqLine.find(' ', firstSpace + 1);
-  if (secondSpace == std::string::npos) {
+  if (secondSpace == std::string_view::npos) {
     m_state = HttpParserState::ERROR;
     m_errorMessage = "Missing HTTP version";
     return false;
@@ -107,7 +160,7 @@ bool HttpParser::parseRequestLine() {
     return false;
   }
   m_request.setURI(reqLine.substr(firstSpace + 1, secondSpace - firstSpace - 1));
-  std::string version = reqLine.substr(secondSpace + 1);
+  std::string_view version = reqLine.substr(secondSpace + 1);
   if (!validateHttpVersion(version)) {
     m_state = HttpParserState::ERROR;
     m_errorMessage = "Invalid Http Version";
@@ -121,53 +174,102 @@ bool HttpParser::parseRequestLine() {
   return true;
 }
 
+// bool HttpParser::parseRequestLine() {
+
+//   size_t end = m_buffer.find("\r\n", 0);
+
+//   // Full request hasn't arrived
+//   if (end == std::string::npos) {
+//     return false;
+//   }
+
+//   std::string reqLine = m_buffer.substr(0, end);
+
+//   size_t firstSpace = reqLine.find(' ');
+//   if (firstSpace == std::string::npos) {
+//     m_state = HttpParserState::ERROR;
+//     m_errorMessage = "Missing URI";
+//     return false;
+//   }
+//   size_t secondSpace = reqLine.find(' ', firstSpace + 1);
+//   if (secondSpace == std::string::npos) {
+//     m_state = HttpParserState::ERROR;
+//     m_errorMessage = "Missing HTTP version";
+//     return false;
+//   }
+//   //TO DO: Method, URI, Version validation
+//   // Method
+//   m_request.setMethod(parseMethod(reqLine.substr(0, firstSpace)));
+//   if (m_request.getMethod() == HttpMethod::UNKNOWN) {
+//     m_state = HttpParserState::ERROR;
+//     m_errorMessage = "Unsupported method";
+//     return false;
+//   }
+//   m_request.setURI(reqLine.substr(firstSpace + 1, secondSpace - firstSpace - 1));
+//   std::string version = reqLine.substr(secondSpace + 1);
+//   if (!validateHttpVersion(version)) {
+//     m_state = HttpParserState::ERROR;
+//     m_errorMessage = "Invalid Http Version";
+//     return false;
+//   } 
+//   m_request.setVersion(version);
+
+//   // Remove request line from buffer
+//   m_buffer.erase(0, end + 2);
+
+//   return true;
+// }
+
 
 // Assume there is a colon because we check outside
-std::string getHeaderName(std::string header) {
+std::string getHeaderName(std::string_view header) {
 
   size_t colon = header.find(':');
-  std::string name = header.substr(0, colon);
+  std::string name = static_cast<std::string>(header.substr(0, colon));
   std::for_each(name.begin(), name.end(), [](char& c) {c = tolower(c);});
-  return name;
+  return std::string(name);
   
 }
 
-std::string getHeaderValue(std::string header) {
+std::string getHeaderValue(std::string_view header) {
 
-  size_t colon = header.find(':');  
-  std::string value = header.substr(colon + 1);
-  if (!value.empty() && value[0] == ' ')
-    value.erase(0, 1);
-  return value;
+  size_t colon = header.find(':');
+
+  std::string_view value = header.substr(colon + 1);
+  if (!value.empty() && 
+      (value.front() == ' ' || value.front() == '\t'))
+    value.remove_prefix(1);
+  return std::string(value);
     
 }
 
 bool HttpParser::parseHeaders() {
 
   while (true) {
-
     size_t end = m_buffer.find("\r\n");
 
     if (end == std::string::npos)
       return false;
 
     //Extract one header from the buffer
-    std::string header = m_buffer.substr(0, end);
-    // Consume the header from the buffer
-    m_buffer.erase(0, end + 2);
+    std::string_view header = std::string_view(m_buffer).substr(0, end);
 
     if (header.empty()) {
+      m_buffer.erase(0, 2);
       m_request.setHeaders(m_headers);
       return true;
     }
 
     size_t colon = header.find(':');
-    if (colon == std::string::npos) {
+    if (colon == std::string_view::npos) {
       m_state = HttpParserState::ERROR;
       m_errorMessage = "Header missing colon";
       return false;
     }
     m_headers.insert({getHeaderName(header), getHeaderValue(header)});
+
+    // Consume the header from the buffer
+    m_buffer.erase(0, end + 2);
   }
 }
 
@@ -182,7 +284,7 @@ void HttpParser::determineBodyLength() {
   try {
     m_expectedBodyLen = std::stoi(it->second);
     if (m_expectedBodyLen < 0) {
-      m_errorMessage = "Content Length Out Of Range";
+      m_errorMessage = "Content-Length Out Of Range";
       m_state = HttpParserState::ERROR;
       m_expectedBodyLen = -1;
       return;
@@ -195,7 +297,7 @@ void HttpParser::determineBodyLength() {
     return;
   }
   catch (const std::out_of_range& oor) {
-    m_errorMessage = "Content Length Out Of Range";
+    m_errorMessage = "Content-Length Out Of Range";
     m_state = HttpParserState::ERROR;
     m_expectedBodyLen = -1;
     return;
@@ -247,7 +349,7 @@ bool HttpParser::validateHttpVersion(std::string_view version) {
   if (http != "HTTP/")
     return false;
   size_t point = version.find('.');
-  if (point == std::string::npos)
+  if (point == std::string_view::npos)
     return false;
   std::string_view major = version.substr(5, point - 5);
   std::string_view minor = version.substr(point + 1);

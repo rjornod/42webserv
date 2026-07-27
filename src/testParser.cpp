@@ -52,7 +52,7 @@ int main() {
 
   HttpParser parser;
 
-  parser.partialParse(reqWithBody);
+  parser.parse(reqWithBody);
   std::string state = to_string(parser.getParserState());
   std::cout << "State: " << state << std::endl;
 

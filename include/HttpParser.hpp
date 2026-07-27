@@ -38,7 +38,8 @@ class HttpParser : public IHttpParser {
     void setParserState(HttpParserState state) {m_state = state;}
 
     //New version with switch --------
-    void partialParse(const std::string& chunk);
+    // void partialParse(const std::string& chunk);
+    void parse(std::string_view chunk);
     bool parseRequestLine();
     bool parseHeaders();
     bool parseBody();
