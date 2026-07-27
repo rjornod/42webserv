@@ -103,7 +103,7 @@ bool HttpParser::parseRequestLine() {
   m_request.setMethod(parseMethod(reqLine.substr(0, firstSpace)));
   if (m_request.getMethod() == HttpMethod::UNKNOWN) {
     m_state = HttpParserState::ERROR;
-    m_errorMessage = "Invalid method";
+    m_errorMessage = "Unsupported method";
     return false;
   }
   m_request.setURI(reqLine.substr(firstSpace + 1, secondSpace - firstSpace - 1));

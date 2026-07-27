@@ -6,6 +6,7 @@ class HttpParserTest : public ::testing::Test {
 
   protected:
 
+    HttpParser parser;
     std::string validGetRequest;
     std::string requestHelloWorld;
     std::string requestWithContentLength;
@@ -67,7 +68,7 @@ class HttpParserTest : public ::testing::Test {
 };
 
 TEST_F(HttpParserTest, ParsesSimplestRequest) {
-    HttpParser parser;
+
     parser.partialParse(requestHelloWorld);
     HttpRequest request = parser.getRequest();
 
@@ -78,7 +79,7 @@ TEST_F(HttpParserTest, ParsesSimplestRequest) {
 }
 
 TEST_F(HttpParserTest, ParsesGetRequestLine) {
-    HttpParser parser;
+
     parser.partialParse(validGetRequest);
     HttpRequest req = parser.getRequest();
 
@@ -88,10 +89,9 @@ TEST_F(HttpParserTest, ParsesGetRequestLine) {
 }
 
 TEST_F(HttpParserTest, ParsesChunkedRequestLine) {
-    HttpParser parserComplete;
     HttpParser parserChunked;
 
-    parserComplete.partialParse(validGetRequest);
+    parser.partialParse(validGetRequest);
 
     std::string chunk1 = "GET";
     std::string chunk2 = " /index.html ";
@@ -106,18 +106,17 @@ TEST_F(HttpParserTest, ParsesChunkedRequestLine) {
     parserChunked.partialParse(chunk3);
     parserChunked.partialParse(rest);
     
-    EXPECT_EQ(parserComplete.getRequest().getMethod(),
+    EXPECT_EQ(parser.getRequest().getMethod(),
         parserChunked.getRequest().getMethod());
-    EXPECT_EQ(parserComplete.getRequest().getURI(),
+    EXPECT_EQ(parser.getRequest().getURI(),
         parserChunked.getRequest().getURI());
-    EXPECT_EQ(parserComplete.getRequest().getVersion(),
+    EXPECT_EQ(parser.getRequest().getVersion(),
         parserChunked.getRequest().getVersion());
-    EXPECT_EQ(parserComplete.getRequest().getHeaders(),
+    EXPECT_EQ(parser.getRequest().getHeaders(),
         parserChunked.getRequest().getHeaders());
 }
 
 TEST_F(HttpParserTest, ParsesHeaders) {
-    HttpParser parser;
 
     parser.partialParse(validGetRequest);
 
@@ -127,7 +126,6 @@ TEST_F(HttpParserTest, ParsesHeaders) {
 }
 
 TEST_F(HttpParserTest, ParsesChunkedHeaders) {
-    HttpParser parser;
     HttpParser parserChunked;
 
     parser.partialParse(validGetRequest);
@@ -154,7 +152,6 @@ TEST_F(HttpParserTest, ParsesChunkedHeaders) {
 }
 
 TEST_F(HttpParserTest, ParsesBody) {
-    HttpParser parser;
 
     parser.partialParse(requestWithContentLength);
 
@@ -163,7 +160,6 @@ TEST_F(HttpParserTest, ParsesBody) {
 }
 
 TEST_F(HttpParserTest, ParsesChunkedBody) {
-    HttpParser parser;
     HttpParser parserChunked;
 
     parser.partialParse(requestWithContentLength);
@@ -187,8 +183,6 @@ TEST_F(HttpParserTest, ParsesChunkedBody) {
 
 //TO DO -- change this test to be more general and write smaller ones to test stages
 TEST_F(HttpParserTest, ParsesRequestReceivedInChunks) {
-    HttpParser parser;
-    
     std::string reqLine0 =
         "GET /index.html";
 
@@ -231,28 +225,26 @@ TEST_F(HttpParserTest, ParsesRequestReceivedInChunks) {
 //----------------------- ERRORS -------------
 
 // INVALID INPUT
+
+
+//Invalid Request Line -- Invalid Method
+TEST_F(HttpParserTest, InvalidMethod) {
+    
+    parser.partialParse(invalidMethod);
+    
+    EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
+}
+
 //Invalid Request Line -- Missing parts
 TEST_F(HttpParserTest, MissingHTTPVersion) {
-    HttpParser parser;
 
     parser.partialParse(missingVersion);
 
     EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
 }
 
-
-//Invalid Request Line -- Invalid Method
-TEST_F(HttpParserTest, InvalidMethod) {
-    HttpParser parser;
-
-    parser.partialParse(invalidMethod);
-
-    EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
-}
-
 //Invalid Request Line -- Invalid Version
 TEST_F(HttpParserTest, InvalidHttpVersion) {
-    HttpParser parser;
 
     parser.partialParse("GET / HKKP/1.1\r\n");
     EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
@@ -276,7 +268,6 @@ TEST_F(HttpParserTest, InvalidHttpVersion) {
 
 // Malformed headers -- missing colon
 TEST_F(HttpParserTest, MalformedHeadersMissingColon) {
-    HttpParser parser;
 
     parser.partialParse(headerMissingColon);
 
@@ -285,7 +276,6 @@ TEST_F(HttpParserTest, MalformedHeadersMissingColon) {
 
 
 TEST_F(HttpParserTest, InvalidContentLength) {
-    HttpParser parser;
 
     parser.partialParse(invalidContentLen);
     EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
@@ -294,14 +284,12 @@ TEST_F(HttpParserTest, InvalidContentLength) {
 // INCOMPLETE INPUT
 
 TEST_F(HttpParserTest, EmptyRequest) {
-    HttpParser parser;
 
     parser.partialParse("");
     EXPECT_EQ(parser.getParserState(), HttpParserState::REQUEST_LINE);
 }
 
 TEST_F(HttpParserTest, MissingBlankLine) {
-    HttpParser parser;
 
     std::string request =
         "GET / HTTP/1.1\r\n"
@@ -314,7 +302,6 @@ TEST_F(HttpParserTest, MissingBlankLine) {
 
 //Body size smaller than content length, Should just stay in BODY state
 TEST_F(HttpParserTest, BodyShorterThanContentLen) {
-    HttpParser parser;
 
     std::string request =
         "POST / HTTP/1.1\r\n"
