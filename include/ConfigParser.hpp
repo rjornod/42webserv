@@ -25,7 +25,7 @@ class ConfigParser {
 		int 	handleBraces(int index);
 		int 	handleEndDirective(int index);
 		int		handleWord(int index);
-		int		skipComments(int index);
+		int		skipComments(unsigned long index);
 		void	parseTokens();
 		void	parseBlock(bool isGlobal);
 		void	parseDirective();
@@ -43,6 +43,7 @@ class ConfigParser {
 		void	handleAutoIndex();
 		void	handleErrorPages();
 		int		validateErrorCode(std::string code);
+		std::string	checkURI();
 		void	checkEndOfDirective(std::string directive);
 		void	checkIfBlockEmpty(std::string blockType);
 		void	printTokens(); // for debug only

@@ -75,7 +75,7 @@ int ConfigParser::handleWord(int i) {
 	return i;
 }
 
-int ConfigParser::skipComments(int i) {
+int ConfigParser::skipComments(unsigned long i) {
 	if (m_buffer[i] == '#') {
 		while (i < m_buffer.size())
 			i++;
@@ -85,7 +85,7 @@ int ConfigParser::skipComments(int i) {
 
 void ConfigParser::checkAllBraces() {
 	int braceFound = 0;
-	for (int i = 0; i < m_tokens.size(); i++) {
+	for (unsigned long i = 0; i < m_tokens.size(); i++) {
 		if (isType(m_tokens[i], TokenType::StartBlock))
 			braceFound++;
 		if (isType(m_tokens[i], TokenType::EndBlock))
@@ -97,8 +97,6 @@ void ConfigParser::checkAllBraces() {
 		std::cout << GREEN << "All braces are paired\n" << RESET <<std::endl;
 }
 void ConfigParser::parseTokens() {
-	int  i = 0;
-	int isGlobal = 0;
 	checkAllBraces();
 	// check if server block exists
 	if (tokenIndex + 1 >= m_tokens.size() || !isValue(m_tokens[tokenIndex], "server")
@@ -171,7 +169,7 @@ void ConfigParser::checkEndOfDirective(std::string directive) {
 }
 
 static bool validateDigits(std::string port) {
-	for (int i = 0; i < port.size(); i++) {
+	for (unsigned long i = 0; i < port.size(); i++) {
 		if (!isdigit(port[i]))
 			return false;
 	}
@@ -263,7 +261,7 @@ int ConfigParser::validateErrorCode(std::string errorCode) {
 	
 	if (errorCode.size() != 3)
 		throw ConfigParseException("Error code in error_pages is invalid: " + errorCode );
-	for (int i = 0; i < errorCode.size(); i++) {
+	for (unsigned long i = 0; i < errorCode.size(); i++) {
 		if (!isdigit(errorCode[i]))
 			throw ConfigParseException("Error code must contain only digits: " + errorCode);
 	}
@@ -273,18 +271,32 @@ int ConfigParser::validateErrorCode(std::string errorCode) {
 	return code;
 }
 
+std::string ConfigParser::checkURI() {
+	unsigned long i = tokenIndex;
+	while (!isType(m_tokens[i + 1], TokenType::EndDirective) || isValidToken(m_tokens[i + 1]))	{
+		i++;
+
+	}
+	if (m_tokens[i].value[0] != '/')
+		throw ConfigParseException("Error path should be absolute. Example: '/error.html' or '/errors/404.html'");
+	return m_tokens[i].value;
+}
+
 void ConfigParser::handleErrorPages() {
 	incTokenIndex(1);
-	unsigned int startToken = tokenIndex;
-	if (!isType(m_tokens[tokenIndex], TokenType::Word))
+	std::string path = checkURI();
+	// unsigned int startToken = tokenIndex;
+	if (!isType(m_tokens[tokenIndex], TokenType::Word) || !isType(m_tokens[tokenIndex + 1], TokenType::Word))
 		throw ConfigParseException("error_pages directive is malformed");
 	while (tokenIndex < m_tokens.size() && 
 				isValidToken(m_tokens[tokenIndex]) &&
 				!isType(m_tokens[tokenIndex + 1], TokenType::EndDirective) ) {
-		validateErrorCode(m_tokens[tokenIndex].value);
-		m_config.getServerConfigs().back().setErrorPages(m_tokens[tokenIndex].value);
+		m_config.getServerConfigs().back().setErrorPages(validateErrorCode(m_tokens[tokenIndex].value), path);
 		incTokenIndex(1);
 	}
+	std::cout << "size is: " << m_config.getServerConfigs().back().getErrorPages().size() <<"\n";
+	
+	// m_config.getServerConfigs().back().setErrorPath(m_tokens[tokenIndex].value);
 	incTokenIndex(1); // TO DO: handle path
 	if (!isType(m_tokens[tokenIndex], TokenType::EndDirective)) 
 		throw ConfigParseException("error_pages directive is missing a semicolon");
@@ -378,7 +390,7 @@ void ConfigParser::tokenize(std::fstream& file) {
 		if (m_buffer.empty()) {																			// skip empty lines
 			continue;
 		}
-		int i = 0;
+		unsigned long i = 0;
 		while (i < m_buffer.size()) {
 			if (m_buffer[i] == '#' && i < m_buffer.size()) {
 				i = skipComments(i);
@@ -392,7 +404,7 @@ void ConfigParser::tokenize(std::fstream& file) {
 				i = handleEndDirective(i);
 				continue;
 			}
-			if (m_buffer[i] == '{' || m_buffer[i] == '}' && i < m_buffer.size()) {
+			if ((m_buffer[i] == '{' || m_buffer[i] == '}') && (i < m_buffer.size())) {
 				i = handleBraces(i);
 				continue;
 			}
@@ -408,14 +420,14 @@ void ConfigParser::tokenize(std::fstream& file) {
 
 void ConfigParser::printTokens() {
 	std::cout << BLUE << "----Printing tokens vector---" << RESET << std::endl;
-	for (int i = 0; i < m_tokens.size(); i++) {
+	for (unsigned long i = 0; i < m_tokens.size(); i++) {
 		std::cout << i << " - " <<  m_tokens[i] << std::endl;
 	}
 		std::cout << BLUE << "-----------------------------" << RESET << std::endl;
 }
 
 bool ConfigParser::isValidToken(const Token& token) {
-	return 	isType(m_tokens[tokenIndex], TokenType::Word) && 
+	return 	isType(token, TokenType::Word) && 
 					!knownDirectives.count(m_tokens[tokenIndex].value);
 }
 
@@ -441,3 +453,5 @@ void ConfigParser::incTokenIndex(int amount) {
 	}
 	throw ConfigParseException("Unexpected end of file");
 }
+
+// 200, 301, 302, 400, 401, 403, 404, 405, 500, 502, 503, 504

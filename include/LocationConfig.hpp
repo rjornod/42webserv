@@ -11,7 +11,7 @@ class LocationConfig {
 		std::vector<std::string>							m_limitExcept;
 		int																		m_maxBodySize;
 		std::vector<std::string>							m_index;
-		std::map<int, std::string>	m_errorPages;
+		std::map<int, std::string>						m_errorPages;
 		std::string														m_upload_store;
 		std::string														m_return;
 		
