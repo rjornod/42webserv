@@ -15,12 +15,13 @@ volatile sig_atomic_t serverRunning = true;
 
 void	Server:: closeAllFds() {
 	std::cout << "closing all fds" <<std::endl;
-	for (int i = 0; i < m_connectedFds.size(); i++) {
+	for (unsigned long i = 0; i < m_connectedFds.size(); i++) {
 		close(m_connectedFds[i].fd);
 	}
 }
 
 void signalHandler(int sig) {
+	(void)sig;
 	std::cout << "Program interrupted by SIGINT" <<std::endl;
 	serverRunning = false;
 }
@@ -90,7 +91,7 @@ void Server::receiveRequest(Client& client) {
 		buildResponse(client);																// check if build response gave an error
 		std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  client.getClientFd() << RESET << "-------------------" << std::endl;
 		std::cout << client.getClientReceiveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;
-		for (int i = 1; i < m_connectedFds.size(); i++) {					// loop that goes through every member of the pollfd struct 
+		for (unsigned long i = 1; i < m_connectedFds.size(); i++) {					// loop that goes through every member of the pollfd struct 
 			if (m_connectedFds[i].fd == client.getClientFd()) {	
 				m_connectedFds[i].events |= POLLOUT; 									// |= bitwise OR operator, adds POLLOUT to the list of flags to watch out for
 				break;
@@ -120,7 +121,7 @@ int Server::connections() {
 void Server::eraseClient(int fd) {
 	m_connectedClients.erase(fd); 										// deletes the disconnected client from the list of connected clients
 	close(fd);																				// closes the fd
-	for (int i = 1; i < m_connectedFds.size(); i++) {	// loop that goes through every member of the pollfd struct 
+	for (unsigned long i = 1; i < m_connectedFds.size(); i++) {	// loop that goes through every member of the pollfd struct 
 		if (m_connectedFds[i].fd == fd) {								// if the fd member variable is the same as the fd we passed, we found the element we want to erase
 			m_connectedFds[i] = m_connectedFds.back();		// swaps the disconnected element with the last one in the vector
 			m_connectedFds.pop_back();										// erases the last element in the vector, which is now the disconnected client

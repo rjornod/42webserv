@@ -133,11 +133,10 @@ void ConfigParser::parseDirective()
 		if (isValue(m_tokens[tokenIndex], "location")) {
 			if (tokenIndex + 2 >= m_tokens.size() || !isType(m_tokens[tokenIndex + 1], TokenType::Word)
 				|| !isType(m_tokens[tokenIndex + 2], TokenType::StartBlock))
-				throw ConfigParseException("Location directive is malformed");
-			else {
-				m_config.getServerConfigs().back().createLocationConfig();	
-				parseLocationDirectives();
-			}
+				throw ConfigParseException("Location directivddddde is malformed");
+			checkIfBlockEmpty("location");
+			m_config.getServerConfigs().back().createLocationConfig();	
+			parseLocationDirectives();
 			break;
 		}
 		// else if (tokenIndex + 2 >= m_tokens.size() || !isType(m_tokens[tokenIndex], TokenType::Word)  // TO DO: maybe remove these checks here and check inside each directive
@@ -260,18 +259,35 @@ void ConfigParser::handleAutoIndex() {
 	checkEndOfDirective("autoindex");
 }
 
+int ConfigParser::validateErrorCode(std::string errorCode) {
+	
+	if (errorCode.size() != 3)
+		throw ConfigParseException("Error code in error_pages is invalid: " + errorCode );
+	for (int i = 0; i < errorCode.size(); i++) {
+		if (!isdigit(errorCode[i]))
+			throw ConfigParseException("Error code must contain only digits: " + errorCode);
+	}
+	int code = std::stoi(errorCode);
+	if (code < 100 || code > 500)
+		throw ConfigParseException("Error code must be between 100 and 500: " + errorCode);
+	return code;
+}
+
 void ConfigParser::handleErrorPages() {
 	incTokenIndex(1);
+	unsigned int startToken = tokenIndex;
 	if (!isType(m_tokens[tokenIndex], TokenType::Word))
 		throw ConfigParseException("error_pages directive is malformed");
-	// check if the current token is a Word and is not the same as a known directive
 	while (tokenIndex < m_tokens.size() && 
-				isValidToken(m_tokens[tokenIndex])) {
-		m_config.getServerConfigs().back().setErrorPages(m_tokens[tokenIndex].value);		
+				isValidToken(m_tokens[tokenIndex]) &&
+				!isType(m_tokens[tokenIndex + 1], TokenType::EndDirective) ) {
+		validateErrorCode(m_tokens[tokenIndex].value);
+		m_config.getServerConfigs().back().setErrorPages(m_tokens[tokenIndex].value);
 		incTokenIndex(1);
 	}
+	incTokenIndex(1); // TO DO: handle path
 	if (!isType(m_tokens[tokenIndex], TokenType::EndDirective)) 
-		throw ConfigParseException("index directive is missing a semicolon");
+		throw ConfigParseException("error_pages directive is missing a semicolon");
 	std::cout << GREEN << "INDEX OK\n" << RESET;
 }
 
@@ -409,6 +425,13 @@ bool	ConfigParser::isType(const Token& token, TokenType expectedType) {
 
 bool	ConfigParser::isValue(const Token& token, const std::string& expectedValue) {
 	return token.value == expectedValue;
+}
+
+void ConfigParser::checkIfBlockEmpty(std::string blockType) {
+	if (isType(m_tokens[tokenIndex + 1], TokenType::Word) && 
+			isType(m_tokens[tokenIndex + 2], TokenType::StartBlock) && 
+			isType(m_tokens[tokenIndex + 3], TokenType::EndBlock))
+		throw ConfigParseException("Block " + blockType + " is empty");
 }
 
 void ConfigParser::incTokenIndex(int amount) {

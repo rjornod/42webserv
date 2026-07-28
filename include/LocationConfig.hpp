@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 #include <vector>
-#include <unordered_map>
+#include <map>
 
 class LocationConfig {
 	private:
@@ -11,7 +11,7 @@ class LocationConfig {
 		std::vector<std::string>							m_limitExcept;
 		int																		m_maxBodySize;
 		std::vector<std::string>							m_index;
-		std::unordered_map<int, std::string>	m_errorPages;
+		std::map<int, std::string>	m_errorPages;
 		std::string														m_upload_store;
 		std::string														m_return;
 		
@@ -37,8 +37,8 @@ class LocationConfig {
 			m_limitExcept.push_back("GET");
 			m_limitExcept.push_back("POST");
 		}
-		void 				setPath(std::string path)	{ m_path = path; }
-		std::string getPath()									{ return m_path; }
+		void				setPath(std::string path)	{ m_path = path; }
+		std::string	getPath()									{ return m_path; }
 };
 
 /* *

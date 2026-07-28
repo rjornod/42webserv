@@ -42,7 +42,9 @@ class ConfigParser {
 		void	handleUnknown();
 		void	handleAutoIndex();
 		void	handleErrorPages();
+		int		validateErrorCode(std::string code);
 		void	checkEndOfDirective(std::string directive);
+		void	checkIfBlockEmpty(std::string blockType);
 		void	printTokens(); // for debug only
 		bool	isValidToken(const Token& token);
 		bool	isType(const Token& token, TokenType expectedType);

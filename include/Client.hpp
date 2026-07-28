@@ -15,7 +15,7 @@ class Client {
 	private:
 		int 				m_clientFd;
 		std::string m_clientIp;
-		int					m_clientPort;
+		// int					m_clientPort;
 		std::string	m_receiveBuffer;
 		std::string	m_sendBuffer;
 		bool				m_keepAlive;
@@ -41,13 +41,13 @@ class Client {
 												<< std::endl;
 		}
 		/* getters and setters */
-		const int						getClientFd() 																		{return m_clientFd;}
+		int						getClientFd() 																		{return m_clientFd;}
 		const std::string& 	getClientIp() 																		{return m_clientIp;}
 		std::string& 				getClientReceiveBuffer() 													{return m_receiveBuffer;}
 		std::string& 				getClientSendBuffer() 														{return m_sendBuffer;}
-		const bool 					getKeepAlive() 																		{return m_keepAlive;}
-		const size_t				getBytesSent()																		{return m_bytesSent;}
-		const size_t				getBytesLeftToSend()															{return m_bytesLeftToSend;}
+		bool 					getKeepAlive() 																		{return m_keepAlive;}
+		size_t				getBytesSent()																		{return m_bytesSent;}
+		size_t				getBytesLeftToSend()															{return m_bytesLeftToSend;}
 		ClientState					getClientState() 																	{return m_clientState;}
 		time_t							getLastActivity()																	{return m_lastActivity;}
 		bool								getShouldDisconnect()															{return m_shouldDisconnect;}
