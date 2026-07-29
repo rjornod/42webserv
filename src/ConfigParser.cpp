@@ -9,6 +9,9 @@
 #include "../include/LocationDirectiveType.hpp"
 #include "ConfigParser.hpp"
 
+#define GLOBAL 1
+#define LOCATION 0
+
 unsigned int  tokenIndex = 0;
 
 bool ConfigParser::initialFileCheck(std::fstream& file) {
@@ -117,7 +120,8 @@ void ConfigParser::parseBlock(bool isGlobal)
 	}
 	else if (!isValue(m_tokens[tokenIndex], "location")) {
 		throw ConfigParseException("Directive in server block is malformed " + m_tokens[tokenIndex].value);
-	}				
+	}	
+	checkIfBlockEmpty("server");			
 	incTokenIndex(2);																										// skip server or location token and StartBlock token
 	while (!isType(m_tokens[tokenIndex], TokenType::EndBlock)) {
 		parseDirective();
@@ -127,37 +131,29 @@ void ConfigParser::parseBlock(bool isGlobal)
 
 void ConfigParser::parseDirective()
 {
-	while (!isType(m_tokens[tokenIndex], TokenType::EndDirective)) {
-		if (isValue(m_tokens[tokenIndex], "location")) {
-			if (tokenIndex + 2 >= m_tokens.size() || !isType(m_tokens[tokenIndex + 1], TokenType::Word)
-				|| !isType(m_tokens[tokenIndex + 2], TokenType::StartBlock))
-				throw ConfigParseException("Location directivddddde is malformed");
-			checkIfBlockEmpty("location");
-			m_config.getServerConfigs().back().createLocationConfig();	
-			parseLocationDirectives();
-			break;
-		}
-		// else if (tokenIndex + 2 >= m_tokens.size() || !isType(m_tokens[tokenIndex], TokenType::Word)  // TO DO: maybe remove these checks here and check inside each directive
-		// 	|| !isType(m_tokens[tokenIndex + 1], TokenType::Word) || !isType(m_tokens[tokenIndex + 2], TokenType::EndDirective)) {
-		// 	std::cout << m_tokens[tokenIndex] <<"\n";
-		// 	throw ConfigParseException("Directive is malformed");
-		// }
-		handleDirective();
-		incTokenIndex(1);		
+	if (isValue(m_tokens[tokenIndex], "location")) {
+		if (tokenIndex + 2 >= m_tokens.size() || !isType(m_tokens[tokenIndex + 1], TokenType::Word)
+			|| !isType(m_tokens[tokenIndex + 2], TokenType::StartBlock))
+			throw ConfigParseException("Location directivddddde is malformed");
+		checkIfBlockEmpty("location");
+		m_config.getServerConfigs().back().createLocationConfig();	
+		parseLocationDirectives();
 	}
+	else
+		handleDirective();	
 }
 
 void ConfigParser::parseLocationDirectives() {
 	incTokenIndex(1); 																												// skip location token
 	m_config.getServerConfigs().back().getLocationConfigs().back().setPath(m_tokens[tokenIndex].value);
 	incTokenIndex(2);
-	while (!isType(m_tokens[tokenIndex], TokenType::EndBlock)) {
-		while (!isType(m_tokens[tokenIndex], TokenType::EndDirective)) {
-			handleLocationDirective();
-			incTokenIndex(1);
-		}
+	while (!isType(m_tokens[tokenIndex], TokenType::EndDirective)) {
+		if (isType(m_tokens[tokenIndex], TokenType::EndBlock))
+			return;
+		handleLocationDirective();
 		incTokenIndex(1);
 	}
+		incTokenIndex(1);
 }
 
 void ConfigParser::checkEndOfDirective(std::string directive) {
@@ -203,24 +199,30 @@ void ConfigParser::handleServerName() {
 	std::cout << GREEN << "NAME OK\n" << RESET;
 }
 
-void ConfigParser::handleRoot() {
+void ConfigParser::handleRoot(int scope) {
 	incTokenIndex(1);
 	if 	(!isType(m_tokens[tokenIndex], TokenType::Word) || 
 			!isValidToken(m_tokens[tokenIndex]))
 		throw ConfigParseException("root directive is missing argument");
-	m_config.getServerConfigs().back().setRoot(m_tokens[tokenIndex].value);
+	if (scope == GLOBAL)
+		m_config.getServerConfigs().back().setRoot(m_tokens[tokenIndex].value);
+	else 
+		m_config.getServerConfigs().back().getLocationConfigs().back().setRoot(m_tokens[tokenIndex].value);
 	checkEndOfDirective("root");
 	std::cout << GREEN << "ROOT OK\n" << RESET;
 }
 
-void ConfigParser::handleIndex() {
+void ConfigParser::handleIndex(int scope) {
 	incTokenIndex(1);
 	if (!isType(m_tokens[tokenIndex], TokenType::Word))
 		throw ConfigParseException("Index directive is malformed");
 	// check if the current token is a Word and is not the same as a known directive
 	while (tokenIndex < m_tokens.size() && 
 				isValidToken(m_tokens[tokenIndex])) {
-		m_config.getServerConfigs().back().setIndex(m_tokens[tokenIndex].value);		
+		if (scope == GLOBAL)
+			m_config.getServerConfigs().back().setIndex(m_tokens[tokenIndex].value);
+		else
+			m_config.getServerConfigs().back().getLocationConfigs().back().setIndex(m_tokens[tokenIndex].value);
 		incTokenIndex(1);
 	}
 	if (!isType(m_tokens[tokenIndex], TokenType::EndDirective)) 
@@ -228,14 +230,17 @@ void ConfigParser::handleIndex() {
 	std::cout << GREEN << "INDEX OK\n" << RESET;
 }
 
-void ConfigParser::handleBodySize() {
+void ConfigParser::handleBodySize(int scope) {
 	incTokenIndex(1);
 	if (!validateDigits(m_tokens[tokenIndex].value))
 		throw ConfigParseException("client_max_body_size argument is not a valid integer");
 	int bodySize = std::stoi(m_tokens[tokenIndex].value);
-	m_config.getServerConfigs().back().setBodySize(bodySize);
+	if (scope == GLOBAL)
+		m_config.getServerConfigs().back().setBodySize(bodySize);
+	else
+		m_config.getServerConfigs().back().getLocationConfigs().back().setBodySize(bodySize);
 	checkEndOfDirective("client_max_body_size");
-	std::cout << GREEN << "SIZE OK\n" << RESET;
+	std::cout << GREEN << "CLIENTMAXBODYSIZE OK\n" << RESET;
 }
 
 void ConfigParser::handleUnknown() {
@@ -243,18 +248,26 @@ void ConfigParser::handleUnknown() {
 	throw ConfigParseException("Unknown directive detected");
 }
 
-void ConfigParser::handleAutoIndex() {
+void ConfigParser::handleAutoIndex(int scope) {
 	incTokenIndex(1);
 	if 	(!isType(m_tokens[tokenIndex], TokenType::Word) || 
 			!isValidToken(m_tokens[tokenIndex]))
 		throw ConfigParseException("autoindex directive is missing argument");
 	if (m_tokens[tokenIndex].value != "on" && m_tokens[tokenIndex].value != "off")
 		throw ConfigParseException("autoindex argument is not correct. Only 'on' or 'off' allowed");
-	if (m_tokens[tokenIndex].value == "on")
+	// TO DO: find a cleaner way to do the next assigment 
+	if (m_tokens[tokenIndex].value == "on" && scope == GLOBAL)
 		m_config.getServerConfigs().back().setAutoIndex(true);
-	else
+	else if (m_tokens[tokenIndex].value == "off" && scope == GLOBAL)
 		m_config.getServerConfigs().back().setAutoIndex(false);
+	else if (m_tokens[tokenIndex].value == "on" && scope == LOCATION)
+		m_config.getServerConfigs().back().getLocationConfigs().back().setAutoIndex(true);
+	else if (m_tokens[tokenIndex].value == "off" && scope == LOCATION)
+		m_config.getServerConfigs().back().getLocationConfigs().back().setAutoIndex(false);
+
 	checkEndOfDirective("autoindex");
+	std::cout << GREEN << "AUTOINDEX OK\n" << RESET;
+
 }
 
 int ConfigParser::validateErrorCode(std::string errorCode) {
@@ -282,7 +295,7 @@ std::string ConfigParser::checkURI() {
 	return m_tokens[i].value;
 }
 
-void ConfigParser::handleErrorPages() {
+void ConfigParser::handleErrorPages(int scope) {
 	incTokenIndex(1);
 	std::string path = checkURI();
 	// unsigned int startToken = tokenIndex;
@@ -291,19 +304,20 @@ void ConfigParser::handleErrorPages() {
 	while (tokenIndex < m_tokens.size() && 
 				isValidToken(m_tokens[tokenIndex]) &&
 				!isType(m_tokens[tokenIndex + 1], TokenType::EndDirective) ) {
-		m_config.getServerConfigs().back().setErrorPages(validateErrorCode(m_tokens[tokenIndex].value), path);
+		if (scope == GLOBAL)
+			m_config.getServerConfigs().back().setErrorPages(validateErrorCode(m_tokens[tokenIndex].value), path);
+		else if (scope == LOCATION)
+			m_config.getServerConfigs().back().getLocationConfigs().back().setErrorPages(validateErrorCode(m_tokens[tokenIndex].value), path);
 		incTokenIndex(1);
 	}
-	std::cout << "size is: " << m_config.getServerConfigs().back().getErrorPages().size() <<"\n";
-	
-	// m_config.getServerConfigs().back().setErrorPath(m_tokens[tokenIndex].value);
 	incTokenIndex(1); // TO DO: handle path
 	if (!isType(m_tokens[tokenIndex], TokenType::EndDirective)) 
 		throw ConfigParseException("error_pages directive is missing a semicolon");
-	std::cout << GREEN << "INDEX OK\n" << RESET;
+	std::cout << GREEN << "ERRORPAGES OK\n" << RESET;
 }
 
 void ConfigParser::handleLocation() {
+	std::cout <<"handling location\n";
 	incTokenIndex(1);
 	parseBlock(false);
 	std::cout << GREEN << "LOCATION OK\n" << RESET;
@@ -312,23 +326,20 @@ void ConfigParser::handleLocation() {
 void ConfigParser::handleLocationDirective() {
 	switch(locationDirectiveFromString(m_tokens[tokenIndex].value)) {
 		case LocationDirectiveType::Root:
-			std::cout << "Directive: Root\n";
+			handleRoot(LOCATION);
 			break;
 		case LocationDirectiveType::AutoIndex:
-			// incTokenIndex(1);
-			// handleAutoIndex();
+			handleAutoIndex(LOCATION);
 			std::cout << "Directive: location autoindex\n";
 			break;
 		case LocationDirectiveType::MaxBodySize:
-			incTokenIndex(1);
-			std::cout << "Directive: MaxBodySize\n";
+			handleBodySize(LOCATION);
 			break;
 		case LocationDirectiveType::Index:
-			incTokenIndex(1);
-			std::cout << "Directive: Index\n";
+			handleIndex(LOCATION);
 			break;
 		case LocationDirectiveType::ErrorPage:
-			incTokenIndex(1);
+			handleErrorPages(LOCATION);
 			std::cout << "Directive: ErrorPage\n";
 			break;
 		case LocationDirectiveType::UploadStore:
@@ -344,8 +355,8 @@ void ConfigParser::handleLocationDirective() {
 			std::cout << "Directive: Return\n";
 			break;
 		case LocationDirectiveType::Unknown:
-			handleUnknown();
-			std::cout << "Unknown Directive\n";
+		std::cout << "Unknown Drrrrirective " << m_tokens[tokenIndex] << "\n";
+			// handleUnknown();
 			break;
 	}
 }
@@ -359,28 +370,27 @@ void ConfigParser::handleDirective() {
 			handleServerName();
 			break;
 		case DirectiveType::Root:
-			handleRoot();
+			handleRoot(GLOBAL);
 			break;
-		case DirectiveType::Index:
-			handleIndex();
+		case DirectiveType::Index:  
+			handleIndex(GLOBAL);
 			break;
 		case DirectiveType::ErrorPage:
-			std::cout << "Directive: ErrorPage\n";
-			handleErrorPages();
+			handleErrorPages(GLOBAL);
 			break;
 		case DirectiveType::Location:
 			handleLocation();
-			// std::cout << "Directive: Location\n";
 			break;
 		case DirectiveType::AutoIndex:
-			handleAutoIndex();
+			std::cout << "handling auto index\n";
+			handleAutoIndex(GLOBAL);
 			break;
 		case DirectiveType::MaxBodySize:
-			handleBodySize();
+			handleBodySize(GLOBAL);
 			break;
 		case DirectiveType::Unknown:
-			handleUnknown();
 			std::cout << "Unknown Directive\n";
+			handleUnknown();
 			break;
 	}
 }
@@ -428,7 +438,7 @@ void ConfigParser::printTokens() {
 
 bool ConfigParser::isValidToken(const Token& token) {
 	return 	isType(token, TokenType::Word) && 
-					!knownDirectives.count(m_tokens[tokenIndex].value);
+					!knownDirectives.count(token.value);
 }
 
 bool	ConfigParser::isType(const Token& token, TokenType expectedType) {
@@ -440,10 +450,19 @@ bool	ConfigParser::isValue(const Token& token, const std::string& expectedValue)
 }
 
 void ConfigParser::checkIfBlockEmpty(std::string blockType) {
-	if (isType(m_tokens[tokenIndex + 1], TokenType::Word) && 
-			isType(m_tokens[tokenIndex + 2], TokenType::StartBlock) && 
-			isType(m_tokens[tokenIndex + 3], TokenType::EndBlock))
-		throw ConfigParseException("Block " + blockType + " is empty");
+	if (blockType == "location") {
+		if (isType(m_tokens[tokenIndex + 1], TokenType::Word) && 
+				isType(m_tokens[tokenIndex + 2], TokenType::StartBlock) && 
+				isType(m_tokens[tokenIndex + 3], TokenType::EndBlock))
+			throw ConfigParseException("Block " + blockType + " is empty");
+	}
+	else if (blockType == "server") {
+		if (isType(m_tokens[tokenIndex], TokenType::Word) && 
+				isType(m_tokens[tokenIndex + 1], TokenType::StartBlock) && 
+				isType(m_tokens[tokenIndex + 2], TokenType::EndBlock))
+			throw ConfigParseException("Block " + blockType + " is empty");
+	}
+
 }
 
 void ConfigParser::incTokenIndex(int amount) {

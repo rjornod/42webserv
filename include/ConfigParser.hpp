@@ -35,13 +35,13 @@ class ConfigParser {
 		void	handleLocationDirective();
 		void	handleListen();
 		void 	handleServerName();
-		void	handleRoot();
-		void	handleIndex();
-		void	handleBodySize();
+		void	handleRoot(int scope);
+		void	handleIndex(int scope);
+		void	handleBodySize(int scope);
 		void	handleLocation();
 		void	handleUnknown();
-		void	handleAutoIndex();
-		void	handleErrorPages();
+		void	handleAutoIndex(int scope);
+		void	handleErrorPages(int scope);
 		int		validateErrorCode(std::string code);
 		std::string	checkURI();
 		void	checkEndOfDirective(std::string directive);

@@ -18,7 +18,7 @@ class LocationConfig {
 
 
 	public:
-		LocationConfig() 														{setDefaultValues(); };
+		LocationConfig() 														{std::cout << "LOCATION object created\n"; setDefaultValues(); };
 		~LocationConfig() 													{};
 		LocationConfig(const LocationConfig& other)	: m_path(other.m_path),
       m_root(other.m_root),
@@ -31,7 +31,16 @@ class LocationConfig {
       m_return(other.m_return) { 
 				// std::cout << "LocationConfig copy constructor called" << std::endl;
 		}
-		void setDefaultValues() {
+		std::map<int, std::string>	&getErrorPages()			{ return m_errorPages;}
+		void	setRoot(std::string root)											{ m_root = root;}
+		void	setAutoIndex(bool isOn)												{ m_autoIndex = isOn;}
+		void	setBodySize(int size)													{ m_maxBodySize = size;}
+		void	setIndex(std::string index)										{ m_index.emplace_back(index);}
+		void	setErrorPages(int error, std::string path)		{ m_errorPages.emplace(error, path);}
+		void	setUploadStore(std::string path)							{ m_upload_store = path;}
+		void	setLimitExcept(std::string method)						{ m_limitExcept.emplace_back(method);}
+		void	setReturn(std::string returnType)							{ m_return = returnType;} // TO DO: maybe change the variable name
+		void 	setDefaultValues() {
 			m_path = "/example/path";
 			m_root = "/";
 			m_limitExcept.push_back("GET");
