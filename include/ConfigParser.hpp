@@ -12,6 +12,7 @@ class ConfigParser {
 		std::string 				m_configPath;
 		std::string 				m_buffer;
 		GlobalConfig				&m_config;
+		
 	public:
 		ConfigParser(char *pathToConfig, GlobalConfig& config) : m_config(config) {
 			m_configPath = pathToConfig;
@@ -42,6 +43,9 @@ class ConfigParser {
 		void	handleUnknown();
 		void	handleAutoIndex(int scope);
 		void	handleErrorPages(int scope);
+		void	handleReturn();
+		void	handleAllowedMethods();
+		void	handleUploadStore();
 		int		validateErrorCode(std::string code);
 		std::string	checkURI();
 		void	checkEndOfDirective(std::string directive);
@@ -53,8 +57,10 @@ class ConfigParser {
 		std::unordered_set<std::string>	knownDirectives = {
 				"server", "listen", "server_name", "root", "index",
 				"location", "methods", "autoindex", "return",
-				"limit_except", "upload_store", "client_max_body_size"
+				"allowed_methods", "upload_store", "client_max_body_size"
 		};
+		std::unordered_set<std::string> allowedMethods = {"GET", "POST", "DELETE"};
+		std::unordered_set<std::string> errorCodes = {"300", "400", "402", "403", "404", "500"};
 		void 	incTokenIndex(int amount);
 
 };

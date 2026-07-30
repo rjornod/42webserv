@@ -8,7 +8,7 @@ enum class LocationDirectiveType {
 	MaxBodySize,
 	Index,
 	ErrorPage,
-	LimitExcept,
+	AllowedMethods,
 	UploadStore,
 	Return,
 	Unknown
@@ -20,7 +20,7 @@ LocationDirectiveType locationDirectiveFromString(const std::string& name) {
 	if (name == "client_max_body_size") 	return LocationDirectiveType::MaxBodySize;
 	if (name == "index") 									return LocationDirectiveType::Index;
 	if (name == "error_page") 						return LocationDirectiveType::ErrorPage;
-	if (name == "limit_except") 					return LocationDirectiveType::LimitExcept;
+	if (name == "allowed_methods") 				return LocationDirectiveType::AllowedMethods;
 	if (name == "upload_store")						return LocationDirectiveType::UploadStore;
 	if (name == "return") 								return LocationDirectiveType::Return;
 	return LocationDirectiveType::Unknown;

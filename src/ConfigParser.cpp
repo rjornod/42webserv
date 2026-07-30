@@ -279,8 +279,8 @@ int ConfigParser::validateErrorCode(std::string errorCode) {
 			throw ConfigParseException("Error code must contain only digits: " + errorCode);
 	}
 	int code = std::stoi(errorCode);
-	if (code < 100 || code > 500)
-		throw ConfigParseException("Error code must be between 100 and 500: " + errorCode);
+	if (!errorCodes.count(m_tokens[tokenIndex].value))
+		throw ConfigParseException("Error code not allowed: " + errorCode);
 	return code;
 }
 
@@ -315,6 +315,57 @@ void ConfigParser::handleErrorPages(int scope) {
 		throw ConfigParseException("error_pages directive is missing a semicolon");
 	std::cout << GREEN << "ERRORPAGES OK\n" << RESET;
 }
+/**
+ * Syntax: return code path;
+ * Must always have 2 arguments;
+ **/
+void ConfigParser::handleReturn() {
+	incTokenIndex(1);
+	if (!isType(m_tokens[tokenIndex], TokenType::Word) || 
+			!isType(m_tokens[tokenIndex + 1], TokenType::Word) ||
+			!isValidToken(m_tokens[tokenIndex]))
+		throw ConfigParseException("return directive is malformed");
+	int code = validateErrorCode(m_tokens[tokenIndex].value);
+	incTokenIndex(1);
+	std::string errorPath = m_tokens[tokenIndex].value;
+	m_config.getServerConfigs().back().getLocationConfigs().back().setReturn(code, errorPath);
+	checkEndOfDirective("return");
+}
+
+/**
+ * Syntax: allowed_methods method [method method];
+ * At least one method, max 3;
+ * Allowed methods are POST, GET, DELETE;
+ */
+void ConfigParser::handleAllowedMethods() {
+	incTokenIndex(1);
+	std::unordered_set<std::string> seen;																												// store every method to account for duplicates
+	int methodCount = 0;
+	if (!isType(m_tokens[tokenIndex], TokenType::Word) || !isValidToken(m_tokens[tokenIndex]))
+		throw ConfigParseException("allowed_methods directive is malformed");
+	m_config.getServerConfigs().back().getLocationConfigs().back().clearDefaultMethods();
+	while (!isType(m_tokens[tokenIndex], TokenType::EndDirective)) {
+		if (methodCount>= 3)
+			throw ConfigParseException("Too many arguments for allowed_methods. Max 3 allowed.");
+		if (!seen.insert(m_tokens[tokenIndex].value).second)																								// check if method is duplicate
+			throw ConfigParseException("Duplicate methods are not allowed: " + m_tokens[tokenIndex].value);
+		if (isType(m_tokens[tokenIndex], TokenType::Word) && 
+				allowedMethods.count(m_tokens[tokenIndex].value))
+			m_config.getServerConfigs().back().getLocationConfigs().back().setAllowedMethod(m_tokens[tokenIndex].value);
+		else
+			throw ConfigParseException("Method incorrect. Only GET, POST and DELETE allowed: " + m_tokens[tokenIndex].value);
+		methodCount++;
+		incTokenIndex(1);
+	}
+	std::cout << m_tokens[tokenIndex] << std::endl;
+	if (!isType(m_tokens[tokenIndex], TokenType::EndDirective)) 
+		throw ConfigParseException("allowed_methods directive is missing a semicolon");
+	std::cout << GREEN << "ALLOWED_METHODS OK" << RESET << std::endl;
+}
+
+void ConfigParser::handleUploadStore() {
+
+}
 
 void ConfigParser::handleLocation() {
 	std::cout <<"handling location\n";
@@ -346,13 +397,12 @@ void ConfigParser::handleLocationDirective() {
 			incTokenIndex(1);
 			std::cout << "Directive: UploadStore\n";
 			break;
-		case LocationDirectiveType::LimitExcept:
-			incTokenIndex(1);
-			std::cout << "Directive: LimitExcept\n";
+		case LocationDirectiveType::AllowedMethods:
+		std::cout << "Directive: allowed_methods\n";
+			handleAllowedMethods();
 			break;
 		case LocationDirectiveType::Return:
-			incTokenIndex(1);
-			std::cout << "Directive: Return\n";
+			handleReturn();
 			break;
 		case LocationDirectiveType::Unknown:
 		std::cout << "Unknown Drrrrirective " << m_tokens[tokenIndex] << "\n";
