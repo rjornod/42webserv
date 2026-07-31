@@ -62,5 +62,7 @@ class ConfigParser {
 		std::unordered_set<std::string> allowedMethods = {"GET", "POST", "DELETE"};
 		std::unordered_set<std::string> errorCodes = {"300", "400", "402", "403", "404", "500"};
 		void 	incTokenIndex(int amount);
+		void checkDuplicateLocations(std::string path);
+		std::unordered_set<std::string> seenLocations;
 
 };

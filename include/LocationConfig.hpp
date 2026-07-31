@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include "Colors.hpp"
 
 class LocationConfig {
 	private:
@@ -44,33 +45,52 @@ class LocationConfig {
 		void 	setDefaultValues() {
 			m_path = "/example/path";
 			m_root = "/";
+			m_autoIndex = false;
+			m_allowedMethods.clear();
 			m_allowedMethods.push_back("GET");
 			m_allowedMethods.push_back("POST");
+			m_maxBodySize = 0;
+			m_index.clear();
+			m_errorPages.clear();
+			m_upload_store.clear();
+			m_return.first = 0;
+			m_return.second.clear();
 		}
+		void				printValues() const {
+				std::cout << YELLOW << "\n__________ LOCATION DETAILS ___________\n"
+							<< YELLOW << "PATH: " << RESET << m_path
+							<< YELLOW << "\nROOT: " << RESET << (m_root.empty() ? "(not set)" : m_root)
+							<< YELLOW << "\nAUTOINDEX: " << RESET << m_autoIndex
+							<< YELLOW << "\nMAX BODY SIZE: " << RESET << m_maxBodySize
+							<< YELLOW << "\nUPLOAD STORE: " << RESET << (m_upload_store.empty() ? "(not set)" : m_upload_store)
+							<< YELLOW << "\nRETURN: " << RESET;
+				if (m_return.first != 0)
+					std::cout << m_return.first << " -> " << m_return.second;
+				else
+					std::cout << "(not set)";
+				std::cout << std::endl;
+				std::cout << YELLOW << "ALLOWED METHODS: " << RESET;
+				if (m_allowedMethods.empty())
+					std::cout << "(not set)";
+				else
+					for (const std::string& method : m_allowedMethods)
+						std::cout << method << " ";
+				std::cout << std::endl;
+				std::cout << YELLOW << "INDEX: " << RESET;
+				if (m_index.empty())
+					std::cout << "(not set)";
+				else
+					for (const std::string& index : m_index)
+						std::cout << index << " ";
+				std::cout << std::endl;
+				std::cout << YELLOW << "ERROR PAGES: " << RESET;
+				if (m_errorPages.empty())
+					std::cout << "(not set)";
+				else
+					for (const auto& pair : m_errorPages)
+						std::cout << pair.first << " : " << pair.second << " ";
+				std::cout << std::endl;
+			}
 		void				setPath(std::string path)	{ m_path = path; }
 		std::string	getPath()									{ return m_path; }
 };
-
-/* *
- * 
- * for a webserv project would you then add connected fds to the pollfd struct so that poll will monitor them
- 	ServerConfig:
-
-		host
-		port
-		server_name
-		error_pages
-		client_max_body_size
-		a list of LocationConfig objects
-	
-	LocationConfig:
-
-		path or route, like / or /images
-		root
-		index
-		allowed_methods
-		autoindex
-		return / redirect info
-		CGI-related settings if that location supports CGI
-		upload path if you support file upload
- */

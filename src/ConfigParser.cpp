@@ -97,7 +97,7 @@ void ConfigParser::checkAllBraces() {
 	if (braceFound != 0)
 		throw ConfigParseException("Detected unmatched brace");
 	else
-		std::cout << GREEN << "All braces are paired\n" << RESET <<std::endl;
+		std::cout << BLUE << "All braces are paired\n" << RESET <<std::endl;
 }
 void ConfigParser::parseTokens() {
 	checkAllBraces();
@@ -145,6 +145,7 @@ void ConfigParser::parseDirective()
 
 void ConfigParser::parseLocationDirectives() {
 	incTokenIndex(1); 																												// skip location token
+	checkDuplicateLocations(m_tokens[tokenIndex].value);
 	m_config.getServerConfigs().back().getLocationConfigs().back().setPath(m_tokens[tokenIndex].value);
 	incTokenIndex(2);
 	while (!isType(m_tokens[tokenIndex], TokenType::EndDirective)) {
@@ -186,7 +187,7 @@ void ConfigParser::handleListen() {
 		throw ConfigParseException("Port has to be a value between 1024 and 65535");
 	m_config.getServerConfigs().back().setPort(port);
 	checkEndOfDirective("listen");
-	std::cout << GREEN << "LISTEN OK\n" << RESET;
+	std::cout << BLUE << "LISTEN OK\n" << RESET;
 }
 
 void ConfigParser::handleServerName() {
@@ -196,7 +197,7 @@ void ConfigParser::handleServerName() {
 		throw ConfigParseException("server_name directive is missing argument");
 	m_config.getServerConfigs().back().setServerName(m_tokens[tokenIndex].value);
 	checkEndOfDirective("server_name");
-	std::cout << GREEN << "NAME OK\n" << RESET;
+	std::cout << BLUE << "NAME OK\n" << RESET;
 }
 
 void ConfigParser::handleRoot(int scope) {
@@ -209,7 +210,7 @@ void ConfigParser::handleRoot(int scope) {
 	else 
 		m_config.getServerConfigs().back().getLocationConfigs().back().setRoot(m_tokens[tokenIndex].value);
 	checkEndOfDirective("root");
-	std::cout << GREEN << "ROOT OK\n" << RESET;
+	std::cout << BLUE << "ROOT OK\n" << RESET;
 }
 
 void ConfigParser::handleIndex(int scope) {
@@ -227,7 +228,7 @@ void ConfigParser::handleIndex(int scope) {
 	}
 	if (!isType(m_tokens[tokenIndex], TokenType::EndDirective)) 
 		throw ConfigParseException("Index directive is missing a semicolon");
-	std::cout << GREEN << "INDEX OK\n" << RESET;
+	std::cout << BLUE << "INDEX OK\n" << RESET;
 }
 
 void ConfigParser::handleBodySize(int scope) {
@@ -240,12 +241,11 @@ void ConfigParser::handleBodySize(int scope) {
 	else
 		m_config.getServerConfigs().back().getLocationConfigs().back().setBodySize(bodySize);
 	checkEndOfDirective("client_max_body_size");
-	std::cout << GREEN << "CLIENTMAXBODYSIZE OK\n" << RESET;
+	std::cout << BLUE << "CLIENTMAXBODYSIZE OK\n" << RESET;
 }
 
 void ConfigParser::handleUnknown() {
-	std::cout << m_tokens[tokenIndex] << "\n";
-	throw ConfigParseException("Unknown directive detected");
+	throw ConfigParseException("Unknown directive detected: " + m_tokens[tokenIndex].value);
 }
 
 void ConfigParser::handleAutoIndex(int scope) {
@@ -266,7 +266,7 @@ void ConfigParser::handleAutoIndex(int scope) {
 		m_config.getServerConfigs().back().getLocationConfigs().back().setAutoIndex(false);
 
 	checkEndOfDirective("autoindex");
-	std::cout << GREEN << "AUTOINDEX OK\n" << RESET;
+	std::cout << BLUE << "AUTOINDEX OK\n" << RESET;
 
 }
 
@@ -313,7 +313,7 @@ void ConfigParser::handleErrorPages(int scope) {
 	incTokenIndex(1); // TO DO: handle path
 	if (!isType(m_tokens[tokenIndex], TokenType::EndDirective)) 
 		throw ConfigParseException("error_pages directive is missing a semicolon");
-	std::cout << GREEN << "ERRORPAGES OK\n" << RESET;
+	std::cout << BLUE << "ERRORPAGES OK\n" << RESET;
 }
 /**
  * Syntax: return code path;
@@ -330,6 +330,7 @@ void ConfigParser::handleReturn() {
 	std::string errorPath = m_tokens[tokenIndex].value;
 	m_config.getServerConfigs().back().getLocationConfigs().back().setReturn(code, errorPath);
 	checkEndOfDirective("return");
+	std::cout << BLUE << "RETURN OK\n" << RESET;
 }
 
 /**
@@ -357,21 +358,31 @@ void ConfigParser::handleAllowedMethods() {
 		methodCount++;
 		incTokenIndex(1);
 	}
-	std::cout << m_tokens[tokenIndex] << std::endl;
 	if (!isType(m_tokens[tokenIndex], TokenType::EndDirective)) 
 		throw ConfigParseException("allowed_methods directive is missing a semicolon");
-	std::cout << GREEN << "ALLOWED_METHODS OK" << RESET << std::endl;
+	std::cout << BLUE << "ALLOWED_METHODS OK" << RESET << std::endl;
 }
 
+/**
+ * Syntax: upload_store <directory>;
+ * Only one argument allowed;
+ */
 void ConfigParser::handleUploadStore() {
-
+	incTokenIndex(1);
+	if (!isType(m_tokens[tokenIndex], TokenType::Word) || 
+			!isValidToken(m_tokens[tokenIndex]) ||
+			!isType(m_tokens[tokenIndex + 1], TokenType::EndDirective)
+			)
+		throw ConfigParseException("upload_store directive is malformed");
+	m_config.getServerConfigs().back().getLocationConfigs().back().setUploadStore(m_tokens[tokenIndex].value);
+	checkEndOfDirective("upload_store");
+	std::cout << BLUE << "UPLOAD_STORE OK\n" << RESET;
 }
 
 void ConfigParser::handleLocation() {
-	std::cout <<"handling location\n";
 	incTokenIndex(1);
 	parseBlock(false);
-	std::cout << GREEN << "LOCATION OK\n" << RESET;
+	std::cout << BLUE << "LOCATION OK\n" << RESET;
 }
 
 void ConfigParser::handleLocationDirective() {
@@ -381,7 +392,6 @@ void ConfigParser::handleLocationDirective() {
 			break;
 		case LocationDirectiveType::AutoIndex:
 			handleAutoIndex(LOCATION);
-			std::cout << "Directive: location autoindex\n";
 			break;
 		case LocationDirectiveType::MaxBodySize:
 			handleBodySize(LOCATION);
@@ -391,22 +401,18 @@ void ConfigParser::handleLocationDirective() {
 			break;
 		case LocationDirectiveType::ErrorPage:
 			handleErrorPages(LOCATION);
-			std::cout << "Directive: ErrorPage\n";
 			break;
 		case LocationDirectiveType::UploadStore:
-			incTokenIndex(1);
-			std::cout << "Directive: UploadStore\n";
+			handleUploadStore();
 			break;
 		case LocationDirectiveType::AllowedMethods:
-		std::cout << "Directive: allowed_methods\n";
 			handleAllowedMethods();
 			break;
 		case LocationDirectiveType::Return:
 			handleReturn();
 			break;
 		case LocationDirectiveType::Unknown:
-		std::cout << "Unknown Drrrrirective " << m_tokens[tokenIndex] << "\n";
-			// handleUnknown();
+			handleUnknown();
 			break;
 	}
 }
@@ -432,14 +438,12 @@ void ConfigParser::handleDirective() {
 			handleLocation();
 			break;
 		case DirectiveType::AutoIndex:
-			std::cout << "handling auto index\n";
 			handleAutoIndex(GLOBAL);
 			break;
 		case DirectiveType::MaxBodySize:
 			handleBodySize(GLOBAL);
 			break;
 		case DirectiveType::Unknown:
-			std::cout << "Unknown Directive\n";
 			handleUnknown();
 			break;
 	}
@@ -513,6 +517,13 @@ void ConfigParser::checkIfBlockEmpty(std::string blockType) {
 			throw ConfigParseException("Block " + blockType + " is empty");
 	}
 
+}
+
+void ConfigParser::checkDuplicateLocations(std::string path) {
+	
+	std::cout << "path is: " << path <<"\n";
+	if (!seenLocations.insert(path).second)
+		throw ConfigParseException("Duplicate locations not allowed: " + path);
 }
 
 void ConfigParser::incTokenIndex(int amount) {
