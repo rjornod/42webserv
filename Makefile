@@ -13,7 +13,7 @@ CPPFLAGS += -isystem $(GTEST_DIR)/include
 
 TEST = gtests
 SRC_TEST_DIR = ./tests
-SRC_TEST = ConfigParserTest.cpp 
+SRC_TEST = HttpParserTest.cpp 
 OBJ_TEST = $(SRC_TEST:%.cpp=$(GTEST_OBJ_DIR)/%.o)
 
 P_TEST = parserTest

@@ -103,20 +103,20 @@ void ConfigParser::parseTokens() {
 	checkAllBraces();
 	// check if server block exists
 	if (tokenIndex + 1 >= m_tokens.size() || !isValue(m_tokens[tokenIndex], "server")
-		|| !isType(m_tokens[tokenIndex + 1], TokenType::StartBlock)) {
-		throw ConfigParseException("Only server{} allowed as a global directive");
+	|| !isType(m_tokens[tokenIndex + 1], TokenType::StartBlock)) {
+		throw ConfigParseException("Only server{} allowed as a global directivfffe");
 	}
-	else {
+	std::cout << "size: " << m_tokens.size() << "\n";
+	while (tokenIndex < m_tokens.size() - 1) {
 		m_config.createServerConfig();
 		parseBlock(true);
 	}
 }
 
-void ConfigParser::parseBlock(bool isGlobal)
-{
+void ConfigParser::parseBlock(bool isGlobal) {
 	if (isGlobal) {
 		if (!isValue(m_tokens[tokenIndex], "server"))
-			throw ConfigParseException("Only server{} allowed as a global directive");
+			throw ConfigParseException("Only server{} allowed as a global directiveeeee");
 	}
 	else if (!isValue(m_tokens[tokenIndex], "location")) {
 		throw ConfigParseException("Directive in server block is malformed " + m_tokens[tokenIndex].value);
@@ -127,6 +127,9 @@ void ConfigParser::parseBlock(bool isGlobal)
 		parseDirective();
 		incTokenIndex(1);		
 	}
+	std::cout << "Found endblock\n" << m_tokens[tokenIndex];
+	if (tokenIndex + 1 < m_tokens.size() - 1)
+			incTokenIndex(1);
 }
 
 void ConfigParser::parseDirective()
@@ -316,6 +319,7 @@ void ConfigParser::handleErrorPages(int scope) {
 	std::cout << BLUE << "ERRORPAGES OK\n" << RESET;
 }
 /**
+ * Directive: return
  * Syntax: return code path;
  * Must always have 2 arguments;
  **/
@@ -334,6 +338,7 @@ void ConfigParser::handleReturn() {
 }
 
 /**
+ * Directive: allowed_methods
  * Syntax: allowed_methods method [method method];
  * At least one method, max 3;
  * Allowed methods are POST, GET, DELETE;
@@ -364,6 +369,7 @@ void ConfigParser::handleAllowedMethods() {
 }
 
 /**
+ * Directive: upload_store
  * Syntax: upload_store <directory>;
  * Only one argument allowed;
  */
@@ -520,7 +526,6 @@ void ConfigParser::checkIfBlockEmpty(std::string blockType) {
 }
 
 void ConfigParser::checkDuplicateLocations(std::string path) {
-	
 	std::cout << "path is: " << path <<"\n";
 	if (!seenLocations.insert(path).second)
 		throw ConfigParseException("Duplicate locations not allowed: " + path);
