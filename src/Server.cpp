@@ -183,7 +183,7 @@ void Server::buildResponse(Client& client) {
 }
 
 void Server::sendResponse(Client& client) {
-	size_t 	sentBytes = 0;
+	int 	sentBytes = 0;
 	client.setBytesLeftToSend(client.getClientSendBuffer().size() - client.getBytesSent());					// calculates the remaining bytes we need to send
 	client.setClientState(ClientState::SendingResponse);
 	sentBytes = send(client.getClientFd(), client.getClientSendBuffer().c_str() + client.getBytesSent(), client.getBytesLeftToSend(), 0); 	// makes sure to only send the data we havent sent (if spread among multiple calls)
