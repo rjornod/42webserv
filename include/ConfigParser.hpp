@@ -22,7 +22,7 @@ class ConfigParser {
 		~ConfigParser() {};
 		
 		bool 	processConfig();
-		bool 	initialFileCheck(std::fstream& file);
+		void 	initialFileCheck(std::fstream& file);
 		void 	tokenize(std::fstream& file);
 		int 	handleBraces(int index);
 		int 	handleEndDirective(int index);
@@ -68,5 +68,6 @@ class ConfigParser {
 		ServerConfig&	currentServer();
 		LocationConfig& currentLocation();
 		Token&	currentToken();
+		Token&	currentTokenPlus(unsigned int amount);
 
 };
