@@ -1,4 +1,4 @@
-SERV = webserver
+SERV = webserv
 CXX = c++
 CXXFLAGS += -Wall -Werror -Wextra -std=c++20
 SRC_DIR = ./src
