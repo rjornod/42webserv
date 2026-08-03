@@ -317,7 +317,6 @@ void ConfigParser::handleIndex(int scope) {
 	incTokenIndex(1);
 	if (!isType(currentToken(), TokenType::Word))
 		throw ConfigParseException("Index directive is malformed");
-	// check if the current token is a Word and is not the same as a known directive
 	while (m_tokenIndex < m_tokens.size() && 
 				isValidToken(currentToken())) {
 		if (scope == GLOBAL)
@@ -684,5 +683,3 @@ Token& ConfigParser::currentToken() {
 Token& ConfigParser::currentTokenPlus(unsigned int amount) {
 	return (m_tokens[m_tokenIndex + amount]);
 }
-
-// 200, 301, 302, 400, 401, 403, 404, 405, 500, 502, 503, 504
