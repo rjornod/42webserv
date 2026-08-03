@@ -6,56 +6,6 @@ void HttpParser::reportErrors() {
     std::cerr << "Error on parsing: " << m_errorMessage << std::endl;
 }
 
-// void HttpParser::partialParse(const std::string& chunk) {
-
-//   m_buffer += chunk;
-
-//   switch (getParserState()) {
-//     case HttpParserState::REQUEST_LINE:
-//       if (!parseRequestLine()) {
-//         reportErrors();
-//         return;
-//       }
-
-//       m_state = HttpParserState::HEADERS;
-
-//     case HttpParserState::HEADERS:
-//       if (!parseHeaders()) {
-//         reportErrors();
-//         return;
-//       }
-//       determineBodyLength();
-//       if (m_expectedBodyLen == 0) {
-//         m_request.setBody("");
-//         m_state = HttpParserState::COMPLETE;
-//         // buildRequest(); // Not sure
-//         return;
-//       }
-//       if (m_expectedBodyLen == -1) {
-//         reportErrors();
-//         return;
-//       }
-//       m_state = HttpParserState::BODY;
-    
-//     case HttpParserState::BODY:
-//       if (!parseBody()) {
-//         reportErrors();
-//         return;
-//       }
-//       m_state = HttpParserState::COMPLETE;
-
-//     case HttpParserState::COMPLETE:
-//       break;
-
-//     case HttpParserState::ERROR:
-//       std::cout << "Error on parsing: " << m_errorMessage << std::endl;
-      
-//     default:
-//       break;
-//   }
-  
-// }
-
 void HttpParser::parse(std::string_view chunk) {
 
   m_buffer += chunk;
@@ -66,7 +16,6 @@ void HttpParser::parse(std::string_view chunk) {
         reportErrors();
         return;
       }
-
       m_state = HttpParserState::HEADERS;
       [[fallthrough]];
 
@@ -79,7 +28,6 @@ void HttpParser::parse(std::string_view chunk) {
       if (m_expectedBodyLen == 0) {
         m_request.setBody("");
         m_state = HttpParserState::COMPLETE;
-        // buildRequest(); // Not sure
         return;
       }
       if (m_expectedBodyLen == -1) {
@@ -100,18 +48,13 @@ void HttpParser::parse(std::string_view chunk) {
     case HttpParserState::COMPLETE:
       break;
 
+    //Not sure if it will ever fall here (reportErrors is triggered on errors)
     case HttpParserState::ERROR:
       std::cout << "Error on parsing: " << m_errorMessage << std::endl;
       
     default:
       break;
   }
-}
-
-void HttpParser::buildRequest() {
-
-  m_request.setHeaders(m_headers);
-  m_request.setBody(m_body);
 }
 
 HttpMethod parseMethod(std::string_view method) {
@@ -127,7 +70,6 @@ HttpMethod parseMethod(std::string_view method) {
   
 }
 
-// IN PROGRESS: reformatting to use string_view
 bool HttpParser::parseRequestLine() {
 
   size_t end = m_buffer.find("\r\n", 0);
@@ -174,54 +116,7 @@ bool HttpParser::parseRequestLine() {
   return true;
 }
 
-// bool HttpParser::parseRequestLine() {
-
-//   size_t end = m_buffer.find("\r\n", 0);
-
-//   // Full request hasn't arrived
-//   if (end == std::string::npos) {
-//     return false;
-//   }
-
-//   std::string reqLine = m_buffer.substr(0, end);
-
-//   size_t firstSpace = reqLine.find(' ');
-//   if (firstSpace == std::string::npos) {
-//     m_state = HttpParserState::ERROR;
-//     m_errorMessage = "Missing URI";
-//     return false;
-//   }
-//   size_t secondSpace = reqLine.find(' ', firstSpace + 1);
-//   if (secondSpace == std::string::npos) {
-//     m_state = HttpParserState::ERROR;
-//     m_errorMessage = "Missing HTTP version";
-//     return false;
-//   }
-//   //TO DO: Method, URI, Version validation
-//   // Method
-//   m_request.setMethod(parseMethod(reqLine.substr(0, firstSpace)));
-//   if (m_request.getMethod() == HttpMethod::UNKNOWN) {
-//     m_state = HttpParserState::ERROR;
-//     m_errorMessage = "Unsupported method";
-//     return false;
-//   }
-//   m_request.setURI(reqLine.substr(firstSpace + 1, secondSpace - firstSpace - 1));
-//   std::string version = reqLine.substr(secondSpace + 1);
-//   if (!validateHttpVersion(version)) {
-//     m_state = HttpParserState::ERROR;
-//     m_errorMessage = "Invalid Http Version";
-//     return false;
-//   } 
-//   m_request.setVersion(version);
-
-//   // Remove request line from buffer
-//   m_buffer.erase(0, end + 2);
-
-//   return true;
-// }
-
-
-// Assume there is a colon because we check outside
+// Can assume there is a colon because we check outside
 std::string getHeaderName(std::string_view header) {
 
   size_t colon = header.find(':');
@@ -316,18 +211,13 @@ bool HttpParser::parseBody() {
   if (m_expectedBodyLen == -1) {
     return false;
   }
-
-  if (m_buffer.size() + m_body.size() < m_expectedBodyLen)
-  {
+  if (m_buffer.size() + m_body.size() < m_expectedBodyLen) {
       m_body.append(m_buffer);
       m_buffer.clear();
       return false;
   }
-
   m_body.append(m_buffer, 0, m_expectedBodyLen);
-
   m_request.setBody(m_body);
-
   m_buffer.erase(0, m_expectedBodyLen);
 
   return true;
