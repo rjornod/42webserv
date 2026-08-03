@@ -12,7 +12,7 @@
 #define GLOBAL 1
 #define LOCATION 0
 
-unsigned int  tokenIndex = 0;
+// unsigned int  tokenIndex = 0;
 
 bool ConfigParser::initialFileCheck(std::fstream& file) {
 	
@@ -137,9 +137,9 @@ void ConfigParser::parseDirective()
 	if (isValue(m_tokens[tokenIndex], "location")) {
 		if (tokenIndex + 2 >= m_tokens.size() || !isType(m_tokens[tokenIndex + 1], TokenType::Word)
 			|| !isType(m_tokens[tokenIndex + 2], TokenType::StartBlock))
-			throw ConfigParseException("Location directivddddde is malformed");
+			throw ConfigParseException("Location directive is malformed");
 		checkIfBlockEmpty("location");
-		m_config.getServerConfigs().back().createLocationConfig();	
+		currentServer().createLocationConfig();	
 		parseLocationDirectives();
 	}
 	else
@@ -149,7 +149,7 @@ void ConfigParser::parseDirective()
 void ConfigParser::parseLocationDirectives() {
 	incTokenIndex(1); 																												// skip location token
 	checkDuplicateLocations(m_tokens[tokenIndex].value);
-	m_config.getServerConfigs().back().getLocationConfigs().back().setPath(m_tokens[tokenIndex].value);
+	currentLocation().setPath(m_tokens[tokenIndex].value);
 	incTokenIndex(2);
 	while (!isType(m_tokens[tokenIndex], TokenType::EndDirective)) {
 		if (isType(m_tokens[tokenIndex], TokenType::EndBlock))
@@ -157,7 +157,7 @@ void ConfigParser::parseLocationDirectives() {
 		handleLocationDirective();
 		incTokenIndex(1);
 	}
-		incTokenIndex(1);
+	incTokenIndex(1);
 }
 
 void ConfigParser::checkEndOfDirective(std::string directive) {
@@ -188,7 +188,7 @@ void ConfigParser::handleListen() {
 	int port = std::stoi(m_tokens[tokenIndex].value);
 	if (port < 1024 || port > 65535)
 		throw ConfigParseException("Port has to be a value between 1024 and 65535");
-	m_config.getServerConfigs().back().setPort(port);
+	currentServer().setPort(port);
 	checkEndOfDirective("listen");
 	std::cout << BLUE << "LISTEN OK\n" << RESET;
 }
@@ -198,7 +198,7 @@ void ConfigParser::handleServerName() {
 	if 	(!isType(m_tokens[tokenIndex], TokenType::Word) || 
 			!isValidToken(m_tokens[tokenIndex]))
 		throw ConfigParseException("server_name directive is missing argument");
-	m_config.getServerConfigs().back().setServerName(m_tokens[tokenIndex].value);
+	currentServer().setServerName(m_tokens[tokenIndex].value);
 	checkEndOfDirective("server_name");
 	std::cout << BLUE << "NAME OK\n" << RESET;
 }
@@ -209,9 +209,9 @@ void ConfigParser::handleRoot(int scope) {
 			!isValidToken(m_tokens[tokenIndex]))
 		throw ConfigParseException("root directive is missing argument");
 	if (scope == GLOBAL)
-		m_config.getServerConfigs().back().setRoot(m_tokens[tokenIndex].value);
+		currentServer().setRoot(m_tokens[tokenIndex].value);
 	else 
-		m_config.getServerConfigs().back().getLocationConfigs().back().setRoot(m_tokens[tokenIndex].value);
+		currentLocation().setRoot(m_tokens[tokenIndex].value);
 	checkEndOfDirective("root");
 	std::cout << BLUE << "ROOT OK\n" << RESET;
 }
@@ -224,9 +224,9 @@ void ConfigParser::handleIndex(int scope) {
 	while (tokenIndex < m_tokens.size() && 
 				isValidToken(m_tokens[tokenIndex])) {
 		if (scope == GLOBAL)
-			m_config.getServerConfigs().back().setIndex(m_tokens[tokenIndex].value);
+			currentServer().setIndex(m_tokens[tokenIndex].value);
 		else
-			m_config.getServerConfigs().back().getLocationConfigs().back().setIndex(m_tokens[tokenIndex].value);
+			currentLocation().setIndex(m_tokens[tokenIndex].value);
 		incTokenIndex(1);
 	}
 	if (!isType(m_tokens[tokenIndex], TokenType::EndDirective)) 
@@ -240,9 +240,9 @@ void ConfigParser::handleBodySize(int scope) {
 		throw ConfigParseException("client_max_body_size argument is not a valid integer");
 	int bodySize = std::stoi(m_tokens[tokenIndex].value);
 	if (scope == GLOBAL)
-		m_config.getServerConfigs().back().setBodySize(bodySize);
+		currentServer().setBodySize(bodySize);
 	else
-		m_config.getServerConfigs().back().getLocationConfigs().back().setBodySize(bodySize);
+		currentLocation().setBodySize(bodySize);
 	checkEndOfDirective("client_max_body_size");
 	std::cout << BLUE << "CLIENTMAXBODYSIZE OK\n" << RESET;
 }
@@ -260,13 +260,13 @@ void ConfigParser::handleAutoIndex(int scope) {
 		throw ConfigParseException("autoindex argument is not correct. Only 'on' or 'off' allowed");
 	// TO DO: find a cleaner way to do the next assigment 
 	if (m_tokens[tokenIndex].value == "on" && scope == GLOBAL)
-		m_config.getServerConfigs().back().setAutoIndex(true);
+		currentServer().setAutoIndex(true);
 	else if (m_tokens[tokenIndex].value == "off" && scope == GLOBAL)
-		m_config.getServerConfigs().back().setAutoIndex(false);
+		currentServer().setAutoIndex(false);
 	else if (m_tokens[tokenIndex].value == "on" && scope == LOCATION)
-		m_config.getServerConfigs().back().getLocationConfigs().back().setAutoIndex(true);
+		currentLocation().setAutoIndex(true);
 	else if (m_tokens[tokenIndex].value == "off" && scope == LOCATION)
-		m_config.getServerConfigs().back().getLocationConfigs().back().setAutoIndex(false);
+		currentLocation().setAutoIndex(false);
 
 	checkEndOfDirective("autoindex");
 	std::cout << BLUE << "AUTOINDEX OK\n" << RESET;
@@ -308,9 +308,9 @@ void ConfigParser::handleErrorPages(int scope) {
 				isValidToken(m_tokens[tokenIndex]) &&
 				!isType(m_tokens[tokenIndex + 1], TokenType::EndDirective) ) {
 		if (scope == GLOBAL)
-			m_config.getServerConfigs().back().setErrorPages(validateErrorCode(m_tokens[tokenIndex].value), path);
+			currentServer().setErrorPages(validateErrorCode(m_tokens[tokenIndex].value), path);
 		else if (scope == LOCATION)
-			m_config.getServerConfigs().back().getLocationConfigs().back().setErrorPages(validateErrorCode(m_tokens[tokenIndex].value), path);
+			currentLocation().setErrorPages(validateErrorCode(m_tokens[tokenIndex].value), path);
 		incTokenIndex(1);
 	}
 	incTokenIndex(1); // TO DO: handle path
@@ -332,7 +332,7 @@ void ConfigParser::handleReturn() {
 	int code = validateErrorCode(m_tokens[tokenIndex].value);
 	incTokenIndex(1);
 	std::string errorPath = m_tokens[tokenIndex].value;
-	m_config.getServerConfigs().back().getLocationConfigs().back().setReturn(code, errorPath);
+	currentLocation().setReturn(code, errorPath);
 	checkEndOfDirective("return");
 	std::cout << BLUE << "RETURN OK\n" << RESET;
 }
@@ -349,7 +349,7 @@ void ConfigParser::handleAllowedMethods() {
 	int methodCount = 0;
 	if (!isType(m_tokens[tokenIndex], TokenType::Word) || !isValidToken(m_tokens[tokenIndex]))
 		throw ConfigParseException("allowed_methods directive is malformed");
-	m_config.getServerConfigs().back().getLocationConfigs().back().clearDefaultMethods();
+	currentLocation().clearDefaultMethods();
 	while (!isType(m_tokens[tokenIndex], TokenType::EndDirective)) {
 		if (methodCount>= 3)
 			throw ConfigParseException("Too many arguments for allowed_methods. Max 3 allowed.");
@@ -357,7 +357,7 @@ void ConfigParser::handleAllowedMethods() {
 			throw ConfigParseException("Duplicate methods are not allowed: " + m_tokens[tokenIndex].value);
 		if (isType(m_tokens[tokenIndex], TokenType::Word) && 
 				allowedMethods.count(m_tokens[tokenIndex].value))
-			m_config.getServerConfigs().back().getLocationConfigs().back().setAllowedMethod(m_tokens[tokenIndex].value);
+			currentLocation().setAllowedMethod(m_tokens[tokenIndex].value);
 		else
 			throw ConfigParseException("Method incorrect. Only GET, POST and DELETE allowed: " + m_tokens[tokenIndex].value);
 		methodCount++;
@@ -380,7 +380,7 @@ void ConfigParser::handleUploadStore() {
 			!isType(m_tokens[tokenIndex + 1], TokenType::EndDirective)
 			)
 		throw ConfigParseException("upload_store directive is malformed");
-	m_config.getServerConfigs().back().getLocationConfigs().back().setUploadStore(m_tokens[tokenIndex].value);
+	currentLocation().setUploadStore(m_tokens[tokenIndex].value);
 	checkEndOfDirective("upload_store");
 	std::cout << BLUE << "UPLOAD_STORE OK\n" << RESET;
 }
@@ -522,7 +522,6 @@ void ConfigParser::checkIfBlockEmpty(std::string blockType) {
 				isType(m_tokens[tokenIndex + 2], TokenType::EndBlock))
 			throw ConfigParseException("Block " + blockType + " is empty");
 	}
-
 }
 
 void ConfigParser::checkDuplicateLocations(std::string path) {
@@ -531,12 +530,37 @@ void ConfigParser::checkDuplicateLocations(std::string path) {
 		throw ConfigParseException("Duplicate locations not allowed: " + path);
 }
 
-void ConfigParser::incTokenIndex(int amount) {
-	if (tokenIndex + amount < m_tokens.size()) {
-		tokenIndex += amount;
+void ConfigParser::incTokenIndex(unsigned int amount) {
+	if (m_tokenIndex + amount < m_tokens.size()) {
+		m_tokenIndex += amount;
 		return;
 	}
 	throw ConfigParseException("Unexpected end of file");
+}
+
+/**
+ * Small helper to get the current server object
+ */
+ServerConfig& ConfigParser::currentServer() {
+	if (m_config.getServerConfigs().empty())
+		throw ConfigParseException("No server config available");
+	return m_config.getServerConfigs().back();
+}
+
+/**
+ * Small helper to get the current location object
+ */
+LocationConfig& ConfigParser::currentLocation() {
+	if (m_config.getServerConfigs().back().getLocationConfigs().empty())
+		throw ConfigParseException("No location config available");
+	return m_config.getServerConfigs().back().getLocationConfigs().back();
+}
+
+/**
+ * Small helper to get the current token
+ */
+Token& ConfigParser::currentToken() {
+	return (m_tokens[m_tokenIndex]);
 }
 
 // 200, 301, 302, 400, 401, 403, 404, 405, 500, 502, 503, 504

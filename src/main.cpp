@@ -8,7 +8,6 @@ void exitProgram(int errorCode, std::string reason) {
 	exit(errorCode);
 }
 
-
 int main(int argc, char **argv) {
 	if (argc < 2)
 		exitProgram(-1, "Usage ./webserv <path/to/configfile>");
@@ -17,8 +16,9 @@ int main(int argc, char **argv) {
 	if (config.processConfig()) {
 		exitProgram(1, "ConfigParser");
 	}
-	globalConfig.getServerConfigs()[0].printValues(); 
-	globalConfig.getServerConfigs()[1].printValues(); 
+	for (unsigned long i = 0; i < globalConfig.getServerConfigs().size(); i++) {
+		globalConfig.getServerConfigs()[i].printValues(); 
+	}
 	Server server(globalConfig);
 	if (server.serverSetup() > 0) {
 		exitProgram(1, "ServerSetup");

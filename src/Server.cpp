@@ -14,7 +14,7 @@
 volatile sig_atomic_t serverRunning = true;
 
 void	Server:: closeAllFds() {
-	std::cout << "closing all fds" <<std::endl;
+	std::cout << "closing all fds" << std::endl;
 	for (unsigned long i = 0; i < m_connectedFds.size(); i++) {
 		close(m_connectedFds[i].fd);
 	}

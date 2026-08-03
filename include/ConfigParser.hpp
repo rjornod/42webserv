@@ -12,9 +12,10 @@ class ConfigParser {
 		std::string 				m_configPath;
 		std::string 				m_buffer;
 		GlobalConfig				&m_config;
+		unsigned int				m_tokenIndex;
 		
 	public:
-		ConfigParser(char *pathToConfig, GlobalConfig& config) : m_config(config) {
+		ConfigParser(char *pathToConfig, GlobalConfig& config) : m_config(config), m_tokenIndex(0) {
 			m_configPath = pathToConfig;
 			std::cout << GREEN << "Config File Path: " << RESET << m_configPath << std::endl;
 		}
@@ -61,8 +62,11 @@ class ConfigParser {
 		};
 		std::unordered_set<std::string> allowedMethods = {"GET", "POST", "DELETE"};
 		std::unordered_set<std::string> errorCodes = {"300", "400", "402", "403", "404", "500"};
-		void 	incTokenIndex(int amount);
+		void 	incTokenIndex(unsigned int amount);
 		void checkDuplicateLocations(std::string path);
 		std::unordered_set<std::string> seenLocations;
+		ServerConfig&	currentServer();
+		LocationConfig& currentLocation();
+		Token&	currentToken();
 
 };
