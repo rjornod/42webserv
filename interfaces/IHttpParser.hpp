@@ -9,6 +9,6 @@ class IHttpParser {
     virtual ~IHttpParser() {}
 
     
-    virtual void partialParse(const std::string& chunk) = 0;
+    virtual void parse(std::string_view chunk) = 0;
 
 };
