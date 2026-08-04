@@ -1,6 +1,6 @@
 SERV = webserv
 CXX = c++
-CXXFLAGS += -Wall -Werror -Wextra -std=c++20
+CXXFLAGS += -g -std=c++17 
 SRC_DIR = ./src
 OBJ_DIR = ./obj
 SRC_CORE = Server.cpp HttpParser.cpp HttpRequest.cpp ConfigParser.cpp TokenType.cpp LocationConfig.cpp ServerConfig.cpp

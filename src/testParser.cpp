@@ -22,13 +22,37 @@ int main() {
     "User-Agent: test\r\n"
     "Content-Length: 5\r\n"
     "\r\n"
-    "helloGET /nextreq";
+    "helloPOST /nextreq";
+
+  std::string reqWithBody =
+    "POST / HTTP/1.1\r\n"
+    "Host: developer.mozilla.org\r\n"
+    "User-Agent: curl/8.6.0\r\n"
+    "Accept: */*\r\n"
+    "Content-Type: application/json\r\n"
+    "content-length: 12\r\n"
+    "\r\n"
+    "{\"id\": \"42\"}";
+
+  std::string missingVersion =
+    "GET /index.html\r\n"
+    "Host: localhost\r\n"
+    "User-Agent: Test\r\n"
+    "\r\n";
+
+  std::string invalidContentLen = 
+    "POST / HTTP/1.1\r\n"
+    "Host: developer.mozilla.org\r\n"
+    "User-Agent: curl/8.6.0\r\n"
+    "Accept: */*\r\n"
+    "Content-Type: application/json\r\n"
+    "content-length: 0\r\n"
+    "\r\n"
+    "{\"id\": \"42\"}";
 
   HttpParser parser;
 
-  parser.partialParse(reqMethod);
-  parser.partialParse(reqLineURI);
-  parser.partialParse(reqHeaders);
+  parser.parse(reqWithBody);
   std::string state = to_string(parser.getParserState());
   std::cout << "State: " << state << std::endl;
 
@@ -36,6 +60,17 @@ int main() {
   std::cout << "-----------------------------------------------------" << std::endl;
 
   std::cout << "Buffer:" << std::endl << parser.getBuffer() << std::endl;
+
+  // std::cout << std::endl << "Parsing request with ivalid content length: " << std::endl << std::endl;
+
+  // HttpParser parserError;
+
+  // parserError.partialParse(invalidContentLen);
+
+
+  // std::cout << "------------------------- Request: ------------------" << std::endl << parserError.getRequest() << std::endl;
+  // std::cout << "-----------------------------------------------------" << std::endl;
+  // std::cout << "State: " << to_string(parserError.getParserState()) << std::endl;
 
   return 0;
 
