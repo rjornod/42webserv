@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <string_view>
 #include <vector>
 #include <unordered_set>
 #include "GlobalConfig.hpp"
@@ -55,16 +56,16 @@ class ConfigParser {
 		bool	isValidToken(const Token& token);
 		bool	isType(const Token& token, TokenType expectedType);
 		bool	isValue(const Token& token, const std::string& expectedValue);
-		std::unordered_set<std::string>	knownDirectives = {
+		std::unordered_set<std::string_view>	knownDirectives = {
 				"server", "listen", "server_name", "root", "index",
 				"location", "methods", "autoindex", "return",
 				"allowed_methods", "upload_store", "client_max_body_size"
 		};
-		std::unordered_set<std::string> allowedMethods = {"GET", "POST", "DELETE"};
-		std::unordered_set<std::string> errorCodes = {"300", "400", "402", "403", "404", "500"};
+		std::unordered_set<std::string_view> allowedMethods = {"GET", "POST", "DELETE"};
+		std::unordered_set<std::string_view> errorCodes = {"300", "400", "402", "403", "404", "500"};
 		void 	incTokenIndex(unsigned int amount);
-		void checkDuplicateLocations(std::string path);
-		std::unordered_set<std::string> seenLocations;
+		void checkDuplicatePorts(int port);
+		std::unordered_set<int> seenPorts;
 		ServerConfig&	currentServer();
 		LocationConfig& currentLocation();
 		Token&	currentToken();

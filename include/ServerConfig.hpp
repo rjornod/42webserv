@@ -16,18 +16,9 @@ class ServerConfig {
 		std::map<int, std::string>	m_errorPages;
 		bool												m_autoIndex;
 	public:
-		ServerConfig() {setDefaultValues(); std::cout << "server config created\n";}
+		ServerConfig() {setDefaultValues();}
 		~ServerConfig() {};
-		void setDefaultValues() {
-			m_listenPort = 8080;
-			m_serverName = "Test";
-			m_root.clear();
-			m_clientMaxBodySize = 3500;
-			m_autoIndex = false;
-			m_index.clear();
-			m_errorPages.clear();
-	
-		}
+		void setDefaultValues();
 		int 				getPort() const 															{ return m_listenPort; } 
 		std::string getServerName() const 												{ return m_serverName; }
 		int 				getClientMaxBody() const 											{ return m_clientMaxBodySize; }
@@ -41,48 +32,12 @@ class ServerConfig {
 		void				setAutoIndex(bool isOn)												{ m_autoIndex = isOn;}
 		void				setErrorPages(int error, std::string path)		{ m_errorPages.emplace(error, path);}
 		void				createLocationConfig()												{ locationConfigs.emplace_back();}
-		void				setErrorPath(std::string errorPath)						{ 
-			for (auto it = m_errorPages.begin(); it != m_errorPages.end(); ++it)
+		void				setErrorPath(std::string errorPath)						{ for (auto it = m_errorPages.begin(); it != m_errorPages.end(); ++it)
 				it->second = errorPath;
 		}
-		void				printIndex() const {
-			std::cout << YELLOW << "INDEX: " << RESET;
-			if (m_index.empty()) {
-				std::cout << "(not set)";
-			} else {
-				for (unsigned long i = 0; i < m_index.size(); i++) {
-					std::cout << m_index[i] << " ";
-				}
-			}
-			std::cout << "\n";
-		}
-		void printErrorPages() const {
-			std::cout << YELLOW << "ERROR PAGES: " << RESET;
-			if (m_errorPages.empty()) {
-				std::cout << "(not set)" << std::endl;
-				return;
-			}
-			for (const auto& pair : m_errorPages)
-			{
-					std::cout << pair.first << " : " << pair.second << std::endl;
-			}
-		}
-		void 				printValues() const {
-			std::cout << YELLOW << "\n__________SERVER DETAILS___________\n"
-						<< YELLOW << "PORT: " << RESET << m_listenPort
-						<< YELLOW << "\nSERVER NAME: " << RESET << (m_serverName.empty() ? "(not set)" : m_serverName)
-						<< YELLOW << "\nROOT: " << RESET << (m_root.empty() ? "(not set)" : m_root)
-						<< YELLOW << "\nAUTOINDEX: " << RESET << m_autoIndex
-						<< YELLOW << "\nCLIENT MAX BODY SIZE: " << RESET << m_clientMaxBodySize << std::endl;
-			printIndex();
-			printErrorPages();
-			std::cout << YELLOW << "LOCATION CONFIGS: " << RESET;
-			if (locationConfigs.empty()) {
-				std::cout << "(not set)" << std::endl;
-			} else {
-				std::cout << std::endl;
-				for (const LocationConfig& location : locationConfigs)
-					location.printValues();
-			}
-			}
-		};
+		void 	checkDuplicateLocations(std::string path);
+		std::unordered_set<std::string> seenLocations;
+		void				printIndex() const;
+		void 				printErrorPages() const;
+		void 				printValues() const;		
+	};

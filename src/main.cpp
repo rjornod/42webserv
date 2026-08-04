@@ -9,13 +9,15 @@ void exitProgram(int errorCode, std::string reason) {
 }
 
 int main(int argc, char **argv) {
-	if (argc < 2)
+	if (argc != 2)
 		exitProgram(-1, "Usage ./webserv <path/to/configfile>");
 	GlobalConfig globalConfig;
 	ConfigParser config(argv[1], globalConfig);
 	if (config.processConfig()) {
 		exitProgram(1, "ConfigParser");
 	}
+
+	/* For Debug: Prints the value of all the configurations of server and location*/
 	for (unsigned long i = 0; i < globalConfig.getServerConfigs().size(); i++) {
 		globalConfig.getServerConfigs()[i].printValues(); 
 	}

@@ -26,7 +26,6 @@ class Server {
 	public:
 		Server(const GlobalConfig& parsedConfig) : m_config(parsedConfig),
 			/*m_tcpAddressLen(sizeof(sockaddr_in)),*/ m_clientAddressLen(sizeof(m_clientAddress)) {
-			std::cout << "Server object Created" << std::endl;
 		}
 		~Server() {
 			closeAllFds();

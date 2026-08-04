@@ -1,7 +1,6 @@
 #pragma once
-#include <iostream>
+#include <string_view>
 
-// TO DO: figure out if this is the best way to check for the allowed directives in the config file
 enum class LocationDirectiveType {
 	Root,
 	AutoIndex,
@@ -14,7 +13,7 @@ enum class LocationDirectiveType {
 	Unknown
 };
 
-LocationDirectiveType locationDirectiveFromString(const std::string& name) {
+LocationDirectiveType locationDirectiveFromString( std::string_view name) {
 	if (name == "root") 									return LocationDirectiveType::Root;
 	if (name == "autoindex")							return LocationDirectiveType::AutoIndex;
 	if (name == "client_max_body_size") 	return LocationDirectiveType::MaxBodySize;

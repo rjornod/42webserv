@@ -1,7 +1,6 @@
 #pragma once
-#include <iostream>
+#include <string_view>
 
-// TO DO: figure out if this is the best way to check for the allowed directives in the config file
 enum class DirectiveType {
 	Listen,
 	Name,
@@ -14,7 +13,7 @@ enum class DirectiveType {
 	Unknown
 };
 
-DirectiveType directiveFromString(const std::string& name) {
+DirectiveType directiveFromString(std::string_view name) {
 	if (name == "listen") 							return DirectiveType::Listen;
 	if (name == "server_name")					return DirectiveType::Name;
 	if (name == "root") 								return DirectiveType::Root;

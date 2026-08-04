@@ -7,6 +7,7 @@
 #include "../include/TokenType.hpp"
 #include "../include/DirectiveType.hpp"
 #include "../include/LocationDirectiveType.hpp"
+#include "ConfigParser.hpp"
 
 // macros that define the scope of different directives (error_pages can be global (in a server block) or inside a location block)
 #define GLOBAL 1
@@ -162,9 +163,9 @@ void ConfigParser::checkAllBraces() {
 void ConfigParser::parseTokens() {
 	checkAllBraces();
 	// check if server block exists
-	if (m_tokenIndex + 1 >= m_tokens.size() || !isValue(currentToken(), "server")
+	if (m_tokenIndex + 1 >= m_tokens.size() || !isType(currentToken(), TokenType::Word)
 	|| !isType(currentTokenPlus(1), TokenType::StartBlock)) {
-		throw ConfigParseException("Only server{} allowed as a global directivfffe");
+		throw ConfigParseException("Global block is malformed");
 	}
 	while (m_tokenIndex < m_tokens.size() - 1) {
 		m_config.createServerConfig();
@@ -172,15 +173,15 @@ void ConfigParser::parseTokens() {
 	}
 }
 
-
 /**
  * Function that will be called a when a block (server or location) is found;
- * 
+ * It will check that is formed properly and then call parseDirective() to parse
+ * all the directives inside the block;
  */
 void ConfigParser::parseBlock(bool isGlobal) {
 	if (isGlobal) {
 		if (!isValue(currentToken(), "server"))
-			throw ConfigParseException("Only server{} allowed as a global directiveeeee");
+			throw ConfigParseException("Only server{} allowed as a global directive");
 	}
 	else if (!isValue(currentToken(), "location")) {
 		throw ConfigParseException("Directive in server block is malformed " + currentToken().value);
@@ -215,7 +216,7 @@ void ConfigParser::parseDirective()
  */
 void ConfigParser::parseLocationDirectives() {
 	incTokenIndex(1); 																												// skip location token
-	checkDuplicateLocations(currentToken().value);
+	currentServer().checkDuplicateLocations(currentToken().value);
 	currentLocation().setPath(currentToken().value);
 	incTokenIndex(2);
 	while (!isType(currentToken(), TokenType::EndDirective)) {
@@ -243,7 +244,7 @@ void ConfigParser::checkEndOfDirective(std::string directive) {
  * Small helper functon that checks if the digits passed are all actually digits;
  * Used for the listen and client_max_body directives;
  */
-static bool validateDigits(std::string digits) {
+static bool validateDigits(std::string_view digits) {
 	for (unsigned long i = 0; i < digits.size(); i++) {
 		if (!isdigit(digits[i]))
 			return false;
@@ -257,7 +258,6 @@ static bool validateDigits(std::string digits) {
  * Only one argument allowed;
  * Argument needs to be a valid integer between 1024 and 65535;
  * Ports below 1024 need sudo requirement and above 65535 don't exist;
- * TO DO: make sure there are no duplicate ports if there are different server blocks;
  */
 void ConfigParser::handleListen() {
 	incTokenIndex(1);
@@ -271,6 +271,7 @@ void ConfigParser::handleListen() {
 	int port = std::stoi(currentToken().value);
 	if (port < 1024 || port > 65535)
 		throw ConfigParseException("Port has to be a value between 1024 and 65535");
+	checkDuplicatePorts(port);
 	currentServer().setPort(port);
 	checkEndOfDirective("listen");
 }
@@ -470,7 +471,7 @@ void ConfigParser::handleAllowedMethods() {
 	while (!isType(currentToken(), TokenType::EndDirective)) {
 		if (methodCount>= 3)
 			throw ConfigParseException("Too many arguments for allowed_methods. Max 3 allowed.");
-		if (!seen.insert(currentToken().value).second)																								// check if method is duplicate
+		if (!seen.emplace(currentToken().value).second)																								// check if method is duplicate
 			throw ConfigParseException("Duplicate methods are not allowed: " + currentToken().value);
 		if (isType(currentToken(), TokenType::Word) && 
 				allowedMethods.count(currentToken().value))
@@ -634,16 +635,16 @@ void ConfigParser::checkIfBlockEmpty(std::string blockType) {
 	}
 }
 
-void ConfigParser::checkDuplicateLocations(std::string path) {
-	if (!seenLocations.insert(path).second)
-		throw ConfigParseException("Duplicate locations not allowed: " + path);
-}
+void ConfigParser::checkDuplicatePorts(int port) {
+	if (!seenPorts.emplace(port).second)
+		throw ConfigParseException("Duplicate listens on the same port is not allowed: ");
+} 
 
 /**
- * Small helper function that first checks if the amount we want to increment
- * tokenIndex is still in bounds and increments it if it is;
- * Used extensively as a way to validate every token;
- */
+	 * Small helper function that first checks if the amount we want to increment
+	 * tokenIndex is still in bounds and increments it if it is;
+	 * Used extensively as a way to validate every token;
+	 */
 void ConfigParser::incTokenIndex(unsigned int amount) {
 	if (m_tokenIndex + amount < m_tokens.size()) {
 		m_tokenIndex += amount;

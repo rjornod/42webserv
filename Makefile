@@ -3,7 +3,7 @@ CXX = c++
 CXXFLAGS += -Wall -Werror -Wextra -std=c++20
 SRC_DIR = ./src
 OBJ_DIR = ./obj
-SRC_CORE = Server.cpp HttpParser.cpp HttpRequest.cpp ConfigParser.cpp TokenType.cpp
+SRC_CORE = Server.cpp HttpParser.cpp HttpRequest.cpp ConfigParser.cpp TokenType.cpp LocationConfig.cpp ServerConfig.cpp
 OBJ_CORE = $(SRC_CORE:%.cpp=$(OBJ_DIR)/%.o)
 
 GTEST_REPO = https://github.com/google/googletest.git
