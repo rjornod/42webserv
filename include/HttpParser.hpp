@@ -37,14 +37,11 @@ class HttpParser : public IHttpParser {
     std::string getErrorMessage() const {return m_errorMessage;}
     void setParserState(HttpParserState state) {m_state = state;}
 
-    //New version with switch --------
-    // void partialParse(const std::string& chunk);
     void parse(std::string_view chunk);
     bool parseRequestLine();
     bool parseHeaders();
     bool parseBody();
     void determineBodyLength();
-    void buildRequest();
     void reportErrors();
 
     //Mainly for the tests, clear the parser in order to reuse it

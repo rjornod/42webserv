@@ -16,7 +16,6 @@ void HttpParser::parse(std::string_view chunk) {
         reportErrors();
         return;
       }
-
       m_state = HttpParserState::HEADERS;
       [[fallthrough]];
 
@@ -29,7 +28,6 @@ void HttpParser::parse(std::string_view chunk) {
       if (m_expectedBodyLen == 0) {
         m_request.setBody("");
         m_state = HttpParserState::COMPLETE;
-        // buildRequest(); // Not sure
         return;
       }
       if (m_expectedBodyLen == -1) {
@@ -50,18 +48,13 @@ void HttpParser::parse(std::string_view chunk) {
     case HttpParserState::COMPLETE:
       break;
 
+    //Not sure if it will ever fall here (reportErrors is triggered on errors)
     case HttpParserState::ERROR:
       std::cout << "Error on parsing: " << m_errorMessage << std::endl;
       
     default:
       break;
   }
-}
-
-void HttpParser::buildRequest() {
-
-  m_request.setHeaders(m_headers);
-  m_request.setBody(m_body);
 }
 
 HttpMethod parseMethod(std::string_view method) {
@@ -77,7 +70,6 @@ HttpMethod parseMethod(std::string_view method) {
   
 }
 
-// IN PROGRESS: reformatting to use string_view
 bool HttpParser::parseRequestLine() {
 
   size_t end = m_buffer.find("\r\n", 0);
@@ -124,7 +116,7 @@ bool HttpParser::parseRequestLine() {
   return true;
 }
 
-// Assume there is a colon because we check outside
+// Can assume there is a colon because we check outside
 std::string getHeaderName(std::string_view header) {
 
   size_t colon = header.find(':');
@@ -219,18 +211,13 @@ bool HttpParser::parseBody() {
   if (m_expectedBodyLen == -1) {
     return false;
   }
-
-  if (m_buffer.size() + m_body.size() < m_expectedBodyLen)
-  {
+  if (m_buffer.size() + m_body.size() < m_expectedBodyLen) {
       m_body.append(m_buffer);
       m_buffer.clear();
       return false;
   }
-
   m_body.append(m_buffer, 0, m_expectedBodyLen);
-
   m_request.setBody(m_body);
-
   m_buffer.erase(0, m_expectedBodyLen);
 
   return true;
