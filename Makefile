@@ -81,7 +81,7 @@ $(GTEST_OBJ_DIR)/gtest-all.o: $(GTEST_DIR)
 $(GTEST_OBJ_DIR)/%.o: $(SRC_TEST_DIR)/%.cpp
 	@mkdir -p $(GTEST_OBJ_DIR)
 	@$(CXX) $(CXXFLAGS) $(CPPFLAGS) \
-	-Iinclude \
+	-Iinclude -Iinterfaces \
 	-I$(GTEST_DIR)/googletest/include \
 	-I$(GTEST_DIR)/googletest \
 	-c $< -o $@
