@@ -161,7 +161,7 @@ bool HttpParser::parseHeaders() {
       m_errorMessage = "Header missing colon";
       return false;
     }
-    m_headers.insert({getHeaderName(header), getHeaderValue(header)});
+    m_headers.try_emplace(getHeaderName(header), getHeaderValue(header));
 
     // Consume the header from the buffer
     m_buffer.erase(0, end + 2);
