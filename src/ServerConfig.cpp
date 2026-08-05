@@ -1,21 +1,32 @@
 #include "../include/ServerConfig.hpp"
-#include "../include/ConfigParseExecption.hpp"
+#include "../include/ConfigParseException.hpp"
+#include "ServerConfig.hpp"
 
-void ServerConfig::checkDuplicateLocations(std::string path) {
-	if (!seenLocations.emplace(path).second)
+void ServerConfig::checkDuplicateLocations(const std::string& path) {
+	if (!m_seenLocations.emplace(path).second)
 		throw ConfigParseException("Duplicate locations not allowed: '" + path + "'");
 }
 
 void ServerConfig::setDefaultValues() {
-	m_listenPort = 8080;
-	m_serverName = "Test";
-	m_root.clear();
-	m_clientMaxBodySize = 3500;
+	m_serverName = "localhost";
+	m_root = "www";
+	m_clientMaxBodySize = 100000000;
 	m_autoIndex = false;
-	m_index.clear();
+	m_index.emplace_back("index.html");
 	m_errorPages.clear();
 }
 
+void ServerConfig::seenDirective(std::string directive) {
+	m_seendirectives.emplace(directive);
+}
+/**
+ * Function checks if each server block has all the necessary directives;
+ * Currently only listen is mandatory but more can be added here later;
+ */
+void ServerConfig::checkMandatoryDirectives() {
+	if (m_seendirectives.find("listen") == m_seendirectives.end())
+		throw ConfigParseException("Detected server without a 'listen' directive.\nMake sure every server has 'listen' directive!");
+} 
 
 //	DEBUG FUNCTIONS
 void ServerConfig::printIndex() const {

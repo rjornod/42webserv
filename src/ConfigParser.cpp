@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>  
 #include "../include/ConfigParser.hpp"
-#include "../include/ConfigParseExecption.hpp"
+#include "../include/ConfigParseException.hpp"
 #include "../include/TokenType.hpp"
 #include "../include/DirectiveType.hpp"
 #include "../include/LocationDirectiveType.hpp"
@@ -170,6 +170,7 @@ void ConfigParser::parseTokens() {
 	while (m_tokenIndex < m_tokens.size() - 1) {
 		m_config.createServerConfig();
 		parseBlock(true);
+		currentServer().checkMandatoryDirectives();
 	}
 }
 
@@ -274,6 +275,7 @@ void ConfigParser::handleListen() {
 	checkDuplicatePorts(port);
 	currentServer().setPort(port);
 	checkEndOfDirective("listen");
+	currentServer().seenDirective("listen");
 }
 
 /**
@@ -281,21 +283,24 @@ void ConfigParser::handleListen() {
  * Syntax: server_name <name>;
  * Must only have 1 argument;
  * TO DO: make sure the server name is unique, reject duplicates
- * 
  */
 void ConfigParser::handleServerName() {
 	incTokenIndex(1);
 	if 	(!isType(currentToken(), TokenType::Word) || 
 			!isValidToken(currentToken()))
 		throw ConfigParseException("server_name directive is missing argument");
+	checkDuplicateServerNames(currentToken().value);
 	currentServer().setServerName(currentToken().value);
 	checkEndOfDirective("server_name");
+	currentServer().seenDirective("server_name");
 }
 
 /**
  * Directive: root
  * Syntax: root <path>;
  * Must only have one argument
+ * 
+ * TO DO: not sure if I validate the path here or later..
  */
 void ConfigParser::handleRoot(int scope) {
 	incTokenIndex(1);
@@ -307,6 +312,7 @@ void ConfigParser::handleRoot(int scope) {
 	else 
 		currentLocation().setRoot(currentToken().value);
 	checkEndOfDirective("root");
+	currentServer().seenDirective("root");
 }
 
 /**
@@ -328,6 +334,7 @@ void ConfigParser::handleIndex(int scope) {
 	}
 	if (!isType(currentToken(), TokenType::EndDirective)) 
 		throw ConfigParseException("Index directive is missing a semicolon");
+	currentServer().seenDirective("index");
 }
 
 /**
@@ -345,6 +352,7 @@ void ConfigParser::handleBodySize(int scope) {
 	else
 		currentLocation().setBodySize(bodySize);
 	checkEndOfDirective("client_max_body_size");
+	currentServer().seenDirective("client_max_body_size");
 }
 
 /**
@@ -359,7 +367,7 @@ void ConfigParser::handleUnknown() {
  * Directive: autoindex
  * Syntax: autoindex <state>;
  * Must have only 1 argument;
- * state can be only 1 of 2 values: <on> or <off>;
+ * State can be only 1 of 2 values: <on> or <off>;
  * Anything else is considered an error;
  */
 void ConfigParser::handleAutoIndex(int scope) {
@@ -378,6 +386,7 @@ void ConfigParser::handleAutoIndex(int scope) {
 	else if (currentToken().value == "off" && scope == LOCATION)
 		currentLocation().setAutoIndex(false);
 	checkEndOfDirective("autoindex");
+	currentServer().seenDirective("autoindex");
 }
 
 /**
@@ -400,6 +409,11 @@ int ConfigParser::validateErrorCode(std::string errorCode) {
 /**
  * Function check if the URI is absolute;
  * Used in error_pages directive;
+ * 
+ * TO DO: Not sure if it's the job of the parser to validate this or if
+ * I should just accept whatever is there as long as the token is a word and let
+ * the execution figure it out later. If the path is not correct then I guess
+ * a default error page would be shown to the user (404 or something like that)
  */
 std::string ConfigParser::checkURI() {
 	unsigned long i = m_tokenIndex;
@@ -413,7 +427,7 @@ std::string ConfigParser::checkURI() {
 
 /**
  * Directive: error_pages
- * Syntax: error_pages <error_code> [error_code error_code ....] <path>;
+ * Syntax: error_pages <error_code> [<error_code> <error_code> ....] <path>;
  * Has at least 2 arguments: at least one error code and a path;
  * Error codes must be valid and there can be multiple in a row;
  * Last argument is always a path;
@@ -435,6 +449,7 @@ void ConfigParser::handleErrorPages(int scope) {
 	incTokenIndex(1);
 	if (!isType(currentToken(), TokenType::EndDirective)) 
 		throw ConfigParseException("error_pages directive is missing a semicolon");
+	currentServer().seenDirective("error_pages");
 }
 /**
  * Directive: return
@@ -581,14 +596,6 @@ void ConfigParser::handleDirective() {
 	}
 }
 
-void ConfigParser::printTokens() {
-	std::cout << BLUE << "----Printing tokens vector---" << RESET << std::endl;
-	for (unsigned long i = 0; i < m_tokens.size(); i++) {
-		std::cout << i << " - " <<  m_tokens[i] << std::endl;
-	}
-		std::cout << BLUE << "-----------------------------" << RESET << std::endl;
-}
-
 /**
  * Small helper function to check if a token is valid;
  * To be valid it needs to be a word and not a know directive like <index> or <error_pages>;
@@ -635,9 +642,14 @@ void ConfigParser::checkIfBlockEmpty(std::string blockType) {
 	}
 }
 
+void ConfigParser::checkDuplicateServerNames(const std::string& name) {
+	if (!m_seenServerNames.emplace(name).second)
+		throw ConfigParseException("Duplicate server names are not allowed for different servers: " + name);
+}
+
 void ConfigParser::checkDuplicatePorts(int port) {
-	if (!seenPorts.emplace(port).second)
-		throw ConfigParseException("Duplicate listens on the same port is not allowed: ");
+	if (!m_seenPorts.emplace(port).second)
+		throw ConfigParseException("Duplicate listens on the same port is not allowed ");
 } 
 
 /**
@@ -675,7 +687,9 @@ LocationConfig& ConfigParser::currentLocation() {
  * Small helper to get the current token
  */
 Token& ConfigParser::currentToken() {
-	return (m_tokens[m_tokenIndex]);
+	if (m_tokenIndex < m_tokens.size())
+		return (m_tokens[m_tokenIndex]);
+	throw ConfigParseException("Token index is out of range");
 }
 
 /**
@@ -683,4 +697,13 @@ Token& ConfigParser::currentToken() {
  */
 Token& ConfigParser::currentTokenPlus(unsigned int amount) {
 	return (m_tokens[m_tokenIndex + amount]);
+}
+
+// DEBUG FUNCTIONS
+void ConfigParser::printTokens() {
+	std::cout << BLUE << "----Printing tokens vector---" << RESET << std::endl;
+	for (unsigned long i = 0; i < m_tokens.size(); i++) {
+		std::cout << i << " - " <<  m_tokens[i] << std::endl;
+	}
+		std::cout << BLUE << "-----------------------------" << RESET << std::endl;
 }

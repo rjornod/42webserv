@@ -1,5 +1,5 @@
 #include "../include/LocationConfig.hpp"
-#include "../include/ConfigParseExecption.hpp"
+#include "../include/ConfigParseException.hpp"
 
 void LocationConfig::setDefaultValues() {
 	m_path = "/example/path";
@@ -7,11 +7,10 @@ void LocationConfig::setDefaultValues() {
 	m_autoIndex = false;
 	m_allowedMethods.clear();
 	m_allowedMethods.push_back("GET");
-	m_allowedMethods.push_back("POST");
-	m_maxBodySize = 0;
+	m_maxBodySize = 100000000;
 	m_index.clear();
 	m_errorPages.clear();
-	m_upload_store.clear();
+	m_upload_store = "www/uploads";
 	m_return.first = 0;
 	m_return.second.clear();
 }

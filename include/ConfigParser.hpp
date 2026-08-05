@@ -9,11 +9,13 @@
 
 class ConfigParser {
 	private:
-		std::vector<Token>	m_tokens;
-		std::string 				m_configPath;
-		std::string 				m_buffer;
-		GlobalConfig				&m_config;
-		unsigned int				m_tokenIndex;
+		std::vector<Token>							m_tokens;
+		std::string 										m_configPath;
+		std::string 										m_buffer;
+		GlobalConfig										&m_config;
+		unsigned int										m_tokenIndex;
+		std::unordered_set<int>					m_seenPorts;
+		std::unordered_set<std::string>	m_seenServerNames;
 		
 	public:
 		ConfigParser(char *pathToConfig, GlobalConfig& config) : m_config(config), m_tokenIndex(0) {
@@ -21,7 +23,6 @@ class ConfigParser {
 			std::cout << GREEN << "Config File Path: " << RESET << m_configPath << std::endl;
 		}
 		~ConfigParser() {};
-		
 		bool 	processConfig();
 		void 	initialFileCheck(std::fstream& file);
 		void 	tokenize(std::fstream& file);
@@ -64,8 +65,8 @@ class ConfigParser {
 		std::unordered_set<std::string_view> allowedMethods = {"GET", "POST", "DELETE"};
 		std::unordered_set<std::string_view> errorCodes = {"300", "400", "402", "403", "404", "500"};
 		void 	incTokenIndex(unsigned int amount);
-		void checkDuplicatePorts(int port);
-		std::unordered_set<int> seenPorts;
+		void 	checkDuplicatePorts(int port);
+		void	checkDuplicateServerNames(const std::string& name);
 		ServerConfig&	currentServer();
 		LocationConfig& currentLocation();
 		Token&	currentToken();

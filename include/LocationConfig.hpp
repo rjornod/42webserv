@@ -20,31 +20,20 @@ class LocationConfig {
 
 
 	public:
-		LocationConfig() 														{ setDefaultValues(); };
-		~LocationConfig() 													{};
-		LocationConfig(const LocationConfig& other)	: m_path(other.m_path),
-      m_root(other.m_root),
-      m_autoIndex(other.m_autoIndex),
-      m_allowedMethods(other.m_allowedMethods),
-      m_maxBodySize(other.m_maxBodySize),
-      m_index(other.m_index),
-      m_errorPages(other.m_errorPages),
-      m_upload_store(other.m_upload_store),
-      m_return(other.m_return) { 
-				// std::cout << "LocationConfig copy constructor called" << std::endl;
-		}
+		LocationConfig() 																		{ setDefaultValues(); };
+		~LocationConfig() 																	{};
 		std::map<int, std::string>	&getErrorPages()				{ return m_errorPages;}
 		void	setRoot(std::string root)											{ m_root = root;}
 		void	setAutoIndex(bool isOn)												{ m_autoIndex = isOn;}
 		void	setBodySize(int size)													{ m_maxBodySize = size;}
-		void	setIndex(std::string index)										{ m_index.emplace_back(index);}
-		void	setErrorPages(int error, std::string path)		{ m_errorPages.emplace(error, path);}
-		void	setUploadStore(std::string path)							{ m_upload_store = path;}
-		void	setAllowedMethod(std::string method)					{ m_allowedMethods.emplace_back(method);}
-		void	setReturn(int code, std::string path)					{ m_return.first = code; m_return.second = path;} // TO DO: maybe change the variable name
+		void	setIndex(std::string& index)										{ m_index.emplace_back(index);}
+		void	setErrorPages(int error, std::string& path)		{ m_errorPages.emplace(error, path);}
+		void	setUploadStore(std::string& path)							{ m_upload_store = path;}
+		void	setAllowedMethod(std::string& method)					{ m_allowedMethods.emplace_back(method);}
+		void	setReturn(int code, std::string& path)					{ m_return.first = code; m_return.second = path;} // TO DO: maybe change the variable name
 		void 	clearDefaultMethods()													{ m_allowedMethods.clear();}
 		std::string	getPath()																{ return m_path; }
-		void	setPath(std::string path)											{ m_path = path; }
+		void	setPath(std::string& path)											{ m_path = path; }
 		void 	setDefaultValues();
 		void	printValues() const;
 

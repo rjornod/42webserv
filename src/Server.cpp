@@ -64,7 +64,7 @@ int Server::serverSetup() {
 		perror("listen");
 		return 1;
 	}
-	std::cout << BLUE << "[ SERVER IS LISTENING ]" << RESET << std::endl;
+	std::cout << BLUE << "\n[ SERVER IS LISTENING ]" << RESET << std::endl;
 	return 0;
 }
 
