@@ -30,11 +30,11 @@ $(SERV): $(OBJ_DIR)/main.o $(OBJ_CORE)
 
 $(OBJ_DIR)/main.o: src/main.cpp
 	@mkdir -p $(OBJ_DIR)
-	$(CXX) $(CXXFLAGS) -Iinclude -c $< -o $@
+	$(CXX) $(CXXFLAGS) -Iinclude -Iinterfaces -c $< -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) -Iinclude -c $< -o $@
+	$(CXX) $(CXXFLAGS) -Iinclude -Iinterfaces -c $< -o $@
 
 ptest: $(P_TEST)
 
@@ -44,7 +44,7 @@ $(P_TEST): $(OBJ_DIR)/testParser.o $(OBJ_CORE)
 
 $(OBJ_DIR)/testParser.o: src/testParser.cpp
 	@mkdir -p $(OBJ_DIR)
-	$(CXX) $(CXXFLAGS) -Iinclude -c $< -o $@
+	$(CXX) $(CXXFLAGS) -Iinclude -Iinterfaces -c $< -o $@
 
 tests: $(GTEST_DIR) $(TEST)
 # 	./$(TEST) #Uncomment if you want to run the tests immediately from the make
