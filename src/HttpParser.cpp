@@ -1,5 +1,5 @@
-#include "../include/HttpParser.hpp"
-#include "../include/HttpMethod.hpp"
+#include "HttpParser.hpp"
+#include "HttpMethod.hpp"
 
 void HttpParser::reportErrors() {
   if (m_state == HttpParserState::ERROR)
