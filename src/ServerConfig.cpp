@@ -1,6 +1,6 @@
-#include "../include/ServerConfig.hpp"
-#include "../include/ConfigParseException.hpp"
-#include "ServerConfig.hpp"
+#include "../include/config/ServerConfig.hpp"
+#include "../include/config/ConfigParseException.hpp"
+#include "../include/config/ServerConfig.hpp"
 
 void ServerConfig::checkDuplicateLocations(const std::string& path) {
 	if (!m_seenLocations.emplace(path).second)
@@ -63,11 +63,11 @@ void ServerConfig::printValues() const {
 			// printIndex();
 			// printErrorPages();
 			// std::cout << YELLOW << "LOCATION CONFIGS: " << RESET;
-			// if (locationConfigs.empty()) {
+			// if (m_locationConfigs.empty()) {
 			// 	std::cout << "(not set)" << std::endl;
 			// } else {
 			// 	std::cout << std::endl;
-			// 	for (const LocationConfig& location : locationConfigs)
+			// 	for (const LocationConfig& location : m_locationConfigs)
 			// 		location.printValues();
 			// }
 }

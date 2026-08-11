@@ -8,7 +8,7 @@
 
 class ServerConfig {
 	private:
-		std::vector<LocationConfig>			locationConfigs;
+		std::vector<LocationConfig>			m_locationConfigs;
 		int 														m_listenPort;
 		std::string											m_serverName;
 		std::string											m_root;
@@ -25,7 +25,7 @@ class ServerConfig {
 		std::string getServerName() const 												{ return m_serverName; }
 		int 				getClientMaxBody() const 											{ return m_clientMaxBodySize; }
 		std::map<int, std::string>	&getErrorPages()							{ return m_errorPages;}
-		std::vector<LocationConfig> &getLocationConfigs()					{ return locationConfigs;}
+		std::vector<LocationConfig> &getLocationConfigs()					{ return m_locationConfigs;}
 		void				setPort(int port)															{ m_listenPort = port; }
 		void				setServerName(std::string& name)							{ m_serverName = name; }
 		void				setIndex(std::string& index)									{ m_index.emplace_back(index);}
@@ -33,7 +33,7 @@ class ServerConfig {
 		void				setBodySize(int size)													{ m_clientMaxBodySize = size;}
 		void				setAutoIndex(bool isOn)												{ m_autoIndex = isOn;}
 		void				setErrorPages(int error, std::string& path)		{ m_errorPages.emplace(error, path);}
-		void				createLocationConfig()												{ locationConfigs.emplace_back();}
+		void				createLocationConfig()												{ m_locationConfigs.emplace_back();}
 		void				setErrorPath(std::string& errorPath)					{ for (auto it = m_errorPages.begin(); it != m_errorPages.end(); ++it)
 			it->second = errorPath;
 		}

@@ -1,4 +1,4 @@
-#include "../include/TokenType.hpp"
+#include "../include/config/TokenType.hpp"
 
 std::ostream& operator<<(std::ostream& out, const TokenType& type)
 {

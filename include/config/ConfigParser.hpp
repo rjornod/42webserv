@@ -5,7 +5,7 @@
 #include <unordered_set>
 #include "GlobalConfig.hpp"
 #include "TokenType.hpp"
-#include "Colors.hpp"
+#include "../Colors.hpp"
 
 class ConfigParser {
 	private:
@@ -63,7 +63,7 @@ class ConfigParser {
 				"allowed_methods", "upload_store", "client_max_body_size"
 		};
 		std::unordered_set<std::string_view> allowedMethods = {"GET", "POST", "DELETE"};
-		std::unordered_set<std::string_view> errorCodes = {"300", "400", "402", "403", "404", "500"};
+		std::unordered_set<std::string_view> errorCodes = {"301", "400", "403", "404", "405","408", "413", "500", "505"};
 		void 	incTokenIndex(unsigned int amount);
 		void 	checkDuplicatePorts(int port);
 		void	checkDuplicateServerNames(const std::string& name);
@@ -73,3 +73,17 @@ class ConfigParser {
 		Token&	currentTokenPlus(unsigned int amount);
 
 };
+
+/**
+ * Error codes meaning and when they should get called:
+ * 
+ * 400 Bad Request - malformed request line, broken headers, etc
+ * 403 Forbidden - File exists but no permissions to access it
+ * 404 Not Found - Requested path doesn't contain any file
+ * 405 Method Not Allowed - Path exists but but doesn' accept the specified HTTP method
+ * 408 Request Timeout - Client connected but never aent a request within a certain amount of time
+ * 413 Content Too Large - Body exceeds client_max_body_size
+ * 500 Internal Server Error - Server fails (example: cgi crash, file read error)
+ * 505 HTTP version not supported - Client sends anything other than HTTP/1.1
+ * 
+ */

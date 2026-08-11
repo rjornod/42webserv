@@ -2,12 +2,11 @@
 #include <filesystem>
 #include <iostream>
 #include <string>  
-#include "../include/ConfigParser.hpp"
-#include "../include/ConfigParseException.hpp"
-#include "../include/TokenType.hpp"
-#include "../include/DirectiveType.hpp"
-#include "../include/LocationDirectiveType.hpp"
-#include "ConfigParser.hpp"
+#include "../include/config/ConfigParser.hpp"
+#include "../include/config/ConfigParseException.hpp"
+#include "../include/config/TokenType.hpp"
+#include "../include/config/DirectiveType.hpp"
+#include "../include/config/LocationDirectiveType.hpp"
 
 // macros that define the scope of different directives (error_pages can be global (in a server block) or inside a location block)
 #define GLOBAL 1

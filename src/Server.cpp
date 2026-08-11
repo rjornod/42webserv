@@ -7,8 +7,8 @@
 #include <sstream>		//ostringstream
 #include <algorithm>	// std::find
 #include <csignal>		//signal()
-#include "../include/Server.hpp"
-#include "../include/Client.hpp"
+#include "../include/server/Server.hpp"
+#include "../include/server/Client.hpp"
 #include "../include/Colors.hpp"
 
 volatile sig_atomic_t serverRunning = true;
@@ -22,47 +22,52 @@ void	Server:: closeAllFds() {
 
 void signalHandler(int sig) {
 	(void)sig;
-	std::cout << "Program interrupted by SIGINT" <<std::endl;
+	std::cout << "Program interrupted by SIGINT" << std::endl;
 	serverRunning = false;
 }
 
 int Server::serverSetup() {
-	setTcpAddress();
-	m_tcpAddress.sin_port = htons(m_config.getServerConfigs()[0].getPort());
-	m_tcpServerFd = socket(AF_INET, SOCK_STREAM, 0); 			// creates the fd for the listening socket, comes back blocking by default
-	if (m_tcpServerFd < 0) {
-		perror("socket"); 
-		return 1;
-	}
-	int flags = fcntl(m_tcpServerFd, F_GETFL);
-	if (flags < 0) {
-		perror("fcntl error");
-		return 1;
-	}
-	/* sets the fd to non blocking meaning accept won't block if there are currently no clients waiting to connect */
-	if (fcntl(m_tcpServerFd, F_SETFL, flags | O_NONBLOCK) < 0) { 
-		perror("fcntl F_SETFL error");
-		return 1;
-	}
-	int enable = 1; 																																				// once a tcp socket closes, the port is only free after around 2 minutes (TIME_WAIT state).
-	if (setsockopt(m_tcpServerFd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable)) < 0) 	// setsockopt with the SO_REUSEADDR tells the kernel to reuse the socket as long as no active connection is using it
-    std::cout << ("setsockopt(SO_REUSEADDR) failed") << std::endl;
-
-	int returnValue;
-	returnValue = bind(m_tcpServerFd, reinterpret_cast<const sockaddr *>(&m_tcpAddress), sizeof(m_tcpAddress)); // bind associates the socket with a specific local address and port on the machine
-	if (returnValue < 0) {
-		perror("bind");
-		close(m_tcpServerFd);
-		return 1;
-	}
-	/**
-	 * marks the socket as one that will be used to accept incoming requests
-	 * backlog parameter sets the length of the queue of pending connections to 128
-	 */
-	returnValue = listen(m_tcpServerFd, 128);
-	if (returnValue < 0) {
-		perror("listen");
-		return 1;
+	for (unsigned long i = 0; i < m_config.getServerConfigs().size(); i++) {
+		const ServerConfig& serverConfig = m_config.getServerConfigs()[i];
+		setTcpAddress();
+		m_tcpAddress.sin_port = htons(serverConfig.getPort());
+		int fd = socket(AF_INET, SOCK_STREAM, 0); 			// creates the fd for the listening socket, comes back blocking by default
+		if (fd < 0) {
+			perror("socket"); 
+			return 1;
+		}
+		int flags = fcntl(fd, F_GETFL);
+		if (flags < 0) {
+			perror("fcntl error");
+			return 1;
+		}
+		/* sets the fd to non blocking meaning accept won't block if there are currently no clients waiting to connect */
+		if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) { 
+			perror("fcntl F_SETFL error");
+			return 1;
+		}
+		int enable = 1; 																														// once a tcp socket closes, the port is only free after around 2 minutes (TIME_WAIT state).
+		if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable)) < 0) 	// setsockopt with the SO_REUSEADDR tells the kernel to reuse the socket as long as no active connection is using it
+			std::cout << ("setsockopt(SO_REUSEADDR) failed") << std::endl;
+	
+		int returnValue;
+		returnValue = bind(fd, reinterpret_cast<const sockaddr *>(&m_tcpAddress), sizeof(m_tcpAddress)); // bind associates the socket with a specific local address and port on the machine
+		if (returnValue < 0) {
+			perror("bind");
+			close(fd);
+			return 1;
+		}
+		/**
+		 * marks the socket as one that will be used to accept incoming requests
+		 * backlog parameter sets the length of the queue of pending connections to 128
+		 */
+		returnValue = listen(fd, 128);
+		if (returnValue < 0) {
+			perror("listen");
+			return 1;
+		}
+		m_listeners.emplace_back(ListeningSockets{fd, serverConfig.getPort(), {i}});
+		m_connectedFds.emplace_back(pollfd{fd, POLLIN, 0});														// add listening socket to the poll watch list
 	}
 	std::cout << BLUE << "\n[ SERVER IS LISTENING ]" << RESET << std::endl;
 	return 0;
@@ -251,9 +256,23 @@ int Server::serverCore() {
 			return 1;
 		}
 		// checkTimeouts();
-		if (m_connectedFds[0].revents & POLLIN) {
+		for (size_t i = 0; i < m_connectedFds.size(); i++) {
+			if (!(m_connectedFds[i].revents & POLLIN)) 
+				continue;
+			bool isListener = false;
+			size_t listenerIndex = 0;
+			for (size_t j = 0; j < m_listeners.size(); j++) {
+				if (m_connectedFds[i].fd == m_listeners[j].fd) {
+					isListener = true;
+					listenerIndex = j;
+					break;
+				}
+			}
+			if (!isListener)
+				continue;
+		
 			while (true) {
-				clientFd = accept(m_tcpServerFd, 
+				clientFd = accept(m_connectedFds[i].fd, 
 									 reinterpret_cast<sockaddr *>(&m_clientAddress), &m_clientAddressLen);
 				if (clientFd < 0) {
 					if (errno == EAGAIN || errno == EWOULDBLOCK)						// when there are no more clients to accept() it returns -1 with these errnos. they are not real errors so we break to keep checking for clients without failure
