@@ -20,7 +20,6 @@ class ConfigParser {
 	public:
 		ConfigParser(char *pathToConfig, GlobalConfig& config) : m_config(config), m_tokenIndex(0) {
 			m_configPath = pathToConfig;
-			std::cout << GREEN << "Config File Path: " << RESET << m_configPath << std::endl;
 		}
 		~ConfigParser() {};
 		bool 	processConfig();
@@ -59,7 +58,7 @@ class ConfigParser {
 		bool	isValue(const Token& token, const std::string& expectedValue);
 		std::unordered_set<std::string_view>	knownDirectives = {
 				"server", "listen", "server_name", "root", "index",
-				"location", "methods", "autoindex", "return",
+				"location", "methods", "autoindex", "return", "error_page",
 				"allowed_methods", "upload_store", "client_max_body_size"
 		};
 		std::unordered_set<std::string_view> allowedMethods = {"GET", "POST", "DELETE"};
