@@ -2,11 +2,11 @@
 #include <filesystem>
 #include <iostream>
 #include <string>  
-#include "../include/config/ConfigParser.hpp"
-#include "../include/config/ConfigParseException.hpp"
-#include "../include/config/TokenType.hpp"
-#include "../include/config/DirectiveType.hpp"
-#include "../include/config/LocationDirectiveType.hpp"
+#include "ConfigParser.hpp"
+#include "ConfigParseException.hpp"
+#include "TokenType.hpp"
+#include "DirectiveType.hpp"
+#include "LocationDirectiveType.hpp"
 
 // macros that define the scope of different directives (error_pages can be global (in a server block) or inside a location block)
 #define GLOBAL 1
@@ -17,7 +17,7 @@
  * It will catch exceptions thrown from functions that handle all the parsing;
  */
 bool ConfigParser::processConfig() {
-	std::fstream file(m_configPath);
+	std::ifstream file(m_configPath);
 	try {
 		initialFileCheck(file);
 		tokenize(file);
@@ -41,7 +41,7 @@ bool ConfigParser::processConfig() {
  * Checks if the file exists and is not empty;
  * Perhaps more can be added still;
  */
-void ConfigParser::initialFileCheck(std::fstream& file) {
+void ConfigParser::initialFileCheck(std::ifstream& file) {
 	
 	if (!file.is_open()) 
 		throw ConfigParseException("Can't open config file. Make sure it's valid.");
@@ -55,7 +55,7 @@ void ConfigParser::initialFileCheck(std::fstream& file) {
  * It goes through every string in the file, ignores any comments,
  * and checks what kind of token that string would be;
  */
-void ConfigParser::tokenize(std::fstream& file) {
+void ConfigParser::tokenize(std::ifstream& file) {
 	while (std::getline(file, m_buffer)) {
 		if (m_buffer.empty()) {																			// skip empty lines
 			continue;
@@ -479,6 +479,8 @@ void ConfigParser::handleAllowedMethods() {
 	incTokenIndex(1);
 	std::unordered_set<std::string> seen;																												// store every method to account for duplicates
 	int methodCount = 0;
+	if (isType(currentToken(), TokenType::EndDirective))
+		throw ConfigParseException("allowed_methods directive is missing an argument");
 	if (!isType(currentToken(), TokenType::Word) || !isValidToken(currentToken()))
 		throw ConfigParseException("allowed_methods directive is malformed");
 	currentLocation().clearDefaultMethods();
@@ -487,8 +489,10 @@ void ConfigParser::handleAllowedMethods() {
 			throw ConfigParseException("Too many arguments for allowed_methods. Max 3 allowed.");
 		if (!seen.emplace(currentToken().value).second)																								// check if method is duplicate
 			throw ConfigParseException("Duplicate methods are not allowed: " + currentToken().value);
+		if (isType(currentToken(), TokenType::Word) && knownDirectives.count(m_tokens[m_tokenIndex + 1].value))
+			throw ConfigParseException("Allowed methods directive is missing a semicolon");
 		if (isType(currentToken(), TokenType::Word) && 
-				allowedMethods.count(currentToken().value))
+			allowedMethods.count(currentToken().value))
 			currentLocation().setAllowedMethod(currentToken().value);
 		else
 			throw ConfigParseException("Method incorrect. Only GET, POST and DELETE allowed: " + currentToken().value);
@@ -516,6 +520,32 @@ void ConfigParser::handleUploadStore() {
 }
 
 /**
+ * Directive: cgi_handler
+ * Syntax: cgi_handler <extension> <path to interpreter>;
+ * Must always have two arguments
+ * Extension must start with a dot '.' and might be restricted to only certain extensions 
+ * For now only php is accepted as a placeholder
+ * The path will be checked during execution (?) 
+ */
+void ConfigParser::handleCGI(int scope) {
+	incTokenIndex(1);
+	if (!isType(currentToken(), TokenType::Word) || 
+			!isValidToken(currentToken()) ||
+			!isValidToken(currentTokenPlus(1)) ||
+			!isType(currentTokenPlus(1), TokenType::Word) ||
+			!isType(currentTokenPlus(2), TokenType::EndDirective)
+			)
+		throw ConfigParseException("cgi_handler directive is malformed");
+	checkCgiExtension(currentToken().value);
+	if (scope == GLOBAL)
+		currentServer().setCgiHandler(currentToken().value, currentTokenPlus(1).value);
+	else if (scope == LOCATION)
+		currentLocation().setCgiHandler(currentToken().value, currentTokenPlus(1).value);
+	incTokenIndex(1);
+	checkEndOfDirective("cgi_handler");
+}
+
+/**
  * Location is handled by calling parseBlock with false (not global block) as an argument
  * parseBlock will then run and check the directives specific for location blocks
  */
@@ -527,7 +557,6 @@ void ConfigParser::handleLocation() {
 /**
  * Switch case for all the different location directives allowed
  */
-
 void ConfigParser::handleLocationDirective() {
 	switch(locationDirectiveFromString(currentToken().value)) {
 		case LocationDirectiveType::Root:
@@ -553,6 +582,9 @@ void ConfigParser::handleLocationDirective() {
 			break;
 		case LocationDirectiveType::Return:
 			handleReturn();
+			break;
+		case LocationDirectiveType::CGIHandler:
+			handleCGI(LOCATION);
 			break;
 		case LocationDirectiveType::Unknown:
 			handleUnknown();
@@ -589,10 +621,29 @@ void ConfigParser::handleDirective() {
 		case DirectiveType::MaxBodySize:
 			handleBodySize(GLOBAL);
 			break;
+		case DirectiveType::CGIHandler:
+			handleCGI(GLOBAL);
+			break;
 		case DirectiveType::Unknown:
 			handleUnknown();
 			break;
 	}
+}
+
+/**
+ * Small function to check the extension of a cgi
+ */
+void ConfigParser::checkCgiExtension(std::string extension) {
+	int i = 0;
+	if (extension.size() < 2 || extension.size() > 4)
+		throw ConfigParseException("Extension argument of cgi_handler is not a proper extension");
+	if (i < extension.size() && extension[i] != '.')
+		throw ConfigParseException("Extension argument of cgi_handler must start with a dot '.'");
+	i++;
+	// this would then check if the extension matches our handled ones. if theres a lot I could make a dictionary to check them all
+	// for now only accepts php as a placeholder
+	if (extension.substr(i) != "php")							
+		throw ConfigParseException("Extension of cgi_handler not recognized");
 }
 
 /**

@@ -10,6 +10,7 @@ enum class DirectiveType {
 	Location,
 	AutoIndex,
 	MaxBodySize,
+	CGIHandler,
 	Unknown
 };
 
@@ -22,6 +23,7 @@ DirectiveType directiveFromString(std::string_view name) {
 	if (name == "location") 						return DirectiveType::Location;
 	if (name == "autoindex") 						return DirectiveType::AutoIndex;
 	if (name == "client_max_body_size") return DirectiveType::MaxBodySize;
+	if (name == "cgi_handler") 					return DirectiveType::CGIHandler;
 	return DirectiveType::Unknown;
 }
 

@@ -1,5 +1,5 @@
-#include "../include/config/LocationConfig.hpp"
-#include "../include/config/ConfigParseException.hpp"
+#include "LocationConfig.hpp"
+#include "ConfigParseException.hpp"
 
 void LocationConfig::setDefaultValues() {
 	m_path = "/example/path";

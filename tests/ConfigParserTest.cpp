@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include "../include/config/ConfigParser.hpp"
-#include "../include/config/GlobalConfig.hpp"
+#include "ConfigParser.hpp"
+#include "GlobalConfig.hpp"
 #include <vector>
 #include <fstream>
 #include <cstdio>
@@ -9,7 +9,16 @@ class ConfigParserTest : public ::testing::Test {
 protected:
 };
 
-TEST_F(ConfigParserTest, EmptyServerBlock) {
+TEST_F(ConfigParserTest, FileOK) {
+	char path[] = "configs/default-config.conf";
+
+	GlobalConfig config;
+	ConfigParser parser(path, config);
+
+	EXPECT_FALSE(parser.processConfig());
+}
+
+TEST_F(ConfigParserTest, EmptyFile) {
     char path[] = "configs/empty.conf";
 
     GlobalConfig config;
@@ -27,17 +36,22 @@ TEST_F(ConfigParserTest, NoServerBlock) {
 	EXPECT_TRUE(parser.processConfig());
 }
 
-TEST_F(ConfigParserTest, FileOK) {
-	char path[] = "configs/default-config.conf";
+TEST_F(ConfigParserTest, UnknownDirective) {
+	char path[] = "configs/unknown-directive.conf";
 
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_FALSE(parser.processConfig());
+	EXPECT_TRUE(parser.processConfig());
 }
 
-TEST_F(ConfigParserTest, UnknownDirective) {
+TEST_F(ConfigParserTest, DuplicateListen) {
+	char path[] = "configs/listen/duplicate-listen.conf";
 
+	GlobalConfig config;
+	ConfigParser parser(path, config);
+
+	EXPECT_TRUE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, NoListenDirective) {
@@ -114,6 +128,15 @@ TEST_F(ConfigParserTest, ClientMaxBodySizeArgumentNotInteger) {
 
 TEST_F(ConfigParserTest, ServerNameInvalidNumberOfArguments) {
 	char path[] = "configs/server_name/server_name-invalid-number-of-arguments.conf";
+
+	GlobalConfig config;
+	ConfigParser parser(path, config);
+
+	EXPECT_TRUE(parser.processConfig());
+}
+
+TEST_F(ConfigParserTest, ServerNameDuplicateValues) {
+	char path[] = "configs/server_name/server_name-duplicate-values.conf";
 
 	GlobalConfig config;
 	ConfigParser parser(path, config);

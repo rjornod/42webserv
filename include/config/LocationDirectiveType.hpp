@@ -10,6 +10,7 @@ enum class LocationDirectiveType {
 	AllowedMethods,
 	UploadStore,
 	Return,
+	CGIHandler,
 	Unknown
 };
 
@@ -22,5 +23,6 @@ LocationDirectiveType locationDirectiveFromString( std::string_view name) {
 	if (name == "allowed_methods") 				return LocationDirectiveType::AllowedMethods;
 	if (name == "upload_store")						return LocationDirectiveType::UploadStore;
 	if (name == "return") 								return LocationDirectiveType::Return;
+	if (name == "cgi_handler") 						return LocationDirectiveType::CGIHandler;
 	return LocationDirectiveType::Unknown;
 }

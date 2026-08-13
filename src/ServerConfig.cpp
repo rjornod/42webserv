@@ -1,6 +1,6 @@
-#include "../include/config/ServerConfig.hpp"
-#include "../include/config/ConfigParseException.hpp"
-#include "../include/config/ServerConfig.hpp"
+#include "ServerConfig.hpp"
+#include "ConfigParseException.hpp"
+#include "ServerConfig.hpp"
 
 void ServerConfig::checkDuplicateLocations(const std::string& path) {
 	if (!m_seenLocations.emplace(path).second)
@@ -60,14 +60,17 @@ void ServerConfig::printValues() const {
 						<< YELLOW << "\nROOT: " << RESET << (m_root.empty() ? "(not set)" : m_root)
 						<< YELLOW << "\nAUTOINDEX: " << RESET << m_autoIndex
 						<< YELLOW << "\nCLIENT MAX BODY SIZE: " << RESET << m_clientMaxBodySize << std::endl;
-			// printIndex();
-			// printErrorPages();
-			// std::cout << YELLOW << "LOCATION CONFIGS: " << RESET;
-			// if (m_locationConfigs.empty()) {
-			// 	std::cout << "(not set)" << std::endl;
-			// } else {
-			// 	std::cout << std::endl;
-			// 	for (const LocationConfig& location : m_locationConfigs)
-			// 		location.printValues();
-			// }
+	// for (auto it = m_cgiHandlers.begin(); it != m_cgiHandlers.end(); it++) {
+	// 	std::cout << it->first << ", " << it->second << "\n";
+	// }
+	// printIndex();
+	// printErrorPages();
+	// std::cout << YELLOW << "LOCATION CONFIGS: " << RESET;
+	// if (m_locationConfigs.empty()) {
+	// 	std::cout << "(not set)" << std::endl;
+	// } else {
+	// 	std::cout << std::endl;
+	// 	for (const LocationConfig& location : m_locationConfigs)
+	// 		location.printValues();
+	// }
 }

@@ -1,7 +1,7 @@
-#include "../include/server/Client.hpp"
-#include "../include/server/Server.hpp"
-#include "../include/config/ConfigParser.hpp"
-#include "../include/config/GlobalConfig.hpp"
+#include "Client.hpp"
+#include "Server.hpp"
+#include "ConfigParser.hpp"
+#include "GlobalConfig.hpp"
 
 void exitProgram(int errorCode, std::string reason) {
 	std::cerr << "Error: " << reason << std::endl;

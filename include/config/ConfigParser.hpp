@@ -5,7 +5,7 @@
 #include <unordered_set>
 #include "GlobalConfig.hpp"
 #include "TokenType.hpp"
-#include "../Colors.hpp"
+#include "Colors.hpp"
 
 class ConfigParser {
 	private:
@@ -23,8 +23,8 @@ class ConfigParser {
 		}
 		~ConfigParser() {};
 		bool 	processConfig();
-		void 	initialFileCheck(std::fstream& file);
-		void 	tokenize(std::fstream& file);
+		void 	initialFileCheck(std::ifstream& file);
+		void 	tokenize(std::ifstream& file);
 		int 	handleBraces(int index);
 		int 	handleEndDirective(int index);
 		int		handleWord(int index);
@@ -48,10 +48,12 @@ class ConfigParser {
 		void	handleReturn();
 		void	handleAllowedMethods();
 		void	handleUploadStore();
+		void	handleCGI(int scope);
 		int		validateErrorCode(std::string code);
 		std::string	checkURI();
 		void	checkEndOfDirective(std::string directive);
 		void	checkIfBlockEmpty(std::string blockType);
+		void	checkCgiExtension(std::string extension);
 		void	printTokens(); // for debug only
 		bool	isValidToken(const Token& token);
 		bool	isType(const Token& token, TokenType expectedType);
@@ -59,10 +61,11 @@ class ConfigParser {
 		std::unordered_set<std::string_view>	knownDirectives = {
 				"server", "listen", "server_name", "root", "index",
 				"location", "methods", "autoindex", "return", "error_page",
-				"allowed_methods", "upload_store", "client_max_body_size"
+				"allowed_methods", "upload_store", "client_max_body_size",
+				"cgi_handler"
 		};
 		std::unordered_set<std::string_view> allowedMethods = {"GET", "POST", "DELETE"};
-		std::unordered_set<std::string_view> errorCodes = {"301", "400", "403", "404", "405","408", "413", "500", "505"};
+		std::unordered_set<std::string_view> errorCodes = {"400", "403", "404", "405","408", "413", "500", "505"};
 		void 	incTokenIndex(unsigned int amount);
 		void 	checkDuplicatePorts(int port);
 		void	checkDuplicateServerNames(const std::string& name);
@@ -70,7 +73,6 @@ class ConfigParser {
 		LocationConfig& currentLocation();
 		Token&	currentToken();
 		Token&	currentTokenPlus(unsigned int amount);
-
 };
 
 /**
