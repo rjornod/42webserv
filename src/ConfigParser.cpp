@@ -1,6 +1,7 @@
 #include <fstream>
 #include <filesystem>
 #include <iostream>
+#include <limits>
 #include <string>  
 #include "ConfigParser.hpp"
 #include "ConfigParseException.hpp"
@@ -24,16 +25,20 @@ bool ConfigParser::processConfig() {
 	}
 	catch(const ConfigParseException& e) {
 		std::cerr << RED << "File Error: " << RESET << e.what() << '\n';
-		return true;
+		return false;
 	}
 	try {
 		parseTokens();
 	}
 	catch (const ConfigParseException& e) {
 		std::cerr << RED << "Config Error: " << RESET << e.what() << std::endl;
-		return true;
+		return false;
 	}
-	return false;
+	catch (const std::out_of_range& e) {
+		std::cerr << RED << "Out of range error: " << RESET << e.what() << '\n';
+		return false;
+	}
+	return true;
 }
 
 /**
@@ -62,23 +67,23 @@ void ConfigParser::tokenize(std::ifstream& file) {
 		}
 		unsigned long i = 0;
 		while (i < m_buffer.size()) {
-			if (m_buffer[i] == '#' && i < m_buffer.size()) {
+			if (m_buffer[i] == '#') {
 				i = skipComments(i);
 				continue;
 			}
-			if (isspace(m_buffer[i]) && i < m_buffer.size()) {
+			if (isspace(m_buffer[i])) {
 				i++;
 				continue;
 			}
-			if (m_buffer[i] == ';' && i < m_buffer.size()) {
+			if (m_buffer[i] == ';') {
 				i = handleEndDirective(i);
 				continue;
 			}
-			if ((m_buffer[i] == '{' || m_buffer[i] == '}') && (i < m_buffer.size())) {
+			if ((m_buffer[i] == '{' || m_buffer[i] == '}')) {
 				i = handleBraces(i);
 				continue;
 			}
-			if (!isspace(m_buffer[i]) && m_buffer[i] !=';' && i < m_buffer.size()) {
+			if (!isspace(m_buffer[i]) && m_buffer[i] !=';') {
 				i = handleWord(i);
 				continue;
 			}
@@ -119,9 +124,8 @@ int ConfigParser::handleEndDirective(int i) {
  */
 int ConfigParser::handleWord(int i) {
 	int tokenStart = i;
-	while (!isspace(m_buffer[i]) && m_buffer[i] != ';'  && m_buffer[i] !='{' && m_buffer[i] !='}') {
+	while (!isspace(m_buffer[i]) && m_buffer[i] != ';'  && m_buffer[i] !='{' && m_buffer[i] !='}') 
 		++i;
-	}
 	m_tokens.emplace_back(Token{TokenType::Word, m_buffer.substr(tokenStart, i - tokenStart)});
 	return i;
 }
@@ -345,7 +349,12 @@ void ConfigParser::handleBodySize(int scope) {
 	incTokenIndex(1);
 	if (!validateDigits(currentToken().value))
 		throw ConfigParseException("client_max_body_size argument is not a valid integer");
-	int bodySize = std::stoi(currentToken().value);
+	// check if the value is within int max
+	// unsigned long temp = std::stoul(currentToken().value);
+	// if (std::numeric_limits<int>::max() < temp)
+	// 	throw ConfigParseException("client_max_body_size is too big. max value is 2147483647");
+	int bodySize = customStoi(currentToken().value, "client_max_body_size is too big. Max value is 2147483647");
+	// int bodySize = std::stoi(currentToken().value);
 	if (scope == GLOBAL)
 		currentServer().setBodySize(bodySize);
 	else
@@ -425,8 +434,8 @@ std::string ConfigParser::checkURI() {
 }
 
 /**
- * Directive: error_pages
- * Syntax: error_pages <error_code> [<error_code> <error_code> ....] <path>;
+ * Directive: error_page
+ * Syntax: error_page <error_code> [<error_code> <error_code> ....] <path>;
  * Has at least 2 arguments: at least one error code and a path;
  * Error codes must be valid and there can be multiple in a row;
  * Last argument is always a path;
@@ -445,10 +454,8 @@ void ConfigParser::handleErrorPages(int scope) {
 			currentLocation().setErrorPages(validateErrorCode(currentToken().value), path);
 		incTokenIndex(1);
 	}
-	incTokenIndex(1);
-	if (!isType(currentToken(), TokenType::EndDirective)) 
-		throw ConfigParseException("error_pages directive is missing a semicolon");
-	currentServer().seenDirective("error_pages");
+	checkEndOfDirective("error_page");
+	currentServer().seenDirective("error_page");
 }
 /**
  * Directive: return
@@ -747,6 +754,20 @@ Token& ConfigParser::currentToken() {
  */
 Token& ConfigParser::currentTokenPlus(unsigned int amount) {
 	return (m_tokens[m_tokenIndex + amount]);
+}
+
+/**
+ * Funtion wrapper that allows to catch an stoi exception and throw another exception
+ * with a custom message
+ */
+int ConfigParser::customStoi(const std::string& value, const std::string& message) {
+	try {
+		int temp = std::stoi(value);
+		return temp;
+	}
+	catch (const std::out_of_range& e) {
+		throw ConfigParseException(message);
+	}
 }
 
 // DEBUG FUNCTIONS

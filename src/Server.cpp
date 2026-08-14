@@ -7,9 +7,9 @@
 #include <sstream>		//ostringstream
 #include <algorithm>	// std::find
 #include <csignal>		//signal()
-#include "../include/server/Server.hpp"
-#include "../include/server/Client.hpp"
-#include "../include/Colors.hpp"
+#include "Server.hpp"
+#include "Client.hpp"
+#include "Colors.hpp"
 
 volatile sig_atomic_t serverRunning = true;
 

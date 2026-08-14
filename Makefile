@@ -25,26 +25,26 @@ RESET = \033[0m
 all: $(SERV)
 
 $(SERV): $(OBJ_DIR)/main.o $(OBJ_CORE)
-	$(CXX) $(CXXFLAGS) -Iinclude -Iinterfaces $(OBJ_DIR)/main.o $(OBJ_CORE) -o $(SERV)
+	$(CXX) $(CXXFLAGS) -Iinclude -Iinclude/config -Iinclude/server -Iinterfaces $(OBJ_DIR)/main.o $(OBJ_CORE) -o $(SERV)
 	@ echo "${GREEN}$(SERV)${RESET} made successfully"
 
 $(OBJ_DIR)/main.o: src/main.cpp
 	@mkdir -p $(OBJ_DIR)
-	$(CXX) $(CXXFLAGS) -Iinclude -c $< -o $@
+	$(CXX) $(CXXFLAGS) -Iinclude -Iinclude/config -Iinclude/server -c $< -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) -Iinclude -c $< -o $@
+	$(CXX) $(CXXFLAGS) -Iinclude -Iinclude/config -Iinclude/server -c $< -o $@
 
 ptest: $(P_TEST)
 
 $(P_TEST): $(OBJ_DIR)/testParser.o $(OBJ_CORE)
-	$(CXX) $(CXXFLAGS) -Iinclude -Iinterfaces $(OBJ_DIR)/testParser.o $(OBJ_CORE) -o $(P_TEST)
+	$(CXX) $(CXXFLAGS) -Iinclude -Iinclude/config -Iinclude/server -Iinterfaces $(OBJ_DIR)/testParser.o $(OBJ_CORE) -o $(P_TEST)
 	@ echo "${GREEN}$(P_TEST)${RESET} made successfully"
 
 $(OBJ_DIR)/testParser.o: src/testParser.cpp
 	@mkdir -p $(OBJ_DIR)
-	$(CXX) $(CXXFLAGS) -Iinclude -c $< -o $@
+	$(CXX) $(CXXFLAGS) -Iinclude -Iinclude/config -Iinclude/server -c $< -o $@
 
 tests: $(GTEST_DIR) $(TEST)
 # 	./$(TEST) #Uncomment if you want to run the tests immediately from the make
@@ -82,6 +82,8 @@ $(GTEST_OBJ_DIR)/%.o: $(SRC_TEST_DIR)/%.cpp
 	@mkdir -p $(GTEST_OBJ_DIR)
 	@$(CXX) $(CXXFLAGS) $(CPPFLAGS) \
 	-Iinclude \
+	-Iinclude/config \
+	-Iinclude/server \
 	-I$(GTEST_DIR)/googletest/include \
 	-I$(GTEST_DIR)/googletest \
 	-c $< -o $@

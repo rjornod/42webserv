@@ -13,7 +13,7 @@ int main(int argc, char **argv) {
 		exitProgram(-1, "Usage ./webserv <path/to/configfile>");
 	GlobalConfig globalConfig;
 	ConfigParser config(argv[1], globalConfig);
-	if (config.processConfig()) {
+	if (!config.processConfig()) {
 		exitProgram(1, "ConfigParser");
 	}
 
@@ -21,6 +21,7 @@ int main(int argc, char **argv) {
 	for (unsigned long i = 0; i < globalConfig.getServerConfigs().size(); i++) {
 		globalConfig.getServerConfigs()[i].printValues(); 
 	}
+	
 	Server server(globalConfig);
 	if (server.serverSetup() > 0) {
 		exitProgram(1, "ServerSetup");

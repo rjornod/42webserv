@@ -15,7 +15,7 @@ TEST_F(ConfigParserTest, FileOK) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_FALSE(parser.processConfig());
+	EXPECT_TRUE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, EmptyFile) {
@@ -24,7 +24,7 @@ TEST_F(ConfigParserTest, EmptyFile) {
     GlobalConfig config;
     ConfigParser parser(path, config);
 
-    EXPECT_TRUE(parser.processConfig());
+    EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, NoServerBlock) {
@@ -33,7 +33,7 @@ TEST_F(ConfigParserTest, NoServerBlock) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, UnknownDirective) {
@@ -42,7 +42,7 @@ TEST_F(ConfigParserTest, UnknownDirective) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, DuplicateListen) {
@@ -51,7 +51,7 @@ TEST_F(ConfigParserTest, DuplicateListen) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, NoListenDirective) {
@@ -60,7 +60,7 @@ TEST_F(ConfigParserTest, NoListenDirective) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, ListenMissingArgument) {
@@ -69,7 +69,7 @@ TEST_F(ConfigParserTest, ListenMissingArgument) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, ListenTooManyArguments) {
@@ -78,7 +78,7 @@ TEST_F(ConfigParserTest, ListenTooManyArguments) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, ListenInvalidPort) {
@@ -87,7 +87,7 @@ TEST_F(ConfigParserTest, ListenInvalidPort) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, ListenMissingSemicolon) {
@@ -96,7 +96,7 @@ TEST_F(ConfigParserTest, ListenMissingSemicolon) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, ServerBlockMalformed) {
@@ -105,7 +105,7 @@ TEST_F(ConfigParserTest, ServerBlockMalformed) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, ServerBlockEmpty) {
@@ -114,7 +114,7 @@ TEST_F(ConfigParserTest, ServerBlockEmpty) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, ClientMaxBodySizeArgumentNotInteger) {
@@ -123,7 +123,7 @@ TEST_F(ConfigParserTest, ClientMaxBodySizeArgumentNotInteger) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, ServerNameInvalidNumberOfArguments) {
@@ -132,7 +132,7 @@ TEST_F(ConfigParserTest, ServerNameInvalidNumberOfArguments) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, ServerNameDuplicateValues) {
@@ -141,7 +141,7 @@ TEST_F(ConfigParserTest, ServerNameDuplicateValues) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, ServerNameMissingSemicolon) {
@@ -150,7 +150,7 @@ TEST_F(ConfigParserTest, ServerNameMissingSemicolon) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, RootInvalidNumberOfArguments) {
@@ -159,7 +159,7 @@ TEST_F(ConfigParserTest, RootInvalidNumberOfArguments) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, RootMissingSemicolon) {
@@ -168,7 +168,7 @@ TEST_F(ConfigParserTest, RootMissingSemicolon) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, IndexInvalidNumberOfArguments) {
@@ -177,7 +177,7 @@ TEST_F(ConfigParserTest, IndexInvalidNumberOfArguments) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, IndexMissingSemicolon) {
@@ -186,7 +186,7 @@ TEST_F(ConfigParserTest, IndexMissingSemicolon) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, ClientMaxBodySizeInvalidNumberOfArguments) {
@@ -195,7 +195,7 @@ TEST_F(ConfigParserTest, ClientMaxBodySizeInvalidNumberOfArguments) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, ClientMaxBodySizeInvalidNumber) {
@@ -204,7 +204,7 @@ TEST_F(ConfigParserTest, ClientMaxBodySizeInvalidNumber) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, ClientMaxBodySizeMissingSemicolon) {
@@ -213,7 +213,7 @@ TEST_F(ConfigParserTest, ClientMaxBodySizeMissingSemicolon) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, AutoIndexInvalidNumberOfArguments) {
@@ -222,7 +222,7 @@ TEST_F(ConfigParserTest, AutoIndexInvalidNumberOfArguments) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, AutoIndexInvalidValue) {
@@ -231,7 +231,7 @@ TEST_F(ConfigParserTest, AutoIndexInvalidValue) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, AutoIndexMissingSemicolon) {
@@ -240,7 +240,7 @@ TEST_F(ConfigParserTest, AutoIndexMissingSemicolon) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, ErrorPageInvalidNumberOfArguments) {
@@ -249,7 +249,7 @@ TEST_F(ConfigParserTest, ErrorPageInvalidNumberOfArguments) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, ErrorPageInvalidErrorCode) {
@@ -258,7 +258,7 @@ TEST_F(ConfigParserTest, ErrorPageInvalidErrorCode) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, ErrorPageMissingSemicolon) {
@@ -267,7 +267,7 @@ TEST_F(ConfigParserTest, ErrorPageMissingSemicolon) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, ReturnInvalidNumberOfArguments) {
@@ -276,7 +276,7 @@ TEST_F(ConfigParserTest, ReturnInvalidNumberOfArguments) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, ReturnInvalidErrorCode) {
@@ -285,7 +285,7 @@ TEST_F(ConfigParserTest, ReturnInvalidErrorCode) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, ReturnMissingSemicolon) {
@@ -294,7 +294,7 @@ TEST_F(ConfigParserTest, ReturnMissingSemicolon) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, AllowedMethodsInvalidNumberOfArguments) {
@@ -303,7 +303,7 @@ TEST_F(ConfigParserTest, AllowedMethodsInvalidNumberOfArguments) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, AllowedMethodsInvalidMethod) {
@@ -312,7 +312,7 @@ TEST_F(ConfigParserTest, AllowedMethodsInvalidMethod) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, AllowedMethodsDuplicateMethods) {
@@ -321,7 +321,7 @@ TEST_F(ConfigParserTest, AllowedMethodsDuplicateMethods) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, AllowedMethodsMissingSemicolon) {
@@ -330,7 +330,7 @@ TEST_F(ConfigParserTest, AllowedMethodsMissingSemicolon) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, UploadStoreInvalidNumberOfArguments) {
@@ -339,7 +339,7 @@ TEST_F(ConfigParserTest, UploadStoreInvalidNumberOfArguments) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
 
 TEST_F(ConfigParserTest, UploadStoreMissingSemicolon) {
@@ -348,5 +348,52 @@ TEST_F(ConfigParserTest, UploadStoreMissingSemicolon) {
 	GlobalConfig config;
 	ConfigParser parser(path, config);
 
-	EXPECT_TRUE(parser.processConfig());
+	EXPECT_FALSE(parser.processConfig());
 }
+
+
+// TO DO: FINISH THIS
+// TEST_F(ConfigParserTest, CgiHandler) {
+// 	char path[] = "configs/cgi_handler/";
+
+// 	GlobalConfig config;
+// 	ConfigParser parser(path, config);
+
+// 	EXPECT_FALSE(parser.processConfig());
+// }
+
+// TEST_F(ConfigParserTest, CgiHandler) {
+// 	char path[] = "configs/cgi_handler/";
+
+// 	GlobalConfig config;
+// 	ConfigParser parser(path, config);
+
+// 	EXPECT_FALSE(parser.processConfig());
+// }
+
+// TEST_F(ConfigParserTest, CgiHandler) {
+// 	char path[] = "configs/cgi_handler/";
+
+// 	GlobalConfig config;
+// 	ConfigParser parser(path, config);
+
+// 	EXPECT_FALSE(parser.processConfig());
+// }
+
+// TEST_F(ConfigParserTest, CgiHandler) {
+// 	char path[] = "configs/cgi_handler/";
+
+// 	GlobalConfig config;
+// 	ConfigParser parser(path, config);
+
+// 	EXPECT_FALSE(parser.processConfig());
+// }
+
+// TEST_F(ConfigParserTest, CgiHandler) {
+// 	char path[] = "configs/cgi_handler/";
+
+// 	GlobalConfig config;
+// 	ConfigParser parser(path, config);
+
+// 	EXPECT_FALSE(parser.processConfig());
+// }

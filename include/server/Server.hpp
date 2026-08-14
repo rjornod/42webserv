@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
-#include "../include/config/GlobalConfig.hpp"
+#include "GlobalConfig.hpp"
 #include "Client.hpp"
 #include <poll.h>
 #include <cstring>

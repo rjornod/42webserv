@@ -69,6 +69,7 @@ class ConfigParser {
 		void 	incTokenIndex(unsigned int amount);
 		void 	checkDuplicatePorts(int port);
 		void	checkDuplicateServerNames(const std::string& name);
+		int 	customStoi(const std::string& value, const std::string& message);
 		ServerConfig&	currentServer();
 		LocationConfig& currentLocation();
 		Token&	currentToken();

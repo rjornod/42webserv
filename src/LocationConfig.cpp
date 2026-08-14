@@ -18,12 +18,12 @@ void LocationConfig::setDefaultValues() {
 // DEBUG FUNCTIONS
 void LocationConfig::printValues() const {
 	std::cout << YELLOW << "\n__________ LOCATION DETAILS ___________\n"
-						<< YELLOW << "PATH: " << RESET << m_path
-						<< YELLOW << "\nROOT: " << RESET << (m_root.empty() ? "(not set)" : m_root)
-						<< YELLOW << "\nAUTOINDEX: " << RESET << m_autoIndex
-						<< YELLOW << "\nMAX BODY SIZE: " << RESET << m_maxBodySize
-						<< YELLOW << "\nUPLOAD STORE: " << RESET << (m_upload_store.empty() ? "(not set)" : m_upload_store)
-						<< YELLOW << "\nRETURN: " << RESET;
+					<< YELLOW << "PATH: " << RESET << m_path
+					<< YELLOW << "\nROOT: " << RESET << (m_root.empty() ? "(not set)" : m_root)
+					<< YELLOW << "\nAUTOINDEX: " << RESET << m_autoIndex
+					<< YELLOW << "\nMAX BODY SIZE: " << RESET << m_maxBodySize
+					<< YELLOW << "\nUPLOAD STORE: " << RESET << (m_upload_store.empty() ? "(not set)" : m_upload_store)
+					<< YELLOW << "\nRETURN: " << RESET;
 	if (m_return.first != 0)
 		std::cout << m_return.first << " -> " << m_return.second;
 	else

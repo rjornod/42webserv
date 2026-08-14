@@ -65,12 +65,12 @@ void ServerConfig::printValues() const {
 	// }
 	// printIndex();
 	// printErrorPages();
-	// std::cout << YELLOW << "LOCATION CONFIGS: " << RESET;
-	// if (m_locationConfigs.empty()) {
-	// 	std::cout << "(not set)" << std::endl;
-	// } else {
-	// 	std::cout << std::endl;
-	// 	for (const LocationConfig& location : m_locationConfigs)
-	// 		location.printValues();
-	// }
+	std::cout << YELLOW << "LOCATION CONFIGS: " << RESET;
+	if (m_locationConfigs.empty()) {
+		std::cout << "(not set)" << std::endl;
+	} else {
+		std::cout << std::endl;
+		for (const LocationConfig& location : m_locationConfigs)
+			location.printValues();
+	}
 }
