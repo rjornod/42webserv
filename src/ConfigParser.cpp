@@ -9,15 +9,16 @@
 #include "DirectiveType.hpp"
 #include "LocationDirectiveType.hpp"
 
-// macros that define the scope of different directives (error_pages can be global (in a server block) or inside a location block)
+// macros that define the scope of different directives (error_page can be global (in a server block) or inside a location block)
 #define GLOBAL 1
-#define LOCATION 0
+#define LOCAL 0
 
 /**
  * This is the main function for the config parsing;
  * It will catch exceptions thrown from functions that handle all the parsing;
  */
 bool ConfigParser::processConfig() {
+	
 	std::ifstream file(m_configPath);
 	try {
 		initialFileCheck(file);
@@ -47,7 +48,8 @@ bool ConfigParser::processConfig() {
  * Perhaps more can be added still;
  */
 void ConfigParser::initialFileCheck(std::ifstream& file) {
-	
+	if (m_configPath.substr(m_configPath.size() - 5) != ".conf")
+		throw ConfigParseException("Config file must be a '.conf' file\n");
 	if (!file.is_open()) 
 		throw ConfigParseException("Can't open config file. Make sure it's valid.");
 	bool isEmpty = file.peek() == EOF;
@@ -62,9 +64,8 @@ void ConfigParser::initialFileCheck(std::ifstream& file) {
  */
 void ConfigParser::tokenize(std::ifstream& file) {
 	while (std::getline(file, m_buffer)) {
-		if (m_buffer.empty()) {																			// skip empty lines
+		if (m_buffer.empty())																	// skip empty lines
 			continue;
-		}
 		unsigned long i = 0;
 		while (i < m_buffer.size()) {
 			if (m_buffer[i] == '#') {
@@ -167,9 +168,8 @@ void ConfigParser::parseTokens() {
 	checkAllBraces();
 	// check if server block exists
 	if (m_tokenIndex + 1 >= m_tokens.size() || !isType(currentToken(), TokenType::Word)
-	|| !isType(currentTokenPlus(1), TokenType::StartBlock)) {
+	|| !isType(currentTokenPlus(1), TokenType::StartBlock))
 		throw ConfigParseException("Global block is malformed");
-	}
 	while (m_tokenIndex < m_tokens.size() - 1) {
 		m_config.createServerConfig();
 		parseBlock(true);
@@ -187,9 +187,8 @@ void ConfigParser::parseBlock(bool isGlobal) {
 		if (!isValue(currentToken(), "server"))
 			throw ConfigParseException("Only server{} allowed as a global directive");
 	}
-	else if (!isValue(currentToken(), "location")) {
+	else if (!isValue(currentToken(), "location"))
 		throw ConfigParseException("Directive in server block is malformed " + currentToken().value);
-	}	
 	checkIfBlockEmpty("server");			
 	incTokenIndex(2);																										// skip server or location token and StartBlock token
 	while (!isType(currentToken(), TokenType::EndBlock)) {
@@ -197,7 +196,7 @@ void ConfigParser::parseBlock(bool isGlobal) {
 		incTokenIndex(1);		
 	}
 	if (m_tokenIndex + 1 < m_tokens.size() - 1)
-			incTokenIndex(1);
+		incTokenIndex(1);
 }
 
 void ConfigParser::parseDirective()
@@ -389,9 +388,9 @@ void ConfigParser::handleAutoIndex(int scope) {
 		currentServer().setAutoIndex(true);
 	else if (currentToken().value == "off" && scope == GLOBAL)
 		currentServer().setAutoIndex(false);
-	else if (currentToken().value == "on" && scope == LOCATION)
+	else if (currentToken().value == "on" && scope == LOCAL)
 		currentLocation().setAutoIndex(true);
-	else if (currentToken().value == "off" && scope == LOCATION)
+	else if (currentToken().value == "off" && scope == LOCAL)
 		currentLocation().setAutoIndex(false);
 	checkEndOfDirective("autoindex");
 	currentServer().seenDirective("autoindex");
@@ -406,7 +405,7 @@ void ConfigParser::handleAutoIndex(int scope) {
 int ConfigParser::validateErrorCode(std::string errorCode) {
 	
 	if (errorCode.size() != 3)
-		throw ConfigParseException("Error code in error_pages is invalid: " + errorCode );
+		throw ConfigParseException("Error code in error_page is invalid: " + errorCode );
 	validateDigits(errorCode);
 	int code = std::stoi(errorCode);
 	if (!errorCodes.count(currentToken().value))
@@ -416,20 +415,19 @@ int ConfigParser::validateErrorCode(std::string errorCode) {
 
 /**
  * Function check if the URI is absolute;
- * Used in error_pages directive;
+ * Used in error_page directive;
  * 
  * TO DO: Not sure if it's the job of the parser to validate this or if
  * I should just accept whatever is there as long as the token is a word and let
  * the execution figure it out later. If the path is not correct then I guess
  * a default error page would be shown to the user (404 or something like that)
  */
-std::string ConfigParser::checkURI() {
+std::string ConfigParser::findURI() {
 	unsigned long i = m_tokenIndex;
-	while (!isType(m_tokens[i + 1], TokenType::EndDirective) || isValidToken(m_tokens[i + 1]))	{
+	while (!isType(m_tokens[i + 1], TokenType::EndDirective) && isValidToken(m_tokens[i + 1]))	
 		i++;
-	}
-	if (m_tokens[i].value[0] != '/')
-		throw ConfigParseException("Error path should be absolute. Example: '/error.html' or '/errors/404.html'");
+	if (!isType(m_tokens[i + 1], TokenType::EndDirective))
+		throw ConfigParseException("error_page directive is missing a semicolon");
 	return m_tokens[i].value;
 }
 
@@ -442,19 +440,22 @@ std::string ConfigParser::checkURI() {
  */
 void ConfigParser::handleErrorPages(int scope) {
 	incTokenIndex(1);
-	std::string path = checkURI();
-	if (!isType(currentToken(), TokenType::Word) || !isType(currentTokenPlus(1), TokenType::Word))
-		throw ConfigParseException("error_pages directive is malformed");
+	if (!isType(currentToken(), TokenType::Word) || 
+			!isType(currentTokenPlus(1), TokenType::Word) ||
+			!isValidToken(currentToken()) ||
+			!isValidToken(currentTokenPlus(1)))
+		throw ConfigParseException("error_page directive is malformed");
+	std::string path = findURI();
 	while (m_tokenIndex < m_tokens.size() && 
 				isValidToken(currentToken()) &&
 				!isType(currentTokenPlus(1), TokenType::EndDirective) ) {
 		if (scope == GLOBAL)
 			currentServer().setErrorPages(validateErrorCode(currentToken().value), path);
-		else if (scope == LOCATION)
+		else if (scope == LOCAL)
 			currentLocation().setErrorPages(validateErrorCode(currentToken().value), path);
 		incTokenIndex(1);
 	}
-	checkEndOfDirective("error_page");
+	incTokenIndex(1);
 	currentServer().seenDirective("error_page");
 }
 /**
@@ -546,7 +547,7 @@ void ConfigParser::handleCGI(int scope) {
 	checkCgiExtension(currentToken().value);
 	if (scope == GLOBAL)
 		currentServer().setCgiHandler(currentToken().value, currentTokenPlus(1).value);
-	else if (scope == LOCATION)
+	else if (scope == LOCAL)
 		currentLocation().setCgiHandler(currentToken().value, currentTokenPlus(1).value);
 	incTokenIndex(1);
 	checkEndOfDirective("cgi_handler");
@@ -566,34 +567,34 @@ void ConfigParser::handleLocation() {
  */
 void ConfigParser::handleLocationDirective() {
 	switch(locationDirectiveFromString(currentToken().value)) {
-		case LocationDirectiveType::Root:
-			handleRoot(LOCATION);
+		case LocationDirectiveType::ROOT:
+			handleRoot(LOCAL);
 			break;
-		case LocationDirectiveType::AutoIndex:
-			handleAutoIndex(LOCATION);
+		case LocationDirectiveType::AUTOINDEX:
+			handleAutoIndex(LOCAL);
 			break;
-		case LocationDirectiveType::MaxBodySize:
-			handleBodySize(LOCATION);
+		case LocationDirectiveType::MAXBODYSIZE:
+			handleBodySize(LOCAL);
 			break;
-		case LocationDirectiveType::Index:
-			handleIndex(LOCATION);
+		case LocationDirectiveType::INDEX:
+			handleIndex(LOCAL);
 			break;
-		case LocationDirectiveType::ErrorPage:
-			handleErrorPages(LOCATION);
+		case LocationDirectiveType::ERRORPAGE:
+			handleErrorPages(LOCAL);
 			break;
-		case LocationDirectiveType::UploadStore:
+		case LocationDirectiveType::UPLOADSTORE:
 			handleUploadStore();
 			break;
-		case LocationDirectiveType::AllowedMethods:
+		case LocationDirectiveType::ALLOWEDMETHODS:
 			handleAllowedMethods();
 			break;
-		case LocationDirectiveType::Return:
+		case LocationDirectiveType::RETURN:
 			handleReturn();
 			break;
-		case LocationDirectiveType::CGIHandler:
-			handleCGI(LOCATION);
+		case LocationDirectiveType::CGIHANDLER:
+			handleCGI(LOCAL);
 			break;
-		case LocationDirectiveType::Unknown:
+		case LocationDirectiveType::UNKNOWN:
 			handleUnknown();
 			break;
 	}
@@ -604,34 +605,34 @@ void ConfigParser::handleLocationDirective() {
  */
 void ConfigParser::handleDirective() {
 	switch(directiveFromString(currentToken().value)) {
-		case DirectiveType::Listen:
+		case DirectiveType::LISTEN:
 			handleListen();
 			break;
-		case DirectiveType::Name:
+		case DirectiveType::NAME:
 			handleServerName();
 			break;
-		case DirectiveType::Root:
+		case DirectiveType::ROOT:
 			handleRoot(GLOBAL);
 			break;
-		case DirectiveType::Index:  
+		case DirectiveType::INDEX:  
 			handleIndex(GLOBAL);
 			break;
-		case DirectiveType::ErrorPage:
+		case DirectiveType::ERRORPAGE:
 			handleErrorPages(GLOBAL);
 			break;
-		case DirectiveType::Location:
+		case DirectiveType::LOCATION:
 			handleLocation();
 			break;
-		case DirectiveType::AutoIndex:
+		case DirectiveType::AUTOINDEX:
 			handleAutoIndex(GLOBAL);
 			break;
-		case DirectiveType::MaxBodySize:
+		case DirectiveType::MAXBODYSIZE:
 			handleBodySize(GLOBAL);
 			break;
-		case DirectiveType::CGIHandler:
+		case DirectiveType::CGIHANDLER:
 			handleCGI(GLOBAL);
 			break;
-		case DirectiveType::Unknown:
+		case DirectiveType::UNKNOWN:
 			handleUnknown();
 			break;
 	}
@@ -655,7 +656,7 @@ void ConfigParser::checkCgiExtension(std::string extension) {
 
 /**
  * Small helper function to check if a token is valid;
- * To be valid it needs to be a word and not a know directive like <index> or <error_pages>;
+ * To be valid it needs to be a word and not a know directive like <index> or <error_page>;
  * This helps prevent the case where there are missing semicolons but introduces a case where
  * you can't have an argument be called the same as a known directive; 
  */

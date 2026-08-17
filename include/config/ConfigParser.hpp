@@ -18,9 +18,9 @@ class ConfigParser {
 		std::unordered_set<std::string>	m_seenServerNames;
 		
 	public:
-		ConfigParser(char *pathToConfig, GlobalConfig& config) : m_config(config), m_tokenIndex(0) {
-			m_configPath = pathToConfig;
-		}
+		ConfigParser(char *pathToConfig, GlobalConfig& config) : 	m_config(config), 
+																															m_tokenIndex(0),
+																															m_configPath(pathToConfig) {}
 		~ConfigParser() {};
 		bool 	processConfig();
 		void 	initialFileCheck(std::ifstream& file);
@@ -50,7 +50,7 @@ class ConfigParser {
 		void	handleUploadStore();
 		void	handleCGI(int scope);
 		int		validateErrorCode(std::string code);
-		std::string	checkURI();
+		std::string	findURI();
 		void	checkEndOfDirective(std::string directive);
 		void	checkIfBlockEmpty(std::string blockType);
 		void	checkCgiExtension(std::string extension);
