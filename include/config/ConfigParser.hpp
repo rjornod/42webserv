@@ -18,9 +18,9 @@ class ConfigParser {
 		std::unordered_set<std::string>	m_seenServerNames;
 		
 	public:
-		ConfigParser(char *pathToConfig, GlobalConfig& config) : 	m_config(config), 
-																															m_tokenIndex(0),
-																															m_configPath(pathToConfig) {}
+		ConfigParser(char *pathToConfig, GlobalConfig& config) : 	m_configPath(pathToConfig),
+																															m_config(config), 
+																															m_tokenIndex(0) {}
 		~ConfigParser() {};
 		bool 	processConfig();
 		void 	initialFileCheck(std::ifstream& file);

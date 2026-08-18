@@ -642,7 +642,7 @@ void ConfigParser::handleDirective() {
  * Small function to check the extension of a cgi
  */
 void ConfigParser::checkCgiExtension(std::string extension) {
-	int i = 0;
+	unsigned long i = 0;
 	if (extension.size() < 2 || extension.size() > 4)
 		throw ConfigParseException("Extension argument of cgi_handler is not a proper extension");
 	if (i < extension.size() && extension[i] != '.')
