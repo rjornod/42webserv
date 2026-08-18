@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <iostream>
 #include "HttpRequest.hpp"
-#include "../interfaces/IHttpParser.hpp"
+#include "IHttpParser.hpp"
 #include "HttpParserState.hpp"
 
 class HttpParser : public IHttpParser {

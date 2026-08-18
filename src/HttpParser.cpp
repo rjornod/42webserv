@@ -1,9 +1,10 @@
-#include "../include/HttpParser.hpp"
-#include "../include/HttpMethod.hpp"
+#include "HttpParser.hpp"
+#include "HttpMethod.hpp"
+#include "Colors.hpp"
 
 void HttpParser::reportErrors() {
   if (m_state == HttpParserState::ERROR)
-    std::cerr << "Error on parsing: " << m_errorMessage << std::endl;
+    std::cerr << RED <<  "Http Request Error: " << RESET << m_errorMessage << std::endl;
 }
 
 void HttpParser::parse(std::string_view chunk) {
@@ -30,7 +31,7 @@ void HttpParser::parse(std::string_view chunk) {
         m_state = HttpParserState::COMPLETE;
         return;
       }
-      if (m_expectedBodyLen == -1) {
+      if (m_expectedBodyLen < 0) {
         reportErrors();
         return;
       }
@@ -161,7 +162,7 @@ bool HttpParser::parseHeaders() {
       m_errorMessage = "Header missing colon";
       return false;
     }
-    m_headers.insert({getHeaderName(header), getHeaderValue(header)});
+    m_headers.try_emplace(getHeaderName(header), getHeaderValue(header));
 
     // Consume the header from the buffer
     m_buffer.erase(0, end + 2);
@@ -208,7 +209,7 @@ void HttpParser::determineBodyLength() {
 
 bool HttpParser::parseBody() {
 
-  if (m_expectedBodyLen == -1) {
+  if (m_expectedBodyLen < 0) {
     return false;
   }
   if (m_buffer.size() + m_body.size() < m_expectedBodyLen) {
