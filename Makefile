@@ -1,5 +1,5 @@
 SERV = webserv
-CXX = c++
+CXX = c++ -Wall -Wextra -Werror
 CXXFLAGS += -g -std=c++17
 SRC_DIR = ./src
 OBJ_DIR = ./obj
