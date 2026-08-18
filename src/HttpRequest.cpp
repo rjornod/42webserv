@@ -1,4 +1,4 @@
-#include "../include/HttpRequest.hpp"
+#include "HttpRequest.hpp"
 
 
 std::ostream &operator<<(std::ostream &out, const HttpRequest &request) {
