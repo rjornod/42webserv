@@ -8,18 +8,20 @@ void exitProgram(int errorCode, std::string reason) {
 	exit(errorCode);
 }
 
-
 int main(int argc, char **argv) {
-	if (argc < 2)
+	if (argc != 2)
 		exitProgram(-1, "Usage ./webserv <path/to/configfile>");
-	ConfigParser config(argv[1]); 
-	config.parseFile();
-	/**
-	 * FIXED: Copies are being made when adding objects to a vector
-	 */
 	GlobalConfig globalConfig;
-	globalConfig.getServerConfigs()[0].printValues(); 
-	std::cout << globalConfig.getServerConfigs()[0].getClientMaxBody() << std::endl;
+	ConfigParser config(argv[1], globalConfig);
+	if (!config.processConfig()) {
+		exitProgram(1, "ConfigParser");
+	}
+
+	/* For Debug: Prints the value of all the configurations of server and location*/
+	// for (unsigned long i = 0; i < globalConfig.getServerConfigs().size(); i++) {
+	// 	globalConfig.getServerConfigs()[i].printValues(); 
+	// }
+	
 	Server server(globalConfig);
 	if (server.serverSetup() > 0) {
 		exitProgram(1, "ServerSetup");
