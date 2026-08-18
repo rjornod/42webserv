@@ -12,6 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Check compiler
+        run: |
+          c++ --version
+          c++ -v
+
       - name: Build Web Server
         run: make
 
