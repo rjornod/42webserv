@@ -53,9 +53,9 @@ $(OBJ_DIR)/testHttpParser.o: src/testHttpParser.cpp
 
 tests: $(GTEST_DIR) $(ALL_TEST)
 
-config_parser_tests: $(CONFIG_P_TEST)
+tests_config_parser: $(GTEST_DIR) $(CONFIG_P_TEST)
 
-http_parser_tests: $(HTTP_P_TEST)
+tests_http_parser: $(GTEST_DIR) $(HTTP_P_TEST)
 
 $(GTEST_DIR):
 	@ echo "Clonning GTest repo ..."
@@ -101,10 +101,7 @@ $(GTEST_OBJ_DIR)/gtest-all.o: $(GTEST_DIR)
 $(GTEST_OBJ_DIR)/%.o: $(SRC_TEST_DIR)/%.cpp
 	@mkdir -p $(GTEST_OBJ_DIR)
 	@$(CXX) $(CXXFLAGS) $(CPPFLAGS) \
-	-Iinclude \
-	-Iinclude/config \
-	-Iinclude/server \
-	-Iinterfaces \
+	$(INCL) \
 	-I$(GTEST_DIR)/googletest/include \
 	-I$(GTEST_DIR)/googletest \
 	-c $< -o $@

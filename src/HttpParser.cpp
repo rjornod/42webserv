@@ -1,9 +1,10 @@
 #include "HttpParser.hpp"
 #include "HttpMethod.hpp"
+#include "Colors.hpp"
 
 void HttpParser::reportErrors() {
   if (m_state == HttpParserState::ERROR)
-    std::cerr << "Error on parsing: " << m_errorMessage << std::endl;
+    std::cerr << RED <<  "Http Request Error: " << RESET << m_errorMessage << std::endl;
 }
 
 void HttpParser::parse(std::string_view chunk) {
