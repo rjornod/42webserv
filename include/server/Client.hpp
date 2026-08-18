@@ -15,7 +15,7 @@ class Client {
 	private:
 		int 				m_clientFd;
 		std::string m_clientIp;
-		// int					m_clientPort;
+		int					m_localPort;
 		std::string	m_receiveBuffer;
 		std::string	m_sendBuffer;
 		bool				m_keepAlive;
@@ -24,10 +24,13 @@ class Client {
 		ClientState	m_clientState;
 		time_t			m_lastActivity;							// stores the time since the client requested something
 		bool				m_shouldDisconnect;					// marks a client for disconnection
+		size_t			m_serverConfigIndex;
 	public:
-		Client(int clientFd, const std::string& clientIp) {
+		Client(int clientFd, const std::string& clientIp, int localPort, size_t ServerConfigIndex) {
 			m_clientFd = clientFd;
 			m_clientIp = clientIp;
+			m_localPort = localPort;
+			m_serverConfigIndex = ServerConfigIndex;
 			m_keepAlive = true;
 			m_clientState = ClientState::ReadingRequest;
 			m_bytesSent = 0;
@@ -41,18 +44,20 @@ class Client {
 												<< std::endl;
 		}
 		/* getters and setters */
-		int						getClientFd() 																		{return m_clientFd;}
+		int									getClientFd() 																		{return m_clientFd;}
 		const std::string& 	getClientIp() 																		{return m_clientIp;}
+		int 								getLocalPort()																		{return m_localPort;}
 		std::string& 				getClientReceiveBuffer() 													{return m_receiveBuffer;}
 		std::string& 				getClientSendBuffer() 														{return m_sendBuffer;}
-		bool 					getKeepAlive() 																		{return m_keepAlive;}
-		size_t				getBytesSent()																		{return m_bytesSent;}
-		size_t				getBytesLeftToSend()															{return m_bytesLeftToSend;}
+		bool 								getKeepAlive() 																		{return m_keepAlive;}
+		size_t							getBytesSent()																		{return m_bytesSent;}
+		size_t							getBytesLeftToSend()															{return m_bytesLeftToSend;}
 		ClientState					getClientState() 																	{return m_clientState;}
 		time_t							getLastActivity()																	{return m_lastActivity;}
 		bool								getShouldDisconnect()															{return m_shouldDisconnect;}
 		void								setClientFd(int clientFd) 												{m_clientFd = clientFd;} 
 		void								setClientIp(std::string clientIp) 								{m_clientIp = clientIp;}
+		void								setLocalPort(int localPort)												{m_localPort = localPort;}
 		void								setClientReceiveBuffer(std::string clientBuffer)	{m_receiveBuffer = clientBuffer;}
 		void								setClientSendBuffer(std::string clientBuffer)			{m_sendBuffer = clientBuffer;}
 		void								setKeepAlive(bool keepAlive) 											{m_keepAlive = keepAlive;}
