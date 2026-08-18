@@ -212,7 +212,7 @@ bool HttpParser::parseBody() {
   if (m_expectedBodyLen < 0) {
     return false;
   }
-  if (m_buffer.size() + m_body.size() < m_expectedBodyLen) {
+  if (static_cast<long>(m_buffer.size() + m_body.size()) < m_expectedBodyLen) {
       m_body.append(m_buffer);
       m_buffer.clear();
       return false;

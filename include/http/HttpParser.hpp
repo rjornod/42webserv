@@ -17,7 +17,7 @@ class HttpParser : public IHttpParser {
     std::string m_buffer;
     std::string m_body;
     std::unordered_map<std::string, std::string> m_headers;
-    unsigned long m_expectedBodyLen;
+    long m_expectedBodyLen;
     HttpParserState m_state;
     HttpRequest m_request;
     std::string m_errorMessage;
