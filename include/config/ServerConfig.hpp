@@ -21,7 +21,7 @@ class ServerConfig {
 		std::unordered_set<std::string> 							m_seenLocations;
 		std::unordered_set<std::string> 							m_seendirectives;
 	public:
-		ServerConfig() 																						{ setDefaultValues(); }
+		ServerConfig() 																								{ setDefaultValues(); }
 		~ServerConfig() 																							{};
 		int 				getPort() const 																	{ return m_listenPort; } 
 		std::string getServerName() const 														{ return m_serverName; }
