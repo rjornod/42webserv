@@ -31,7 +31,7 @@ void HttpParser::parse(std::string_view chunk) {
         m_state = HttpParserState::COMPLETE;
         return;
       }
-      if (m_expectedBodyLen == -1) {
+      if (m_expectedBodyLen < 0) {
         reportErrors();
         return;
       }
@@ -209,7 +209,7 @@ void HttpParser::determineBodyLength() {
 
 bool HttpParser::parseBody() {
 
-  if (m_expectedBodyLen == -1) {
+  if (m_expectedBodyLen < 0) {
     return false;
   }
   if (m_buffer.size() + m_body.size() < m_expectedBodyLen) {
