@@ -34,8 +34,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Check compiler
+        run: |
+          c++ --version
+          c++ -v
+
+
       - name: Build Google Tests on Http Parser
-        run: make tests
+        run: make tests_http_parser
 
       - name: Run Google Tests on Http Parser
-        run: ./gtests --gtest_color=yes
+        run: ./http_gtests --gtest_color=yes
