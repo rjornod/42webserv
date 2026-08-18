@@ -9,71 +9,67 @@
 #include <csignal>		//signal()
 #include "Server.hpp"
 #include "Client.hpp"
-#define RED     "\x1b[31m"
-#define GREEN   "\x1b[32m"
-#define YELLOW  "\x1b[33m"
-#define BLUE    "\x1b[34m"
-#define MAGENTA "\x1b[35m"
-#define CYAN    "\x1b[36m"
-#define RESET   "\x1b[0m"
-#define HUP 0
-#define ERR 1
-#define	IN	2
-#define OUT 3
+#include "Colors.hpp"
 
 volatile sig_atomic_t serverRunning = true;
 
 void	Server:: closeAllFds() {
-	std::cout << "closing all fds" <<std::endl;
-	for (int i = 0; i < m_connectedFds.size(); i++) {
+	std::cout << "closing all fds" << std::endl;
+	for (unsigned long i = 0; i < m_connectedFds.size(); i++) {
 		close(m_connectedFds[i].fd);
 	}
 }
 
 void signalHandler(int sig) {
-	std::cout << "Program interrupted by SIGINT" <<std::endl;
+	(void)sig;
+	std::cout << "Program interrupted by SIGINT" << std::endl;
 	serverRunning = false;
 }
 
 int Server::serverSetup() {
-	setTcpAddress();
-	m_tcpAddress.sin_port = htons(m_config.getServerConfigs()[0].getPort());
-	m_tcpServerFd = socket(AF_INET, SOCK_STREAM, 0); 			// creates the fd for the listening socket, comes back blocking by default
-	if (m_tcpServerFd < 0) {
-		perror("socket"); 
-		return 1;
+	for (unsigned long i = 0; i < m_config.getServerConfigs().size(); i++) {
+		const ServerConfig& serverConfig = m_config.getServerConfigs()[i];
+		setTcpAddress();
+		m_tcpAddress.sin_port = htons(serverConfig.getPort());
+		int fd = socket(AF_INET, SOCK_STREAM, 0); 			// creates the fd for the listening socket, comes back blocking by default
+		if (fd < 0) {
+			perror("socket"); 
+			return 1;
+		}
+		int flags = fcntl(fd, F_GETFL);
+		if (flags < 0) {
+			perror("fcntl error");
+			return 1;
+		}
+		/* sets the fd to non blocking meaning accept won't block if there are currently no clients waiting to connect */
+		if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) { 
+			perror("fcntl F_SETFL error");
+			return 1;
+		}
+		int enable = 1; 																														// once a tcp socket closes, the port is only free after around 2 minutes (TIME_WAIT state).
+		if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable)) < 0) 	// setsockopt with the SO_REUSEADDR tells the kernel to reuse the socket as long as no active connection is using it
+			std::cout << ("setsockopt(SO_REUSEADDR) failed") << std::endl;
+	
+		int returnValue;
+		returnValue = bind(fd, reinterpret_cast<const sockaddr *>(&m_tcpAddress), sizeof(m_tcpAddress)); // bind associates the socket with a specific local address and port on the machine
+		if (returnValue < 0) {
+			perror("bind");
+			close(fd);
+			return 1;
+		}
+		/**
+		 * marks the socket as one that will be used to accept incoming requests
+		 * backlog parameter sets the length of the queue of pending connections to 128
+		 */
+		returnValue = listen(fd, 128);
+		if (returnValue < 0) {
+			perror("listen");
+			return 1;
+		}
+		m_listeners.emplace_back(ListeningSockets{fd, serverConfig.getPort(), {i}});
+		m_connectedFds.emplace_back(pollfd{fd, POLLIN, 0});														// add listening socket to the poll watch list
 	}
-	int flags = fcntl(m_tcpServerFd, F_GETFL);
-	if (flags < 0) {
-		perror("fcntl error");
-		return 1;
-	}
-	/* sets the fd to non blocking meaning accept won't block if there are currently no clients waiting to connect */
-	if (fcntl(m_tcpServerFd, F_SETFL, flags | O_NONBLOCK) < 0) { 
-		perror("fcntl F_SETFL error");
-		return 1;
-	}
-	int enable = 1; 																																				// once a tcp socket closes, the port is only free after around 2 minutes (TIME_WAIT state).
-	if (setsockopt(m_tcpServerFd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable)) < 0) 	// setsockopt with the SO_REUSEADDR tells the kernel to reuse the socket as long as no active connection is using it
-    std::cout << ("setsockopt(SO_REUSEADDR) failed") << std::endl;
-
-	int returnValue;
-	returnValue = bind(m_tcpServerFd, reinterpret_cast<const sockaddr *>(&m_tcpAddress), sizeof(m_tcpAddress)); // bind associates the socket with a specific local address and port on the machine
-	if (returnValue < 0) {
-		perror("bind");
-		close(m_tcpServerFd);
-		return 1;
-	}
-	/**
-	 * marks the socket as one that will be used to accept incoming requests
-	 * backlog parameter sets the length of the queue of pending connections to 128
-	 */
-	returnValue = listen(m_tcpServerFd, 128);
-	if (returnValue < 0) {
-		perror("listen");
-		return 1;
-	}
-	std::cout << BLUE << "[ SERVER IS LISTENING ]" << RESET << std::endl;
+	std::cout << BLUE << "\n[ SERVER IS LISTENING ]" << RESET << std::endl;
 	return 0;
 }
 
@@ -100,7 +96,7 @@ void Server::receiveRequest(Client& client) {
 		buildResponse(client);																// check if build response gave an error
 		std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  client.getClientFd() << RESET << "-------------------" << std::endl;
 		std::cout << client.getClientReceiveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;
-		for (int i = 1; i < m_connectedFds.size(); i++) {					// loop that goes through every member of the pollfd struct 
+		for (unsigned long i = 1; i < m_connectedFds.size(); i++) {					// loop that goes through every member of the pollfd struct 
 			if (m_connectedFds[i].fd == client.getClientFd()) {	
 				m_connectedFds[i].events |= POLLOUT; 									// |= bitwise OR operator, adds POLLOUT to the list of flags to watch out for
 				break;
@@ -130,7 +126,7 @@ int Server::connections() {
 void Server::eraseClient(int fd) {
 	m_connectedClients.erase(fd); 										// deletes the disconnected client from the list of connected clients
 	close(fd);																				// closes the fd
-	for (int i = 1; i < m_connectedFds.size(); i++) {	// loop that goes through every member of the pollfd struct 
+	for (unsigned long i = 1; i < m_connectedFds.size(); i++) {	// loop that goes through every member of the pollfd struct 
 		if (m_connectedFds[i].fd == fd) {								// if the fd member variable is the same as the fd we passed, we found the element we want to erase
 			m_connectedFds[i] = m_connectedFds.back();		// swaps the disconnected element with the last one in the vector
 			m_connectedFds.pop_back();										// erases the last element in the vector, which is now the disconnected client
@@ -142,7 +138,7 @@ void Server::eraseClient(int fd) {
 
 bool Server::readFile(Client& client) {
 	// std::string string;
-	int fileFd = open("www/index.html", O_RDONLY);
+	int fileFd = open("data/www/index.html", O_RDONLY);
 	if (fileFd < 0) {
 		std::cout << "error" << std::endl;
 		return true;
@@ -192,7 +188,7 @@ void Server::buildResponse(Client& client) {
 }
 
 void Server::sendResponse(Client& client) {
-	size_t 	sentBytes = 0;
+	int 	sentBytes = 0;
 	client.setBytesLeftToSend(client.getClientSendBuffer().size() - client.getBytesSent());					// calculates the remaining bytes we need to send
 	client.setClientState(ClientState::SendingResponse);
 	sentBytes = send(client.getClientFd(), client.getClientSendBuffer().c_str() + client.getBytesSent(), client.getBytesLeftToSend(), 0); 	// makes sure to only send the data we havent sent (if spread among multiple calls)
@@ -260,9 +256,23 @@ int Server::serverCore() {
 			return 1;
 		}
 		// checkTimeouts();
-		if (m_connectedFds[0].revents & POLLIN) {
+		for (size_t i = 0; i < m_connectedFds.size(); i++) {
+			if (!(m_connectedFds[i].revents & POLLIN)) 
+				continue;
+			bool isListener = false;
+			size_t listenerIndex = 0;
+			for (size_t j = 0; j < m_listeners.size(); j++) {
+				if (m_connectedFds[i].fd == m_listeners[j].fd) {
+					isListener = true;
+					listenerIndex = j;
+					break;
+				}
+			}
+			if (!isListener)
+				continue;
+		
 			while (true) {
-				clientFd = accept(m_tcpServerFd, 
+				clientFd = accept(m_connectedFds[i].fd, 
 									 reinterpret_cast<sockaddr *>(&m_clientAddress), &m_clientAddressLen);
 				if (clientFd < 0) {
 					if (errno == EAGAIN || errno == EWOULDBLOCK)						// when there are no more clients to accept() it returns -1 with these errnos. they are not real errors so we break to keep checking for clients without failure
