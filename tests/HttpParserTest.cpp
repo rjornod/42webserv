@@ -75,7 +75,7 @@ TEST_F(HttpParserTest, ParsesSimplestRequest) {
     EXPECT_EQ(request.getMethod(), HttpMethod::GET);
     EXPECT_EQ(request.getURI(), "/");
     EXPECT_EQ(request.getVersion(), "HTTP/1.1");
-    EXPECT_EQ(request.getHeaders().size(), 1);
+    EXPECT_EQ((int)(request.getHeaders().size()), 1);
 }
 
 TEST_F(HttpParserTest, ParsesGetRequestLine) {
@@ -120,7 +120,7 @@ TEST_F(HttpParserTest, ParsesHeaders) {
 
     parser.parse(validGetRequest);
 
-    EXPECT_EQ(parser.getRequest().getHeaders().size(), 2);
+    EXPECT_EQ((int)(parser.getRequest().getHeaders().size()), 2);
     EXPECT_EQ(parser.getRequest().getHeaders()["host"], "localhost");
     EXPECT_EQ(parser.getRequest().getHeaders()["user-agent"], "Test");
 }
@@ -155,7 +155,7 @@ TEST_F(HttpParserTest, ParsesBody) {
 
     parser.parse(requestWithContentLength);
 
-    EXPECT_EQ(parser.getRequest().getBody().length(),
+    EXPECT_EQ((int)(parser.getRequest().getBody().length()),
         stoi(parser.getRequest().getHeaders()["content-length"]));
 }
 
@@ -213,12 +213,12 @@ TEST_F(HttpParserTest, ParsesRequestReceivedInChunks) {
     parser.parse(headers0);
     parser.parse(headers1);
 
-    EXPECT_EQ(parser.getRequest().getHeaders().size(), 0);
+    EXPECT_EQ((int)(parser.getRequest().getHeaders().size()), 0);
     EXPECT_EQ(parser.getParserState(), HttpParserState::HEADERS);
 
     parser.parse(end);
 
-    EXPECT_EQ(parser.getRequest().getHeaders().size(), 2);
+    EXPECT_EQ((int)(parser.getRequest().getHeaders().size()), 2);
     EXPECT_EQ(parser.getParserState(), HttpParserState::COMPLETE);
 }
 
