@@ -257,14 +257,14 @@ int Server::serverCore() {
 		}
 		// checkTimeouts();
 		for (size_t i = 0; i < m_connectedFds.size(); i++) {
-			if (!(m_connectedFds[i].revents & POLLIN)) 
+			if (!(m_connectedFds[i].revents & POLLIN)) 														// only keep going if fd is readable right now
 				continue;
-			bool isListener = false;
-			size_t listenerIndex = 0;
-			for (size_t j = 0; j < m_listeners.size(); j++) {
-				if (m_connectedFds[i].fd == m_listeners[j].fd) {
-					isListener = true;
-					listenerIndex = j;
+			bool isListener = false;																							// first assume fd is not a listening socket
+			size_t listenerIndex = 0;																							// temp variable to remember wich m_listeners entry matches this fd
+			for (size_t j = 0; j < m_listeners.size(); j++) {											// loop through all known listeners
+				if (m_connectedFds[i].fd == m_listeners[j].fd) {										// compare current fd from poll with each listener fd
+					isListener = true;																								// mark this fd is a listening socket and not a client socket
+					listenerIndex = j;																								// if the listener matched, store it
 					break;
 				}
 			}
@@ -296,9 +296,11 @@ int Server::serverCore() {
 				time(&timestamp);
 				std::cout << GREEN << "New client connected: " << RESET << inet_ntoa(m_clientAddress.sin_addr) << ":" 
 				<< ntohs(m_clientAddress.sin_port) << std::endl;
-				std::cout << ctime(&timestamp) << std::endl;					// displays the exact time a client connected											
+				std::cout << ctime(&timestamp) << std::endl;					// displays the exact time a client connected	
+				int localPort = m_listeners[listenerIndex].port;
+				size_t ServerConfigIndex = m_listeners[listenerIndex].serverIndexes[0];								
 				/* creates a client object directly on m_connectedClients and initializes the fd and ip address */
-				m_connectedClients.try_emplace(clientFd, clientFd, inet_ntoa(m_clientAddress.sin_addr));	// only inserts if clientFd is not present. clientfd is the map key, clientFd and inet_ntoa() are sent to the Client constructor
+				m_connectedClients.try_emplace(clientFd, clientFd, inet_ntoa(m_clientAddress.sin_addr),localPort, ServerConfigIndex);	// only inserts if clientFd is not present. clientfd is the map key, clientFd and inet_ntoa() are sent to the Client constructor
 			}
 		}
 		/* handle incoming data from the connected clients */
