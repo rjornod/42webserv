@@ -3,6 +3,7 @@
 class HttpRequest;
 class ResolvedRoute;
 class GlobalConfig;
+class Client;
 
 class IRouter {
 
@@ -10,5 +11,5 @@ class IRouter {
 
     virtual ~IRouter() {}
     virtual ResolvedRoute resolve(const HttpRequest& request,
-      const GlobalConfig& config) = 0;
+      const GlobalConfig& config, int serverConfigIndex) = 0;
 };

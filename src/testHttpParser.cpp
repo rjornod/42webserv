@@ -1,6 +1,9 @@
 #include "HttpParser.hpp"
+#include "Router.hpp"
+#include "GlobalConfig.hpp"
+#include "ConfigParser.hpp"
 
-int main() {
+int main(int argc, char **argv) {
 
   std::string request =
     "GET https://medium.com/ HTTP/1.1\r\n"
@@ -50,27 +53,48 @@ int main() {
     "\r\n"
     "{\"id\": \"42\"}";
 
+  std::string reqRouting =
+    "POST /images/logo.png HTTP/1.1\r\n"
+    "Host: developer.mozilla.org\r\n"
+    "User-Agent: curl/8.6.0\r\n"
+    "Accept: */*\r\n"
+    "Content-Type: application/json\r\n"
+    "content-length: 12\r\n"
+    "\r\n"
+    "{\"id\": \"42\"}";
+
   HttpParser parser;
 
-  parser.parse(reqWithBody);
-  std::string state = to_string(parser.getParserState());
-  std::cout << "State: " << state << std::endl;
+  parser.parse(reqRouting);
+  // std::string state = to_string(parser.getParserState());
+  // std::cout << "State: " << state << std::endl;
 
   std::cout << "------------------------- Request: ------------------" << std::endl << parser.getRequest() << std::endl;
   std::cout << "-----------------------------------------------------" << std::endl;
 
-  std::cout << "Buffer:" << std::endl << parser.getBuffer() << std::endl;
+  // std::cout << "Buffer:" << std::endl << parser.getBuffer() << std::endl;
+  if (argc != 2) {
+    std::cout << "Usage ./webserv <path/to/configfile>" << std::endl;
+		exit(-1);
+  }
+  GlobalConfig globalConfig;
+  ConfigParser config(argv[1], globalConfig);
+	if (!config.processConfig()) {
+    std::cout << "Error in parsing the config file" << std::endl;
+	}
+  (void)argc;
 
-  // std::cout << std::endl << "Parsing request with ivalid content length: " << std::endl << std::endl;
+  for (unsigned long i = 0; i < globalConfig.getServerConfigs().size(); i++) {
+		std::cout << GREEN << "*************** Index: " << i << " ***************" << RESET << std::endl;
+		globalConfig.getServerConfigs()[i].printValues(); 
+		std::cout << GREEN << "****************************************" << RESET << std::endl;
+	}
 
-  // HttpParser parserError;
+  Router router;
+  ResolvedRoute resolvedRoute = router.resolve(parser.getRequest(), globalConfig, 0);
 
-  // parserError.partialParse(invalidContentLen);
-
-
-  // std::cout << "------------------------- Request: ------------------" << std::endl << parserError.getRequest() << std::endl;
-  // std::cout << "-----------------------------------------------------" << std::endl;
-  // std::cout << "State: " << to_string(parserError.getParserState()) << std::endl;
+  std::cout << "Resolved context is: " << std::endl;
+  resolvedRoute.getLocationConfig().printValues();
 
   return 0;
 

@@ -95,6 +95,7 @@ void Server::receiveRequest(Client& client) {
 		// this loop should only happen AFTER the full request has come in
 		buildResponse(client);																// check if build response gave an error
 		std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  client.getClientFd() << RESET << "-------------------" << std::endl;
+		std::cout << "-------------------" << MAGENTA << "connection through index: " << client.getServerConfigIndex() << " of the global config " << RESET << "-------------------" << std::endl;
 		std::cout << client.getClientReceiveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;
 		for (unsigned long i = 1; i < m_connectedFds.size(); i++) {					// loop that goes through every member of the pollfd struct 
 			if (m_connectedFds[i].fd == client.getClientFd()) {	
