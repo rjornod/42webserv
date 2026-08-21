@@ -8,7 +8,7 @@ and then does max prefix matching to find the relevant location
 NOTE: Instead of passing the global config and the index, why not pass the relevant server config right away
 if it's unique... (?!)
 */
-ResolvedRoute Router::resolve(const HttpRequest& request, const GlobalConfig& config, int serverConfigIndex){
+RequestContext Router::resolve(const HttpRequest& request, const GlobalConfig& config, int serverConfigIndex){
   ServerConfig serverConfig = config.getServerConfigs()[serverConfigIndex];
 
   std::string uri = request.getURI();
@@ -20,10 +20,11 @@ ResolvedRoute Router::resolve(const HttpRequest& request, const GlobalConfig& co
   //   location.printValues();
   // }
 
-  ResolvedRoute resolvedRoute;
-  resolvedRoute.setLocationConfig(matchLocation(serverConfig.getLocationConfigs(), uri));
+  RequestContext ctx;
+  ctx.setServerConfig(serverConfig);
+  ctx.setLocationConfig(matchLocation(serverConfig.getLocationConfigs(), uri));
 
-  return resolvedRoute;
+  return ctx;
 
 }
 
@@ -48,3 +49,7 @@ LocationConfig Router::matchLocation(std::vector<LocationConfig> locationConfigs
   }
   return matchingLocation;
 }
+
+// bool Router::mapEffectiveRoot(std::string_view root, std::string_view uri) {
+//   return false;
+// }

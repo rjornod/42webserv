@@ -22,6 +22,7 @@ class LocationConfig {
 		LocationConfig() 																		{ setDefaultValues(); };
 		~LocationConfig() 																			{};
 		std::map<int, std::string>	&getErrorPages()						{ return m_errorPages;}
+		std::string getRoot()																		{ return m_root;}
 		void	setRoot(std::string root)													{ m_root = root;}
 		void	setAutoIndex(bool isOn)														{ m_autoIndex = isOn;}
 		void	setBodySize(int size)															{ m_maxBodySize = size;}

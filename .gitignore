@@ -3,3 +3,8 @@ obj
 .vscode
 webserver
 webserv
+http_gtests
+config_gtests
+router_gtests
+httpParserTest
+

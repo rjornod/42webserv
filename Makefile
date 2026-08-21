@@ -4,7 +4,9 @@ CXXFLAGS += -g -std=c++20
 INCL = -Iinclude -Iinclude/config -Iinclude/server -Iinclude/utils -Iinclude/http -Iinterfaces
 SRC_DIR = ./src
 OBJ_DIR = ./obj
-SRC_CORE = Server.cpp HttpParser.cpp HttpRequest.cpp ConfigParser.cpp TokenType.cpp LocationConfig.cpp ServerConfig.cpp Router.cpp
+SRC_CORE = Server.cpp  ConfigParser.cpp TokenType.cpp LocationConfig.cpp ServerConfig.cpp \
+	HttpParser.cpp HttpRequest.cpp HttpResponse.cpp Router.cpp RequestProcessor.cpp \
+	FileResolver.cpp 
 OBJ_CORE = $(SRC_CORE:%.cpp=$(OBJ_DIR)/%.o)
 
 GTEST_REPO = https://github.com/google/googletest.git
@@ -15,11 +17,14 @@ CPPFLAGS += -isystem $(GTEST_DIR)/include
 ALL_TEST = gtests
 HTTP_P_TEST = http_gtests
 CONFIG_P_TEST = config_gtests
+ROUTER_TEST = router_gtests
 SRC_TEST_DIR = ./tests
 SRC_CONFIG_P_TEST = ConfigParserTest.cpp
 SRC_HTTP_P_TEST = HttpParserTest.cpp
+SRC_ROUTER_TEST = RouterTest.cpp
 OBJ_CONFIG_P_TEST = $(SRC_CONFIG_P_TEST:%.cpp=$(GTEST_OBJ_DIR)/%.o)
 OBJ_HTTP_P_TEST = $(SRC_HTTP_P_TEST:%.cpp=$(GTEST_OBJ_DIR)/%.o)
+OBJ_ROUTER_TEST = $(SRC_ROUTER_TEST:%.cpp=$(GTEST_OBJ_DIR)/%.o)
 
 P_TEST = httpParserTest
 
@@ -57,11 +62,13 @@ tests_config_parser: $(GTEST_DIR) $(CONFIG_P_TEST)
 
 tests_http_parser: $(GTEST_DIR) $(HTTP_P_TEST)
 
+tests_router: $(GTEST_DIR) $(ROUTER_TEST)
+
 $(GTEST_DIR):
 	@ echo "Clonning GTest repo ..."
 	@git clone --depth 1 $(GTEST_REPO) $(GTEST_DIR)
 
-$(ALL_TEST): $(CONFIG_P_TEST) $(HTTP_P_TEST)
+$(ALL_TEST): $(CONFIG_P_TEST) $(HTTP_P_TEST) $(ROUTER_TEST)
 	@ echo "Tests made successfully"
 
 $(CONFIG_P_TEST): $(OBJ_CONFIG_P_TEST) $(OBJ_CORE) $(GTEST_OBJ_DIR)/gtest-all.o $(GTEST_OBJ_DIR)/gtest-main.o
@@ -81,6 +88,15 @@ $(HTTP_P_TEST): $(OBJ_HTTP_P_TEST) $(OBJ_CORE) $(GTEST_OBJ_DIR)/gtest-all.o $(GT
 	-pthread \
 	-o $(HTTP_P_TEST) 
 	@ echo "${GREEN}$(HTTP_P_TEST)${RESET} made successfully"
+
+$(ROUTER_TEST): $(OBJ_ROUTER_TEST) $(OBJ_CORE) $(GTEST_OBJ_DIR)/gtest-all.o $(GTEST_OBJ_DIR)/gtest-main.o
+	@$(CXX) $(CXXFLAGS) $(CPPFLAGS) \
+	$(OBJ_ROUTER_TEST) $(OBJ_CORE) \
+	$(GTEST_OBJ_DIR)/gtest-all.o \
+	$(GTEST_OBJ_DIR)/gtest-main.o \
+	-pthread \
+	-o $(ROUTER_TEST) 
+	@ echo "${GREEN}$(ROUTER_TEST)${RESET} made successfully"
 
 $(GTEST_OBJ_DIR)/gtest-main.o: $(GTEST_DIR)
 	@mkdir -p $(GTEST_OBJ_DIR)
@@ -116,6 +132,7 @@ fclean: clean
 	rm -f $(P_TEST)
 	rm -f $(CONFIG_P_TEST)
 	rm -f $(HTTP_P_TEST)
+	rm -f $(ROUTER_TEST)
 
 re: fclean all
 

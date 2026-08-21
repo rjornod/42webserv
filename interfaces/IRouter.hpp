@@ -1,7 +1,7 @@
 #pragma once
 
 class HttpRequest;
-class ResolvedRoute;
+class RequestContext;
 class GlobalConfig;
 class Client;
 
@@ -10,6 +10,6 @@ class IRouter {
   public:
 
     virtual ~IRouter() {}
-    virtual ResolvedRoute resolve(const HttpRequest& request,
+    virtual RequestContext resolve(const HttpRequest& request,
       const GlobalConfig& config, int serverConfigIndex) = 0;
 };

@@ -1,6 +1,6 @@
 #pragma once
 #include "HttpRequest.hpp"
-#include "ResolvedRoute.hpp"
+#include "RequestContext.hpp"
 #include "GlobalConfig.hpp"
 #include "IRouter.hpp"
 #include "Client.hpp"
@@ -11,7 +11,7 @@ class Router : public IRouter {
 
     ~Router() {}
 
-    ResolvedRoute resolve(const HttpRequest& request, const GlobalConfig& config,
+    RequestContext   resolve(const HttpRequest& request, const GlobalConfig& config,
       int serverConfigIndex);
-    LocationConfig matchLocation(std::vector<LocationConfig> locationConfigs, std::string uri);
+    LocationConfig  matchLocation(std::vector<LocationConfig> locationConfigs, std::string uri);
 };

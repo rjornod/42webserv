@@ -2,6 +2,8 @@
 #include "Router.hpp"
 #include "GlobalConfig.hpp"
 #include "ConfigParser.hpp"
+#include "RequestProcessor.hpp"
+#include "HttpResponse.hpp"
 
 int main(int argc, char **argv) {
 
@@ -91,10 +93,15 @@ int main(int argc, char **argv) {
 	}
 
   Router router;
-  ResolvedRoute resolvedRoute = router.resolve(parser.getRequest(), globalConfig, 0);
+  RequestContext ctx = router.resolve(parser.getRequest(), globalConfig, 0);
 
-  std::cout << "Resolved context is: " << std::endl;
-  resolvedRoute.getLocationConfig().printValues();
+  std::cout << "Request context is: " << std::endl;
+  ctx.getLocationConfig().printValues();
+
+  RequestProcessor processor;
+  HttpResponse response = processor.process(ctx);
+
+  std::cout << "Response status code: "<< response.getStatusCode() << std::endl;
 
   return 0;
 
