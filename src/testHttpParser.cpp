@@ -89,14 +89,16 @@ int main(int argc, char **argv) {
   for (unsigned long i = 0; i < globalConfig.getServerConfigs().size(); i++) {
 		std::cout << GREEN << "*************** Index: " << i << " ***************" << RESET << std::endl;
 		globalConfig.getServerConfigs()[i].printValues(); 
-		std::cout << GREEN << "****************************************" << RESET << std::endl;
+		// std::cout << GREEN << "****************************************" << RESET << std::endl;
 	}
 
   Router router;
-  RequestContext ctx = router.resolve(parser.getRequest(), globalConfig, 0);
+  RequestContext ctx = router.createContext(parser.getRequest(), globalConfig, 0);
+
+  // std::cout << "Location path: " << ctx.getLocationConfig()->getPath() << std::endl;
 
   std::cout << "Request context is: " << std::endl;
-  ctx.getLocationConfig().printValues();
+  ctx.getLocationConfig()->printValues();
 
   RequestProcessor processor;
   HttpResponse response = processor.process(ctx);

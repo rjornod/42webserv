@@ -28,6 +28,7 @@ class ServerConfig {
 		int 				getClientMaxBody() const 													{ return m_clientMaxBodySize; }
 		std::map<int, std::string>	&getErrorPages()									{ return m_errorPages;}
 		std::vector<LocationConfig> &getLocationConfigs()							{ return m_locationConfigs;}
+		const std::vector<LocationConfig> &getLocationConfigs() const { return m_locationConfigs;}
 		void				setPort(int port)																	{ m_listenPort = port; }
 		void				setServerName(std::string& name)									{ m_serverName = name; }
 		void				setIndex(std::string& index)											{ m_index.emplace_back(index);}

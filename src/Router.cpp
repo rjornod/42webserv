@@ -8,20 +8,15 @@ and then does max prefix matching to find the relevant location
 NOTE: Instead of passing the global config and the index, why not pass the relevant server config right away
 if it's unique... (?!)
 */
-RequestContext Router::resolve(const HttpRequest& request, const GlobalConfig& config, int serverConfigIndex){
-  ServerConfig serverConfig = config.getServerConfigs()[serverConfigIndex];
-
+RequestContext Router::createContext(const HttpRequest& request, const GlobalConfig& config, int serverConfigIndex){
+  
+  const ServerConfig& serverConfig = config.getServerConfigs()[serverConfigIndex];
   std::string uri = request.getURI();
 
-  // std::cout << "URI: " << uri << std::endl;
-
-  // std::cout << "Relevant locations: " << uri << std::endl;
-  // for (const LocationConfig& location : serverConfig.getLocationConfigs()) {
-  //   location.printValues();
-  // }
 
   RequestContext ctx;
   ctx.setServerConfig(serverConfig);
+  ctx.setHttpRequest(request);
   ctx.setLocationConfig(matchLocation(serverConfig.getLocationConfigs(), uri));
 
   return ctx;
