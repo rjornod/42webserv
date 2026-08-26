@@ -29,7 +29,7 @@ jobs:
             exit 1
           fi
   
-  tests-http-parser:
+  tests-http:
     if: |
       (github.event_name == 'push' && github.ref_name == 'http') ||
       (github.event_name == 'pull_request' && github.head_ref == 'http')
@@ -50,3 +50,9 @@ jobs:
 
       - name: Run Google Tests on Http Parser
         run: ./http_gtests --gtest_color=yes
+
+      - name: Build Google Tests on Router
+        run: make tests_router
+
+      - name: Run Google Tests on Router
+        run: ./router_gtests --gtest_color=yes
