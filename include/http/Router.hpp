@@ -13,5 +13,6 @@ class Router : public IRouter {
 
     RequestContext   resolve(const HttpRequest& request, const GlobalConfig& config,
       int serverConfigIndex);
-    LocationConfig  matchLocation(std::vector<LocationConfig> locationConfigs, std::string uri);
+    const LocationConfig*  matchLocation(const std::vector<LocationConfig>& locationConfigs, std::string uri);
+    bool isPrefixMatch(std::string_view path, std::string uri);
 };

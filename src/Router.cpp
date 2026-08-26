@@ -28,27 +28,44 @@ RequestContext Router::resolve(const HttpRequest& request, const GlobalConfig& c
 
 }
 
-LocationConfig Router::matchLocation(std::vector<LocationConfig> locationConfigs, std::string uri) {
+/* Checks whether the prefix is actually a "complete" prefix
+
+For example for uri /images-old/logo.png  the path /images-old is a "well formed"
+prefix but /images shouldn't be
+*/
+bool Router::isPrefixMatch(std::string_view path, std::string uri) {
+  if (uri.std::string::starts_with(path)) {
+    std::string_view uri_view = uri;
+    uri_view.remove_prefix(path.size());
+    if (uri_view.empty() || *uri_view.begin() == '/')
+      return true;
+  }
+  return false;
+}
+
+// What if there's no matching location?!
+const LocationConfig* Router::matchLocation(const std::vector<LocationConfig>& locationConfigs, std::string uri) {
   
   size_t maxLen = 0;
-  LocationConfig matchingLocation;
+  const LocationConfig* matchingLocation = nullptr;
 
-  std::cout << "URI: " << uri << std::endl;
+  // std::cout << "URI: " << uri << std::endl;
 
-  for (LocationConfig& location : locationConfigs) {
-    std::string_view path = location.getPath();
-    if (uri.std::string::starts_with(path)) {
+  for (const LocationConfig& location : locationConfigs) {
+    std::string path = location.getPath();
+    if (path == "/" || isPrefixMatch(path, uri)) {
       if ((path.size() > maxLen)) {
         maxLen = path.size();
-        matchingLocation = location; // Not sure if this is too costly
+        matchingLocation = &location; // Not sure if this is too costly
         // std::cout << "Path: " << path << " is prefix of length "<< maxLen << std::endl;
       }
     }
     // else
-      // std::cout << "Path: " << path << "is NOT prefix" << std::endl;
+    //   std::cout << "Path: " << path << "is NOT prefix" << std::endl;
   }
   return matchingLocation;
 }
+
 
 // bool Router::mapEffectiveRoot(std::string_view root, std::string_view uri) {
 //   return false;

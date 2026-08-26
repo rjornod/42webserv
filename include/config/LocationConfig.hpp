@@ -33,8 +33,8 @@ class LocationConfig {
 		void 	setCgiHandler(std::string ext, std::string path)	{ m_cgiHandlers.try_emplace(ext, path);}
 		void	setReturn(int code, std::string& path)						{ m_return.first = code; m_return.second = path;}
 		void 	clearDefaultMethods()															{ m_allowedMethods.clear();}
-		std::string	getPath()																		{ return m_path; }
-		void	setPath(std::string& path)												{ m_path = path; }
+		std::string	getPath()															const	{ return m_path; }
+		void	setPath(const std::string& path)												{ m_path = path; }
 		void 	setDefaultValues();
 		void	printValues() const;
 
