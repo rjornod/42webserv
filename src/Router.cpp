@@ -12,8 +12,6 @@ RequestContext Router::createContext(const HttpRequest& request, const GlobalCon
   
   const ServerConfig& serverConfig = config.getServerConfigs()[serverConfigIndex];
   std::string uri = request.getURI();
-
-
   RequestContext ctx;
   ctx.setServerConfig(serverConfig);
   ctx.setHttpRequest(request);

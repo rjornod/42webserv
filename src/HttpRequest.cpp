@@ -5,7 +5,7 @@ std::ostream &operator<<(std::ostream &out, const HttpRequest &request) {
 
   out << "[Method] " << to_string(request.getMethod()) << std::endl;
   out << "[URI] " << request.getURI() << std::endl;
-  out << "[Version] " << request.getVersion() << std::endl;
+  out << "[Version] " << to_string(request.getVersion()) << std::endl;
   out << "[Headers] " << std::endl;
   // for (std::string header : request.getHeaders()) 
   //   out << header << std::endl;

@@ -1,16 +1,19 @@
 #include "RequestProcessor.hpp"
 #include "FileResolver.hpp"
+#include <algorithm>
 
 HttpResponse RequestProcessor::process(RequestContext& ctx){
 
-  HttpResponse response(404);
+  HttpResponse response(200);
   FileResolver fileResolver;
 
   ctx.setFilePath(fileResolver.resolve(ctx));
 
   // Check method, ofr example
-  // if (!methodAllowed(ctx))
-    // return HttpResponse::methodNotAllowed();
+  if (!allowedMethod(ctx)) {
+    response.setStatusCode(405);
+  }
+
 
   // Call appropriate handler
   // return staticFileHandler.handle(ctx);
@@ -18,4 +21,18 @@ HttpResponse RequestProcessor::process(RequestContext& ctx){
   std::cout << "FilePath: " << ctx.getFilePath() << std::endl;
 
   return response;
+}
+
+bool RequestProcessor::allowedMethod(const RequestContext& ctx) {
+  HttpMethod requestMethod = ctx.getHttpRequest().getMethod();
+
+  std::vector<std::string> allowedMethods = ctx.getLocationConfig()->getAllowedMethods();
+
+  if (std::find(allowedMethods.begin(), allowedMethods.end(), to_string(requestMethod)) 
+      == allowedMethods.end()) {
+        std::cout << "Method not allowed in the context" << std::endl;
+        return false;
+      }
+  return true;
+
 }

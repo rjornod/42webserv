@@ -11,5 +11,6 @@ class RequestProcessor {
   public:
 
     HttpResponse process(RequestContext& ctx);
+    bool allowedMethod(const RequestContext& ctx);
 
 };

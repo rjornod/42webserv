@@ -15,6 +15,7 @@ class HttpResponse {
     HttpResponse(int statusCode) : m_statusCode(statusCode) {}
 
     int getStatusCode() const {return m_statusCode;}
+    void setStatusCode(int status) {m_statusCode = status;}
     // std::string getStatusMessage() {return M_STATUSCODES[m_statusCode];}
 
 

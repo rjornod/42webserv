@@ -65,6 +65,11 @@ int main(int argc, char **argv) {
     "\r\n"
     "{\"id\": \"42\"}";
 
+  if (argc != 2) {
+    std::cout << "Usage ./webserv <path/to/configfile>" << std::endl;
+    exit(-1);
+  }
+
   HttpParser parser;
 
   parser.parse(reqRouting);
@@ -74,18 +79,14 @@ int main(int argc, char **argv) {
   std::cout << "------------------------- Request: ------------------" << std::endl << parser.getRequest() << std::endl;
   std::cout << "-----------------------------------------------------" << std::endl;
 
-  // std::cout << "Buffer:" << std::endl << parser.getBuffer() << std::endl;
-  if (argc != 2) {
-    std::cout << "Usage ./webserv <path/to/configfile>" << std::endl;
-		exit(-1);
-  }
+  std::cout << "Buffer:" << std::endl << parser.getBuffer() << std::endl;
   GlobalConfig globalConfig;
   ConfigParser config(argv[1], globalConfig);
 	if (!config.processConfig()) {
     std::cout << "Error in parsing the config file" << std::endl;
 	}
   (void)argc;
-
+  
   for (unsigned long i = 0; i < globalConfig.getServerConfigs().size(); i++) {
 		std::cout << GREEN << "*************** Index: " << i << " ***************" << RESET << std::endl;
 		globalConfig.getServerConfigs()[i].printValues(); 

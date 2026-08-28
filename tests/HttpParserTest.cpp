@@ -74,7 +74,7 @@ TEST_F(HttpParserTest, ParsesSimplestRequest) {
 
     EXPECT_EQ(request.getMethod(), HttpMethod::GET);
     EXPECT_EQ(request.getURI(), "/");
-    EXPECT_EQ(request.getVersion(), "HTTP/1.1");
+    EXPECT_EQ(request.getVersion(), HttpVersion::HTTP_1_1);
     EXPECT_EQ((int)(request.getHeaders().size()), 1);
 }
 
@@ -85,7 +85,7 @@ TEST_F(HttpParserTest, ParsesGetRequestLine) {
 
     EXPECT_EQ(req.getMethod(), HttpMethod::GET);
     EXPECT_EQ(req.getURI(), "/index.html");
-    EXPECT_EQ(req.getVersion(), "HTTP/1.1");
+    EXPECT_EQ(req.getVersion(), HttpVersion::HTTP_1_1);
 }
 
 TEST_F(HttpParserTest, ParsesChunkedRequestLine) {
@@ -197,7 +197,7 @@ TEST_F(HttpParserTest, ParsesRequestReceivedInChunks) {
 
     EXPECT_EQ(parser.getRequest().getMethod(), HttpMethod::GET);
     EXPECT_EQ(parser.getRequest().getURI(), "/index.html");
-    EXPECT_EQ(parser.getRequest().getVersion(), "HTTP/1.1");
+    EXPECT_EQ(parser.getRequest().getVersion(), HttpVersion::HTTP_1_1);
     EXPECT_EQ(parser.getParserState(), HttpParserState::HEADERS);
 
     std::string headers0 = 
