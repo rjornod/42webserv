@@ -174,6 +174,7 @@ void ConfigParser::parseTokens() {
 		m_config.createServerConfig();
 		parseBlock(true);
 		currentServer().checkMandatoryDirectives();
+		resolveInheritances();
 	}
 }
 
@@ -755,6 +756,29 @@ Token& ConfigParser::currentToken() {
  */
 Token& ConfigParser::currentTokenPlus(unsigned int amount) {
 	return (m_tokens[m_tokenIndex + amount]);
+}
+
+void ConfigParser::resolveInheritances() {
+	for (ServerConfig& server : m_config.getServerConfigs()) {
+		for (LocationConfig& location : server.getLocationConfigs()) {
+			if (location.getRoot().empty())
+				location.setRoot(server.getRoot());
+			if (location.getIndex().empty()) {
+				for (size_t i = 0; i < server.getIndex().size(); i++)
+					location.setIndex(server.getIndex()[i]);
+			}
+			if (location.getMaxBodySize() == -1) 
+				location.setBodySize(server.getClientMaxBody());
+			if (location.getErrorPages().empty()) {
+				for (const auto& [code, path] : server.getErrorPages())
+					location.setErrorPages(code, path);
+			}
+			if (location.getCgiHandler().empty()) {
+				for (const auto& [extension, path] : server.getCgiHandler())
+    			location.setCgiHandler(extension, path);
+			}
+		}
+	}
 }
 
 /**

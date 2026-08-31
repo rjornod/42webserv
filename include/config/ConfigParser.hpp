@@ -74,6 +74,7 @@ class ConfigParser {
 		LocationConfig& currentLocation();
 		Token&	currentToken();
 		Token&	currentTokenPlus(unsigned int amount);
+		void		resolveInheritances();
 };
 
 /**
