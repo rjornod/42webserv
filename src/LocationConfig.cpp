@@ -2,12 +2,11 @@
 #include "ConfigParseException.hpp"
 
 void LocationConfig::setDefaultValues() {
-	m_path = "/example/path";
-	m_root = "/";
+	m_root = "";
 	m_autoIndex = false;
 	m_allowedMethods.clear();
 	m_allowedMethods.push_back("GET");
-	m_maxBodySize = 100000000;
+	m_maxBodySize = -1;
 	m_index.clear();
 	m_errorPages.clear();
 	m_upload_store = "www/uploads";

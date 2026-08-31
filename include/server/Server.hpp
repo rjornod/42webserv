@@ -39,7 +39,7 @@ class Server {
 			closeAllFds();
 			std::cout << "Server object destroyed" << std::endl;
 		}
-		const GlobalConfig& getParsedConfig() {return m_config;}
+		const GlobalConfig& getParsedConfig() const {return m_config;}
 		int 								setTcpAddress() 	{
 			std::memset(&m_tcpAddress, 0, sizeof(sockaddr_in));
 			m_tcpAddress.sin_family = AF_INET; 					// dictates a socket will use ipv4 addressing
