@@ -1,0 +1,8 @@
+#pragma once 
+
+enum class URIError {
+  MALFORMEDPERCENTENCODING,
+  ESCAPESROOT,
+  INVALIDBYTE,
+  UNKNOWN
+};

@@ -7,9 +7,14 @@ HttpResponse RequestProcessor::process(RequestContext& ctx){
   HttpResponse response(200);
   FileResolver fileResolver;
 
+  if (ctx.getLocationConfig() == nullptr) {
+    response.setStatusCode(500);              //Actually it should just take the root from the server
+    return response;
+  }
+
   ctx.setFilePath(fileResolver.resolve(ctx));
 
-  // Check method, ofr example
+  // Check method
   if (!allowedMethod(ctx)) {
     response.setStatusCode(405);
   }

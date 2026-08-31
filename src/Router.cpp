@@ -11,7 +11,7 @@ if it's unique... (?!)
 RequestContext Router::createContext(const HttpRequest& request, const GlobalConfig& config, int serverConfigIndex){
   
   const ServerConfig& serverConfig = config.getServerConfigs()[serverConfigIndex];
-  std::string uri = request.getURI();
+  auto uri = request.getURI();
   RequestContext ctx;
   ctx.setServerConfig(serverConfig);
   ctx.setHttpRequest(request);
@@ -41,8 +41,6 @@ const LocationConfig* Router::matchLocation(const std::vector<LocationConfig>& l
   
   size_t maxLen = 0;
   const LocationConfig* matchingLocation = nullptr;
-
-  // std::cout << "URI: " << uri << std::endl;
 
   for (const LocationConfig& location : locationConfigs) {
     std::string path = location.getPath();

@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
     "{\"id\": \"42\"}";
 
   std::string reqRouting =
-    "POST /images/logo.png HTTP/1.1\r\n"
+    "POST /images-blabla/logo.png HTTP/1.1\r\n"
     "Host: developer.mozilla.org\r\n"
     "User-Agent: curl/8.6.0\r\n"
     "Accept: */*\r\n"
@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
 
   HttpParser parser;
 
-  parser.parse(reqRouting);
+  parser.parse(request);
   // std::string state = to_string(parser.getParserState());
   // std::cout << "State: " << state << std::endl;
 
@@ -99,7 +99,11 @@ int main(int argc, char **argv) {
   // std::cout << "Location path: " << ctx.getLocationConfig()->getPath() << std::endl;
 
   std::cout << "Request context is: " << std::endl;
-  ctx.getLocationConfig()->printValues();
+  if (ctx.getLocationConfig())
+    ctx.getLocationConfig()->printValues();
+  else
+    std::cout << "No suitable location found" << std::endl;
+  
 
   RequestProcessor processor;
   HttpResponse response = processor.process(ctx);
