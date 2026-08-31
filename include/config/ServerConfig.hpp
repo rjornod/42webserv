@@ -21,28 +21,32 @@ class ServerConfig {
 		std::unordered_set<std::string> 							m_seenLocations;
 		std::unordered_set<std::string> 							m_seendirectives;
 	public:
-		ServerConfig() 																								{ setDefaultValues(); }
-		~ServerConfig() 																							{};
-		int 				getPort() const 																	{ return m_listenPort; } 
-		std::string getServerName() const 														{ return m_serverName; }
-		int 				getClientMaxBody() const 													{ return m_clientMaxBodySize; }
-		std::map<int, std::string>	&getErrorPages()									{ return m_errorPages;}
-		std::vector<LocationConfig> &getLocationConfigs()							{ return m_locationConfigs;}
-		const std::vector<LocationConfig> &getLocationConfigs() const { return m_locationConfigs;}
-		void				setPort(int port)																	{ m_listenPort = port; }
-		void				setServerName(std::string& name)									{ m_serverName = name; }
-		void				setIndex(std::string& index)											{ m_index.emplace_back(index);}
-		void				setRoot(std::string& root)												{ m_root = root;}
-		void				setBodySize(int size)															{ m_clientMaxBodySize = size;}
-		void				setErrorPages(int error, std::string& path)				{ m_errorPages.emplace(error, path);}
-		void				setAutoIndex(bool isOn)														{ m_autoIndex = isOn;}
-		void				setCgiHandler(std::string ext, std::string path)	{ m_cgiHandlers.try_emplace(ext, path); }
-		void				createLocationConfig()														{ m_locationConfigs.emplace_back();}
-		void 				setDefaultValues();
-		void 				checkDuplicateLocations(const std::string& path);
-		void				seenDirective(std::string directive);
-		void				checkMandatoryDirectives();
-		void				printIndex() const;
-		void 				printErrorPages() const;
-		void 				printValues() const;		
+		ServerConfig() 																												{ setDefaultValues(); }
+		~ServerConfig() 																											{};
+		void	setPort(int port)																								{ m_listenPort = port; }
+		void	setServerName(const std::string& name)													{ m_serverName = name; }
+		void	setIndex(const std::string& index)															{ m_index.emplace_back(index); }
+		void	setRoot(const std::string& root)																{ m_root = root; }
+		void	setBodySize(int size)																						{ m_clientMaxBodySize = size; }
+		void	setErrorPages(int error, const std::string& path)								{ m_errorPages.emplace(error, path); }
+		void	setAutoIndex(bool isOn)																					{ m_autoIndex = isOn; }
+		void	setCgiHandler(const std::string& ext, const std::string& path)	{ m_cgiHandlers.try_emplace(ext, path); }
+		void	createLocationConfig()																					{ m_locationConfigs.emplace_back(); }
+		void 	setDefaultValues();
+		void 	checkDuplicateLocations(const std::string& path);
+		void	seenDirective(std::string directive);
+		void	checkMandatoryDirectives();
+		void	printIndex() const;
+		void 	printErrorPages() const;
+		void	printValues() const;
+		int 																getPort() const 												{ return m_listenPort; } 
+		int 																getClientMaxBody() const								{ return m_clientMaxBodySize; }
+		bool 																getAutoIndex() const 										{ return m_autoIndex; }
+		const std::string& 									getServerName() const 									{ return m_serverName; }
+		const std::string& 									getRoot() const 												{ return m_root; }
+		const std::vector<std::string>& 		getIndex() const 												{ return m_index; }
+		const std::map<int, std::string>&		getErrorPages() const 									{ return m_errorPages; }
+		const std::unordered_map<std::string, std::string>& getCgiHandler() const 	{ return m_cgiHandlers; }
+		const std::vector<LocationConfig>&	getLocationConfigs() const 							{ return m_locationConfigs; }
+		std::vector<LocationConfig>&				getLocationConfigs() 										{ return m_locationConfigs; }
 	};

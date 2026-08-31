@@ -1,6 +1,6 @@
 SERV = webserv
-CXX = g++ -Wall -Wextra -Werror
-CXXFLAGS += -g -std=c++20
+CXX = c++ -Wall -Wextra -Werror
+CXXFLAGS += -g -std=c++17
 INCL = -Iinclude -Iinclude/config -Iinclude/server -Iinclude/utils -Iinclude/http -Iinterfaces
 SRC_DIR = ./src
 OBJ_DIR = ./obj

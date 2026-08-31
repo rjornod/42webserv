@@ -8,11 +8,9 @@ void ServerConfig::checkDuplicateLocations(const std::string& path) {
 }
 
 void ServerConfig::setDefaultValues() {
-	m_serverName = "localhost";
-	m_root = "www";
+	m_root = "/www";
 	m_clientMaxBodySize = 100000000;
 	m_autoIndex = false;
-	m_index.emplace_back("index.html");
 	m_errorPages.clear();
 }
 
