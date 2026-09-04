@@ -1,5 +1,52 @@
 #include "FileResolver.hpp"
 
+enum class UriDecodeError {
+  MALFORMED_PERCENT_ENCODING,
+  INVALID_BYTE
+};
+
+constexpr const char* to_string(UriDecodeError error)
+{
+    switch (error) {
+        case UriDecodeError::MALFORMED_PERCENT_ENCODING: return "MALFORMED_PERCENT_ENCODING";
+        case UriDecodeError::INVALID_BYTE: return "INVALID_BYTE";
+    }
+    return "ERROR";
+}
+
+enum class PathResolutionError {
+  PATH_ESCAPES_ROOT,
+  NOT_FOUND,
+  SERVER_CONFIG_ERROR
+};
+
+constexpr const char* to_string(PathResolutionError error)
+{
+    switch (error) {
+        case PathResolutionError::PATH_ESCAPES_ROOT: return "PATH_ESCAPES_ROOT";
+        case PathResolutionError::NOT_FOUND: return "NOT_FOUND";
+        case PathResolutionError::SERVER_CONFIG_ERROR: return "SERVER_CONFIG_ERROR";
+    }
+    return "ERROR";
+}
+
+enum class FileResolutionError {
+  BAD_REQUEST,    // From UriDecodeError -- client sent garbage
+  FORBIDDEN,      // Path escaped root
+  NOT_FOUND,
+  SERVER_ERROR
+};
+
+constexpr const char* to_string(FileResolutionError error)
+{
+    switch (error) {
+        case FileResolutionError::BAD_REQUEST: return "BAD_REQUEST";
+        case FileResolutionError::FORBIDDEN: return "FORBIDDEN";
+        case FileResolutionError::NOT_FOUND: return "NOT_FOUND";
+        case FileResolutionError::SERVER_ERROR: return "SERVER_ERROR";
+    }
+    return "ERROR";
+}
 
 // This function builds the file system path based on the uri and the location context
 // First it decodes escaped hex characters such as %2E -> '.' from the uri
@@ -16,19 +63,11 @@ std::string FileResolver::resolve(const RequestContext& ctx){
 
   if (!decodedUri) {
     switch (decodedUri.error()) {
-      case URIError::MALFORMED_PERCENT_ENCODING:
+      case UriDecodeError::MALFORMED_PERCENT_ENCODING:
         std::cout << "Invalid URI: " << to_string(decodedUri.error()) << std::endl;
         return "";
         break;
-      case URIError::ESCAPES_ROOT:
-        std::cout << "Invalid URI: " << to_string(decodedUri.error()) << std::endl;
-        return "";
-        break;
-      case URIError::INVALID_BYTE:
-        std::cout << "Invalid URI: " << to_string(decodedUri.error()) << std::endl;
-        return "";
-        break;
-      case URIError::UNKNOWN:
+      case UriDecodeError::INVALID_BYTE:
         std::cout << "Invalid URI: " << to_string(decodedUri.error()) << std::endl;
         return "";
         break;
@@ -88,7 +127,7 @@ bool isDangerousByte(char c) {
     return false;
 }
 
-Result<std::string, URIError> FileResolver::percentDecode(std::string_view raw) {
+Result<std::string, UriDecodeError> FileResolver::percentDecode(std::string_view raw) {
   
   std::string out;
 
@@ -96,16 +135,16 @@ Result<std::string, URIError> FileResolver::percentDecode(std::string_view raw) 
     char c = raw[i];
     if (c == '%') {
       if (i + 2 >= raw.size() || !is_hex(raw[i + 1]) || !is_hex(raw[i + 2]))
-        return Result<std::string, URIError>::Err(URIError::MALFORMED_PERCENT_ENCODING);
+        return Result<std::string, UriDecodeError>::Err(UriDecodeError::MALFORMED_PERCENT_ENCODING);
       c = hex_pair_to_byte(raw[i + 1], raw[i + 2]);
       i += 2;
     }
     if (isDangerousByte(c))
-      return Result<std::string, URIError>::Err(URIError::INVALID_BYTE);
+      return Result<std::string, UriDecodeError>::Err(UriDecodeError::INVALID_BYTE);
     out.push_back(c);
   }
 
-  return Result<std::string, URIError>::Ok(std::move(out));
+  return Result<std::string, UriDecodeError>::Ok(std::move(out));
 }
 
 std::vector<std::string_view> splitUri(std::string_view uri) {
@@ -133,7 +172,7 @@ std::vector<std::string_view> splitUri(std::string_view uri) {
 
 //Careful! Stack is made of string_views -- don't let it live further than
 // decodedURI, before using the result
-Result<std::vector<std::string_view>, URIError> FileResolver::normalizeSegments(std::string_view decodedUri) {
+Result<std::vector<std::string_view>, PathResolutionError> FileResolver::normalizeSegments(std::string_view decodedUri) {
   
   std::vector<std::string_view> rawSegments = splitUri(decodedUri);
   std::vector<std::string_view> stack;
@@ -148,15 +187,15 @@ Result<std::vector<std::string_view>, URIError> FileResolver::normalizeSegments(
         stack.pop_back(); // We already went down at least once -- go one up
       else {
         //Trying to escape the root -- return an error
-        return Result<std::vector<std::string_view>, URIError>::Err(
-            URIError::ESCAPES_ROOT);
+        return Result<std::vector<std::string_view>, PathResolutionError>::Err(
+            PathResolutionError::PATH_ESCAPES_ROOT);
       }
     }
     else 
       stack.push_back(segment);
   }
 
-  return Result<std::vector<std::string_view>, URIError>::Ok(std::move(stack));
+  return Result<std::vector<std::string_view>, PathResolutionError>::Ok(std::move(stack));
 }
 
 //Joins two paths properly, i.e., by avoiding double slashes
