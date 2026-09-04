@@ -17,7 +17,8 @@ class RequestContext {
     
     const LocationConfig* getLocationConfig() const {return m_locationConfig;}
     ServerConfig   getServerConfig() const {return m_serverConfig;}
-    HttpRequest    getHttpRequest() const {return m_httpRequest;}
+    // HttpRequest    getHttpRequest() const {return m_httpRequest;}
+    const HttpRequest& getHttpRequest() const {return m_httpRequest;}
     std::string    getFilePath() const {return m_filePath;}
     void           setHttpRequest(const HttpRequest& request) {m_httpRequest = request;}
     void           setServerConfig(const ServerConfig& serverConfig) {m_serverConfig = serverConfig;}

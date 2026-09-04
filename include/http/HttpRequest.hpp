@@ -13,10 +13,10 @@ class HttpRequest {
 
   private:
     HttpMethod m_method;
-    std::string m_rawPath; //URI for now
-    HttpVersion m_version; //For now
+    std::string m_rawPath;
+    HttpVersion m_version; 
     std::unordered_map<std::string, std::string> m_headers;
-    std::string m_body;//something else for the body
+    std::string m_body;
     
     
 
@@ -24,7 +24,7 @@ class HttpRequest {
 
     HttpRequest() : m_method(HttpMethod::UNKNOWN) {}
     HttpMethod getMethod() const {return m_method;}
-    std::string getURI() const {return m_rawPath;}
+    const std::string& getURI() const {return m_rawPath;}
     HttpVersion getVersion() const {return m_version;}
     std::string getBody() const {return m_body;}
     std::unordered_map<std::string, std::string> getHeaders() const {return m_headers;}

@@ -1,26 +1,35 @@
 #include "FileResolver.hpp"
-#include "URIError.hpp"
-#include "Result.hpp"
 
 
+// This function builds the file system path based on the uri and the location context
+// First it decodes escaped hex characters such as %2E -> '.' from the uri
+// Then it checks whether the decoded uri tries to escape the main directory
+// for safety of the host of the webserver
 std::string FileResolver::resolve(const RequestContext& ctx){
 
+  std::string fileSystemPath;
   std::string locationRoot = ctx.getLocationConfig()->getRoot();
+  HttpRequest request = ctx.getHttpRequest();
+  std::string_view raw = request.getURI();
 
-  std::string_view raw = ctx.getHttpRequest().getURI();
   auto decodedUri = percentDecode(raw);
+
   if (!decodedUri) {
     switch (decodedUri.error()) {
-      case URIError::MALFORMEDPERCENTENCODING:
+      case URIError::MALFORMED_PERCENT_ENCODING:
+        std::cout << "Invalid URI: " << to_string(decodedUri.error()) << std::endl;
         return "";
         break;
-      case URIError::ESCAPESROOT:
+      case URIError::ESCAPES_ROOT:
+        std::cout << "Invalid URI: " << to_string(decodedUri.error()) << std::endl;
         return "";
         break;
-      case URIError::INVALIDBYTE:
+      case URIError::INVALID_BYTE:
+        std::cout << "Invalid URI: " << to_string(decodedUri.error()) << std::endl;
         return "";
         break;
       case URIError::UNKNOWN:
+        std::cout << "Invalid URI: " << to_string(decodedUri.error()) << std::endl;
         return "";
         break;
       default:
@@ -28,11 +37,17 @@ std::string FileResolver::resolve(const RequestContext& ctx){
     }
   }
 
-  // std::string rootMinusSlash = locationRoot.erase(0, 1);
+  std::cout << "percent decoded uri: " << decodedUri.value() << std::endl;
+  auto segments = normalizeSegments(decodedUri.value());
 
-  // std::string filePath = rootMinusSlash + ctx.getHttpRequest().getURI();
+  if (!segments) {
+    std::cout << "Invalid URI segments: " << to_string(segments.error()) << std::endl;
+    return "";
+  }
 
-  // return uri;
+  fileSystemPath = makeFSPath(locationRoot, segments.value());
+  std::cout << fileSystemPath << std::endl;
+  return "hello";
 }
 
 bool is_hex(char c) {
@@ -55,7 +70,46 @@ char hex_pair_to_byte(char high, char low) {
     return static_cast<char>(value);
 }
 
+bool isDangerousByte(char c) {
+
+    unsigned char uc = static_cast<unsigned char>(c);
+
+    // NULL byte
+    if (uc == 0x00) return true;
+
+    // other C0 control characters (0x01–0x1F) — things like \n, \r, tab
+    // these can be used to inject fake headers or otherwise confuse
+    // downstream parsers/logs that assume a path is "normal" text
+    if (uc < 0x20) return true;
+
+    // DEL character
+    if (uc == 0x7F) return true;
+
+    return false;
+}
+
+Result<std::string, URIError> FileResolver::percentDecode(std::string_view raw) {
+  
+  std::string out;
+
+  for (size_t i = 0; i < raw.size(); i++) {
+    char c = raw[i];
+    if (c == '%') {
+      if (i + 2 >= raw.size() || !is_hex(raw[i + 1]) || !is_hex(raw[i + 2]))
+        return Result<std::string, URIError>::Err(URIError::MALFORMED_PERCENT_ENCODING);
+      c = hex_pair_to_byte(raw[i + 1], raw[i + 2]);
+      i += 2;
+    }
+    if (isDangerousByte(c))
+      return Result<std::string, URIError>::Err(URIError::INVALID_BYTE);
+    out.push_back(c);
+  }
+
+  return Result<std::string, URIError>::Ok(std::move(out));
+}
+
 std::vector<std::string_view> splitUri(std::string_view uri) {
+
   std::vector<std::string_view> segments;
 
   size_t start = 0;
@@ -76,32 +130,11 @@ std::vector<std::string_view> splitUri(std::string_view uri) {
   return segments;
 }
 
-// For now it just copies the string_view 
-Result<std::string, URIError> FileResolver::percentDecode(std::string_view raw) {
-  std::string out;
-
-  for (size_t i = 0; i < raw.size(); i++) {
-    if (raw[i] == '%') {
-      if (i + 2 >= raw.size() || !is_hex(raw[i + 1]) || !is_hex(raw[i + 2]))
-        return Result<std::string, URIError>::Err(URIError::MALFORMEDPERCENTENCODING);
-      out.push_back(hex_pair_to_byte(raw[i + 1], raw[i + 2]));
-      i += 2;
-    }
-    else
-      out.push_back(raw[i]);
-  }
-
-  std::vector<std::string_view> stack;
-
-
-
-  return Result<std::string, URIError>::Ok(std::move(out));
-}
-
 
 //Careful! Stack is made of string_views -- don't let it live further than
 // decodedURI, before using the result
-Result<std::vector<std::string_view>, URIError> normalize_segments(std::string_view decodedUri) {
+Result<std::vector<std::string_view>, URIError> FileResolver::normalizeSegments(std::string_view decodedUri) {
+  
   std::vector<std::string_view> rawSegments = splitUri(decodedUri);
   std::vector<std::string_view> stack;
 
@@ -116,7 +149,7 @@ Result<std::vector<std::string_view>, URIError> normalize_segments(std::string_v
       else {
         //Trying to escape the root -- return an error
         return Result<std::vector<std::string_view>, URIError>::Err(
-            URIError::ESCAPESROOT);
+            URIError::ESCAPES_ROOT);
       }
     }
     else 
@@ -124,4 +157,37 @@ Result<std::vector<std::string_view>, URIError> normalize_segments(std::string_v
   }
 
   return Result<std::vector<std::string_view>, URIError>::Ok(std::move(stack));
+}
+
+//Joins two paths properly, i.e., by avoiding double slashes
+std::string joinPath(std::string_view base, std::string_view suffix) {
+    std::string result;
+    result.reserve(base.size() + suffix.size() + 1);
+
+    // strip trailing slash from base, if present
+    if (!base.empty() && base.back() == '/') {
+        base.remove_suffix(1);
+    }
+
+    // strip leading slash from suffix, if present
+    if (!suffix.empty() && suffix.front() == '/') {
+        suffix.remove_prefix(1);
+    }
+
+    result.append(base);
+    result.push_back('/');
+    result.append(suffix);
+
+    return result;
+}
+
+std::string FileResolver::makeFSPath(std::string root, std::vector<std::string_view> segments) {
+
+  std::string path = root;
+
+  for (auto segment : segments) {
+    path = joinPath(path, segment);
+  }
+
+  return path;
 }

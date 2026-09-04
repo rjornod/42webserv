@@ -12,6 +12,7 @@ HttpResponse RequestProcessor::process(RequestContext& ctx){
     return response;
   }
 
+  // std::cout << "File path: " << fileResolver.resolve(ctx) << std::endl;
   ctx.setFilePath(fileResolver.resolve(ctx));
 
   // Check method
@@ -23,7 +24,7 @@ HttpResponse RequestProcessor::process(RequestContext& ctx){
   // Call appropriate handler
   // return staticFileHandler.handle(ctx);
 
-  std::cout << "FilePath: " << ctx.getFilePath() << std::endl;
+  // std::cout << "FilePath: " << ctx.getFilePath() << std::endl;/
 
   return response;
 }
