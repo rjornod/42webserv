@@ -1,6 +1,7 @@
 #pragma once
 #include "RequestContext.hpp"
 #include "HttpResponse.hpp"
+#include "Result.hpp"
 
 class RequestProcessor {
 

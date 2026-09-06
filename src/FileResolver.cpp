@@ -1,60 +1,12 @@
 #include "FileResolver.hpp"
 
-enum class UriDecodeError {
-  MALFORMED_PERCENT_ENCODING,
-  INVALID_BYTE
-};
-
-constexpr const char* to_string(UriDecodeError error)
-{
-    switch (error) {
-        case UriDecodeError::MALFORMED_PERCENT_ENCODING: return "MALFORMED_PERCENT_ENCODING";
-        case UriDecodeError::INVALID_BYTE: return "INVALID_BYTE";
-    }
-    return "ERROR";
-}
-
-enum class PathResolutionError {
-  PATH_ESCAPES_ROOT,
-  NOT_FOUND,
-  SERVER_CONFIG_ERROR
-};
-
-constexpr const char* to_string(PathResolutionError error)
-{
-    switch (error) {
-        case PathResolutionError::PATH_ESCAPES_ROOT: return "PATH_ESCAPES_ROOT";
-        case PathResolutionError::NOT_FOUND: return "NOT_FOUND";
-        case PathResolutionError::SERVER_CONFIG_ERROR: return "SERVER_CONFIG_ERROR";
-    }
-    return "ERROR";
-}
-
-enum class FileResolutionError {
-  BAD_REQUEST,    // From UriDecodeError -- client sent garbage
-  FORBIDDEN,      // Path escaped root
-  NOT_FOUND,
-  SERVER_ERROR
-};
-
-constexpr const char* to_string(FileResolutionError error)
-{
-    switch (error) {
-        case FileResolutionError::BAD_REQUEST: return "BAD_REQUEST";
-        case FileResolutionError::FORBIDDEN: return "FORBIDDEN";
-        case FileResolutionError::NOT_FOUND: return "NOT_FOUND";
-        case FileResolutionError::SERVER_ERROR: return "SERVER_ERROR";
-    }
-    return "ERROR";
-}
-
-// This function builds the file system path based on the uri and the location context
+// Builds the file system path based on the uri and the location context
 // First it decodes escaped hex characters such as %2E -> '.' from the uri
 // Then it checks whether the decoded uri tries to escape the main directory
 // for safety of the host of the webserver
-std::string FileResolver::resolve(const RequestContext& ctx){
+Result<std::filesystem::path, FileResolutionError> FileResolver::resolve(const RequestContext& ctx){
 
-  std::string fileSystemPath;
+  std::string fSPString;
   std::string locationRoot = ctx.getLocationConfig()->getRoot();
   HttpRequest request = ctx.getHttpRequest();
   std::string_view raw = request.getURI();
@@ -65,28 +17,48 @@ std::string FileResolver::resolve(const RequestContext& ctx){
     switch (decodedUri.error()) {
       case UriDecodeError::MALFORMED_PERCENT_ENCODING:
         std::cout << "Invalid URI: " << to_string(decodedUri.error()) << std::endl;
-        return "";
+        return Result<std::filesystem::path, FileResolutionError>::Err(
+          FileResolutionError::BAD_REQUEST);
         break;
       case UriDecodeError::INVALID_BYTE:
         std::cout << "Invalid URI: " << to_string(decodedUri.error()) << std::endl;
-        return "";
+        return Result<std::filesystem::path, FileResolutionError>::Err(
+          FileResolutionError::BAD_REQUEST);
         break;
       default:
-        return "";
+        return Result<std::filesystem::path, FileResolutionError>::Err(
+          FileResolutionError::BAD_REQUEST);
     }
   }
 
-  std::cout << "percent decoded uri: " << decodedUri.value() << std::endl;
   auto segments = normalizeSegments(decodedUri.value());
 
   if (!segments) {
     std::cout << "Invalid URI segments: " << to_string(segments.error()) << std::endl;
-    return "";
+    return Result<std::filesystem::path, FileResolutionError>::Err(
+      FileResolutionError::FORBIDDEN);
   }
 
-  fileSystemPath = makeFSPath(locationRoot, segments.value());
-  std::cout << fileSystemPath << std::endl;
-  return "hello";
+  fSPString = makeFSPath(locationRoot, segments.value());
+  // std::cout << fSPString << std::endl;
+
+  std::filesystem::path candidate = fSPString;
+  std::filesystem::path root = locationRoot;
+  Result<std::filesystem::path, FileResolutionError> path = checkWithinRoot(candidate, root);
+  if (!path)
+    return Result<std::filesystem::path, FileResolutionError>::Err(path.error());
+
+  // Now check whether the file is a dirctory
+  auto status = std::filesystem::status(path.value());
+  if (std::filesystem::is_regular_file(status))
+    return Result<std::filesystem::path, FileResolutionError>::Ok(path.value());
+  else if (std::filesystem::is_directory(status)) {
+    auto indexResult = resolveIndex(path.value(), ctx.getLocationConfig()->getIndex());
+    if (!indexResult)
+      return Result<std::filesystem::path, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
+    return Result<std::filesystem::path, FileResolutionError>::Ok(indexResult.value());
+  }
+  return Result<std::filesystem::path, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
 }
 
 bool is_hex(char c) {
@@ -195,7 +167,8 @@ Result<std::vector<std::string_view>, PathResolutionError> FileResolver::normali
       stack.push_back(segment);
   }
 
-  return Result<std::vector<std::string_view>, PathResolutionError>::Ok(std::move(stack));
+  return Result<std::vector<std::string_view>, PathResolutionError>::Ok(
+    std::move(stack));
 }
 
 //Joins two paths properly, i.e., by avoiding double slashes
@@ -229,4 +202,75 @@ std::string FileResolver::makeFSPath(std::string root, std::vector<std::string_v
   }
 
   return path;
+}
+
+/* This function checks against the file systemwhether the path resolved from
+ the text is actually contained in the root; it then also catches whether
+ the file and the root exist
+ */
+// Mismatch checks the elements in two iterators pair by pair and return the first
+// pair that is not equal. If everything is the same (assuming the first it is
+// potentially shorter), returns the end of the first iterator. In this case, we
+// compare the absolute paths both of the root and of the request resolved file path
+// If the path of the root is not fully contained in the candidate (i.e. mismatch
+// returns other than the end of the root), it means the path is somewhere outside
+// the root directory
+Result<std::filesystem::path, FileResolutionError> FileResolver::checkWithinRoot(const std::filesystem::path& candidate, const std::filesystem::path& root) {
+  
+  std::error_code ec;
+
+  std::filesystem::path canonical_root = std::filesystem::canonical(root, ec);
+
+  if (ec) {
+    // Error code is set
+    // Meaning root doesn't exist
+    // This is a server config problem
+    return Result<std::filesystem::path, FileResolutionError>::Err(
+      FileResolutionError::SERVER_ERROR);
+  }
+
+  std::filesystem::path canonical_path = std::filesystem::canonical(candidate, ec);
+
+  if (ec) {
+    // Error code is set
+    // Meaning that the file (or some part along the way) doesn't exist
+    // File not found
+    return Result<std::filesystem::path, FileResolutionError>::Err(
+      FileResolutionError::NOT_FOUND);
+  }
+
+  // Now check if canonical_root is a prefix (in filesystem terms) of canonical_path
+  // Meaning that the path escapes the root
+  auto [root_end, nothing] = std::mismatch(canonical_root.begin(),
+                                          canonical_root.end(),
+                                          canonical_path.begin());
+                                        
+  if (root_end != canonical_root.end()) {
+    // Means that the path escaped the root
+    return Result<std::filesystem::path, FileResolutionError>::Err(
+      FileResolutionError::FORBIDDEN);
+  }
+
+  return Result<std::filesystem::path, FileResolutionError>::Ok(
+    std::move(canonical_path));
+
+}
+
+/* Checks against the filesystem whether directory/location.indexCandidate exists
+ returns the first index candidate that exists -- if none exists, return 403 (or 404)
+*/
+Result<std::filesystem::path, FileResolutionError> FileResolver::resolveIndex(
+  const std::filesystem::path& directory,
+  const std::vector<std::string>& indexCandidates) {
+
+  for (const auto& name : indexCandidates) {
+    std::filesystem::path path = directory / name;
+
+    std::error_code ec;
+    if (std::filesystem::is_regular_file(path) && !ec)
+      return Result<std::filesystem::path, FileResolutionError>::Ok(path);
+  }
+
+  //If none of the index candidates exist, return an error
+  return Result<std::filesystem::path, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
 }

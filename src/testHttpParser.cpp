@@ -8,7 +8,7 @@
 int main(int argc, char **argv) {
 
   std::string request =
-    "GET https://medium.com/ HTTP/1.1\r\n"
+    "GET / HTTP/1.1\r\n"
     "Host: example.com\r\n"
     "User-Agent: test\r\n"
     "Content-Length: 5\r\n"
@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
 
   HttpParser parser;
 
-  parser.parse(reqRouting);
+  parser.parse(request);
   // std::string state = to_string(parser.getParserState());
   // std::cout << "State: " << state << std::endl;
 
@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
   RequestProcessor processor;
   HttpResponse response = processor.process(ctx);
 
-  std::cout << "Response status code: "<< response.getStatusCode() << std::endl;
+  std::cout << std::endl << "Response status code: "<< response.getStatusCode() << std::endl;
 
   return 0;
 
