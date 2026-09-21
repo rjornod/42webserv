@@ -5,7 +5,7 @@
 
 class RequestProcessor {
 
-  private:
+  // private:
 
     // RequestContext m_requestContext;
 
@@ -13,5 +13,7 @@ class RequestProcessor {
 
     HttpResponse process(RequestContext& ctx);
     bool allowedMethod(const RequestContext& ctx);
+    HttpResponse staticHandler(RequestContext& ctx);
+    HttpResponse buildErrorResponse(int errorCode);
 
 };

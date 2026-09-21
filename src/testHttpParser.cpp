@@ -8,62 +8,12 @@
 int main(int argc, char **argv) {
 
   std::string request =
-    "GET / HTTP/1.1\r\n"
+    "POST secret.html HTTP/1.1\r\n"
     "Host: example.com\r\n"
     "User-Agent: test\r\n"
     "Content-Length: 5\r\n"
     "\r\n"
     "hello";
-
-
-  std::string reqMethod = 
-    "GET ";
-
-  std::string reqLineURI = 
-    "https://medium.com/ HTTP/1.1\r\n"
-    "Host: example.com\r\n";
-
-  std::string reqHeaders = 
-    "User-Agent: test\r\n"
-    "Content-Length: 5\r\n"
-    "\r\n"
-    "helloPOST /nextreq";
-
-  std::string reqWithBody =
-    "POST / HTTP/1.1\r\n"
-    "Host: developer.mozilla.org\r\n"
-    "User-Agent: curl/8.6.0\r\n"
-    "Accept: */*\r\n"
-    "Content-Type: application/json\r\n"
-    "content-length: 12\r\n"
-    "\r\n"
-    "{\"id\": \"42\"}";
-
-  std::string missingVersion =
-    "GET /index.html\r\n"
-    "Host: localhost\r\n"
-    "User-Agent: Test\r\n"
-    "\r\n";
-
-  std::string invalidContentLen = 
-    "POST / HTTP/1.1\r\n"
-    "Host: developer.mozilla.org\r\n"
-    "User-Agent: curl/8.6.0\r\n"
-    "Accept: */*\r\n"
-    "Content-Type: application/json\r\n"
-    "content-length: 0\r\n"
-    "\r\n"
-    "{\"id\": \"42\"}";
-
-  std::string reqRouting =
-    "POST /upload/images//logo%2Epng HTTP/1.1\r\n"
-    "Host: developer.mozilla.org\r\n"
-    "User-Agent: curl/8.6.0\r\n"
-    "Accept: */*\r\n"
-    "Content-Type: application/json\r\n"
-    "content-length: 12\r\n"
-    "\r\n"
-    "{\"id\": \"42\"}";
 
   if (argc != 2) {
     std::cout << "Usage ./webserv <path/to/configfile>" << std::endl;
@@ -73,13 +23,10 @@ int main(int argc, char **argv) {
   HttpParser parser;
 
   parser.parse(request);
-  // std::string state = to_string(parser.getParserState());
-  // std::cout << "State: " << state << std::endl;
 
-  std::cout << "------------------------- Request: ------------------" << std::endl << parser.getRequest() << std::endl;
-  std::cout << "-----------------------------------------------------" << std::endl;
+  // std::cout << "------------------------- Request: ------------------" << std::endl << parser.getRequest() << std::endl;
+  // std::cout << "-----------------------------------------------------" << std::endl;
 
-  std::cout << "Buffer:" << std::endl << parser.getBuffer() << std::endl;
   GlobalConfig globalConfig;
   ConfigParser config(argv[1], globalConfig);
 	if (!config.processConfig()) {
@@ -96,8 +43,6 @@ int main(int argc, char **argv) {
   Router router;
   RequestContext ctx = router.createContext(parser.getRequest(), globalConfig, 0);
 
-  // std::cout << "Location path: " << ctx.getLocationConfig()->getPath() << std::endl;
-
   std::cout << "Request context is: " << std::endl;
   if (ctx.getLocationConfig())
     ctx.getLocationConfig()->printValues();
@@ -108,7 +53,7 @@ int main(int argc, char **argv) {
   RequestProcessor processor;
   HttpResponse response = processor.process(ctx);
 
-  std::cout << std::endl << "Response status code: "<< response.getStatusCode() << std::endl;
+  std::cout << std::endl << "Response: " << std::endl << response << std::endl;
 
   return 0;
 

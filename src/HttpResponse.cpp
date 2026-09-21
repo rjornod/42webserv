@@ -1,12 +1,49 @@
 #include "HttpResponse.hpp"
 
+// HttpResponse &HttpResponse::operator=(const HttpResponse & other){
+
+// }
+void HttpResponse::makeStatusLine(){
+
+  std::string statusLine = "HTTP/1.1 " + std::to_string(m_statusCode) + " " + getReasonPhrase() + "\r\n";
+  setStatusLine(statusLine);
+}
+
+
+void HttpResponse::addHeader(std::string name, std::string value) {
+  m_headers.push_back({name , value});
+}
+
+
+std::ostream &operator<<(std::ostream &out, const HttpResponse &response) {
+
+  out << "[Status line] " << response.getStatusLine() << std::endl;
+  out<< "[Headers] " << std::endl;
+
+  std::vector<std::pair<std::string, std::string>> headers = response.getHeaders();
+  for (auto it = headers.begin(); it != headers.end(); it++) {
+    out << it->first << ": " << it->second << std::endl;
+  }
+
+  try {
+    out << "[Body]" << std::endl << std::get<std::string>(response.getbodySource()) << std::endl;
+  }
+  catch (const std::bad_variant_access& ex) {
+
+  }
+
+  return out;
+}
+
 const std::map<int, std::string> HttpResponse::M_STATUSCODES = {
+  {200, "OK"},
   {400, "Bad Request"},
   {403, "Forbidden"},
   {404, "Not found"},
   {405, "Method Not Allowed"},
   {408, "Request Timeout"},
   {413, "Content Too Large"},
+  {418, "I'm a teapot"}, 
   {500, "Internal Server Error"},
   {505, "HTTP Version Not Supported"}
 };
