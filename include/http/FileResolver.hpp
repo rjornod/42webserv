@@ -24,7 +24,7 @@ enum class FileResolutionError {
 
 class FileResolver {
 
-  private:
+//   private:
 
   public:
 

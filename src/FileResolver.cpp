@@ -19,12 +19,12 @@ Result<std::filesystem::path, FileResolutionError> FileResolver::resolve(const R
         std::cout << "Invalid URI: " << to_string(decodedUri.error()) << std::endl;
         return Result<std::filesystem::path, FileResolutionError>::Err(
           FileResolutionError::BAD_REQUEST);
-        break;
+        // break;
       case UriDecodeError::INVALID_BYTE:
         std::cout << "Invalid URI: " << to_string(decodedUri.error()) << std::endl;
         return Result<std::filesystem::path, FileResolutionError>::Err(
           FileResolutionError::BAD_REQUEST);
-        break;
+        // break;
       default:
         return Result<std::filesystem::path, FileResolutionError>::Err(
           FileResolutionError::BAD_REQUEST);
@@ -177,14 +177,12 @@ std::string joinPath(std::string_view base, std::string_view suffix) {
     result.reserve(base.size() + suffix.size() + 1);
 
     // strip trailing slash from base, if present
-    if (!base.empty() && base.back() == '/') {
+    if (!base.empty() && base.back() == '/')
         base.remove_suffix(1);
-    }
 
     // strip leading slash from suffix, if present
-    if (!suffix.empty() && suffix.front() == '/') {
+    if (!suffix.empty() && suffix.front() == '/')
         suffix.remove_prefix(1);
-    }
 
     result.append(base);
     result.push_back('/');
@@ -197,9 +195,8 @@ std::string FileResolver::makeFSPath(std::string root, std::vector<std::string_v
 
   std::string path = root;
 
-  for (auto segment : segments) {
+  for (auto segment : segments)
     path = joinPath(path, segment);
-  }
 
   return path;
 }
@@ -221,23 +218,21 @@ Result<std::filesystem::path, FileResolutionError> FileResolver::checkWithinRoot
 
   std::filesystem::path canonical_root = std::filesystem::canonical(root, ec);
 
-  if (ec) {
+  if (ec)
     // Error code is set
     // Meaning root doesn't exist
     // This is a server config problem
     return Result<std::filesystem::path, FileResolutionError>::Err(
       FileResolutionError::SERVER_ERROR);
-  }
 
   std::filesystem::path canonical_path = std::filesystem::canonical(candidate, ec);
 
-  if (ec) {
+  if (ec)
     // Error code is set
     // Meaning that the file (or some part along the way) doesn't exist
     // File not found
     return Result<std::filesystem::path, FileResolutionError>::Err(
       FileResolutionError::NOT_FOUND);
-  }
 
   // Now check if canonical_root is a prefix (in filesystem terms) of canonical_path
   // Meaning that the path escapes the root
@@ -245,11 +240,10 @@ Result<std::filesystem::path, FileResolutionError> FileResolver::checkWithinRoot
                                           canonical_root.end(),
                                           canonical_path.begin());
                                         
-  if (root_end != canonical_root.end()) {
+  if (root_end != canonical_root.end())
     // Means that the path escaped the root
     return Result<std::filesystem::path, FileResolutionError>::Err(
       FileResolutionError::FORBIDDEN);
-  }
 
   return Result<std::filesystem::path, FileResolutionError>::Ok(
     std::move(canonical_path));

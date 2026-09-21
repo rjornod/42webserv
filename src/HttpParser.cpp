@@ -235,7 +235,7 @@ bool isDigits(std::string_view s) {
 
 HttpVersion HttpParser::validateHttpVersion(std::string_view versionStr) {
 
-  if (versionStr.length() < 8)
+  if (versionStr.length() != 8)
     return HttpVersion::UNSUPPORTED;
   std::string_view http = versionStr.substr(0,5);
   if (http != "HTTP/")

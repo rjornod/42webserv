@@ -45,7 +45,7 @@ const LocationConfig* Router::matchLocation(const std::vector<LocationConfig>& l
   for (const LocationConfig& location : locationConfigs) {
     std::string path = location.getPath();
     if (path == "/" || isPrefixMatch(path, uri)) {
-      if ((path.size() > maxLen)) {
+      if (path.size() > maxLen) {
         maxLen = path.size();
         matchingLocation = &location; // Not sure if this is too costly
         // std::cout << "Path: " << path << " is prefix of length "<< maxLen << std::endl;
