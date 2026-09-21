@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include "URI.hpp"
 #include "HttpMethod.hpp"
+#include "HttpVersion.hpp"
 
 class URI;
 
@@ -12,10 +13,10 @@ class HttpRequest {
 
   private:
     HttpMethod m_method;
-    std::string m_rawPath; //URI for now
-    std::string m_version; //For now
+    std::string m_rawPath;
+    HttpVersion m_version; 
     std::unordered_map<std::string, std::string> m_headers;
-    std::string m_body;//something else for the body
+    std::string m_body;
     
     
 
@@ -23,13 +24,13 @@ class HttpRequest {
 
     HttpRequest() : m_method(HttpMethod::UNKNOWN) {}
     HttpMethod getMethod() const {return m_method;}
-    std::string getURI() const {return m_rawPath;}
-    std::string getVersion() const {return m_version;}
+    const std::string& getURI() const {return m_rawPath;}
+    const HttpVersion& getVersion() const {return m_version;}
     std::string getBody() const {return m_body;}
     std::unordered_map<std::string, std::string> getHeaders() const {return m_headers;}
     void setMethod(HttpMethod method) {m_method = method;}
     void setURI(std::string_view rawPath) {m_rawPath = rawPath;}
-    void setVersion(std::string_view version) {m_version = version;}
+    void setVersion(HttpVersion version) {m_version = version;}
     void setHeaders(std::unordered_map<std::string, std::string> headers) {m_headers = headers;}
     void setBody(std::string body) {m_body = body;}
 

@@ -103,12 +103,13 @@ bool HttpParser::parseRequestLine() {
     return false;
   }
   m_request.setURI(reqLine.substr(firstSpace + 1, secondSpace - firstSpace - 1));
-  std::string_view version = reqLine.substr(secondSpace + 1);
-  if (!validateHttpVersion(version)) {
+  std::string_view versionStr = reqLine.substr(secondSpace + 1);
+  HttpVersion version = validateHttpVersion(versionStr);
+  if (version == HttpVersion::UNSUPPORTED) {
     m_state = HttpParserState::ERROR;
     m_errorMessage = "Invalid Http Version";
     return false;
-  } 
+  }
   m_request.setVersion(version);
 
   // Remove request line from buffer
@@ -232,22 +233,32 @@ bool isDigits(std::string_view s) {
                        [](unsigned char c) { return std::isdigit(c); });
 }
 
-bool HttpParser::validateHttpVersion(std::string_view version) {
+HttpVersion HttpParser::validateHttpVersion(std::string_view versionStr) {
 
-  if (version.length() < 8)
-    return false;
-  std::string_view http = version.substr(0,5);
+  if (versionStr.length() != 8)
+    return HttpVersion::UNSUPPORTED;
+  std::string_view http = versionStr.substr(0,5);
   if (http != "HTTP/")
-    return false;
-  size_t point = version.find('.');
+    return HttpVersion::UNSUPPORTED;
+  size_t point = versionStr.find('.');
   if (point == std::string_view::npos)
-    return false;
-  std::string_view major = version.substr(5, point - 5);
-  std::string_view minor = version.substr(point + 1);
+    return HttpVersion::UNSUPPORTED;
+  std::string_view major = versionStr.substr(5, point - 5);
+  std::string_view minor = versionStr.substr(point + 1);
   if (!isDigits(major) || !isDigits(minor))
-    return false;
-  return true;
+    return HttpVersion::UNSUPPORTED;
+  if (major.size() != 1 || minor.size() != 1)
+    return HttpVersion::UNSUPPORTED;
+  if (*major.begin() != '1' || (*minor.begin() != '0' && *minor.begin() != '1'))
+    return HttpVersion::UNSUPPORTED;
+  if (*minor.begin() == '0')
+    return HttpVersion::HTTP_1_0;
+  return HttpVersion::HTTP_1_1;
 }
+
+// HttpVersion HttpParser::parseHttpVersion(std::string_view version) {
+//   if 
+// }
 
 void HttpParser::clearParser() {
   *this = HttpParser{};

@@ -71,4 +71,5 @@ void ServerConfig::printValues() const {
 		for (const LocationConfig& location : m_locationConfigs)
 			location.printValues();
 	}
+	std::cout << GREEN << "\n______________________________________\n" << RESET << std::endl;
 }

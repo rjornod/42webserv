@@ -54,6 +54,7 @@ class Client {
 		size_t							getBytesLeftToSend()															{return m_bytesLeftToSend;}
 		ClientState					getClientState() 																	{return m_clientState;}
 		time_t							getLastActivity()																	{return m_lastActivity;}
+		size_t							getServerConfigIndex()														{return m_serverConfigIndex;}
 		bool								getShouldDisconnect()															{return m_shouldDisconnect;}
 		void								setClientFd(int clientFd) 												{m_clientFd = clientFd;} 
 		void								setClientIp(std::string clientIp) 								{m_clientIp = clientIp;}

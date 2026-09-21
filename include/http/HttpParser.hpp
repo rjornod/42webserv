@@ -9,6 +9,7 @@
 #include "HttpRequest.hpp"
 #include "IHttpParser.hpp"
 #include "HttpParserState.hpp"
+#include "HttpVersion.hpp"
 
 class HttpParser : public IHttpParser {
 
@@ -47,7 +48,8 @@ class HttpParser : public IHttpParser {
     //Mainly for the tests, clear the parser in order to reuse it
     void clearParser();
 
-    bool validateHttpVersion(std::string_view version);
+    HttpVersion validateHttpVersion(std::string_view versionStr);
+    // HttpVersion  parseHttpVersion(std::string_view version);
 
     //DEBUG
     void printHeaders();

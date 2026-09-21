@@ -12,6 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Check compiler
+        run: |
+          c++ --version
+          c++ -v
+
       - name: Build Web Server
         run: make
 
@@ -24,7 +29,7 @@ jobs:
             exit 1
           fi
   
-  tests-http-parser:
+  tests-http:
     if: |
       (github.event_name == 'push' && github.ref_name == 'http') ||
       (github.event_name == 'pull_request' && github.head_ref == 'http')
@@ -34,8 +39,20 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Check compiler
+        run: |
+          c++ --version
+          c++ -v
+
+
       - name: Build Google Tests on Http Parser
         run: make tests_http_parser
 
       - name: Run Google Tests on Http Parser
         run: ./http_gtests --gtest_color=yes
+
+      - name: Build Google Tests on Router
+        run: make tests_router
+
+      - name: Run Google Tests on Router
+        run: ./router_gtests --gtest_color=yes

@@ -2,13 +2,13 @@
 
 class HttpRequest;
 class HttpResponse;
-class ResolvedRoute;
+class RequestContext;
 
 class IRequestHandler {
 
   public:
     virtual ~IRequestHandler() {}
     virtual HttpResponse handle(const HttpRequest& request,
-      const ResolvedRoute& route) = 0;
+      const RequestContext& route) = 0;
 
 };

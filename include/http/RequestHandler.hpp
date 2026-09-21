@@ -7,6 +7,6 @@ class RequestHandler : public IRequestHandler {
 
     ~RequestHandler() {}
 
-    HttpResponse handle(const HttpRequest& request, const ResolvedRoute& route);
+    HttpResponse handle(const HttpRequest& request, const RequestContext& ctx);
 
 };

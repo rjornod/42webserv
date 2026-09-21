@@ -1,14 +1,15 @@
 #pragma once
 
 class HttpRequest;
-class ResolvedRoute;
+class RequestContext;
 class GlobalConfig;
+class Client;
 
 class IRouter {
 
   public:
 
     virtual ~IRouter() {}
-    virtual ResolvedRoute resolve(const HttpRequest& request,
-      const GlobalConfig& config) = 0;
+    virtual RequestContext createContext(const HttpRequest& request,
+      const GlobalConfig& config, int serverConfigIndex) = 0;
 };
