@@ -91,9 +91,47 @@ HttpResponse RequestProcessor::staticHandler(RequestContext& ctx) {
   response.setStatusCode(200);
   response.makeStatusLine();
   response.addHeader("Content-Length", std::to_string(std::filesystem::file_size(path)));
+  Result<std::string, MimeTypeError> mimeType = guessMimeType(path.string());
+  if (!mimeType)
+    response.addHeader("Content-Type", "application/octet-stream"); // IF im gonna handle the error like this, 
+    //might as well refactor the function not to take return Result, 
+    //but just return default value on not found type
+  else
+    response.addHeader("Content-Type", mimeType.value());
   response.setBodySource(path);
 
   return response;
+}
+
+const std::unordered_map<std::string, std::string> RequestProcessor::M_MIME_TYPES = {
+  {"html", "text/html"},
+  {"css", "text/css"},
+  {"gif", "image/gif"},
+  {"js", "application/javascript"},
+  {"txt", "text/plain"},
+  {"json", "application/json"},
+  {"pdf", "application/pdf"}
+};
+
+Result<std::string, MimeTypeError> RequestProcessor::guessMimeType(std::string file) {
+
+  std::string fileName = file;
+
+  size_t dot = fileName.find(".");
+
+  if (dot == std::string::npos)
+    return Result<std::string, MimeTypeError>::Ok("application/octet-stream");
+
+  std::string ext = fileName.substr(dot + 1);
+
+  // std::cout << "File extension: " << ext << std::endl;
+
+  auto it = M_MIME_TYPES.find(ext);
+  if (it == M_MIME_TYPES.end())
+    return Result<std::string, MimeTypeError>::Err(MimeTypeError::EXTENSION_NOT_FOUND);
+
+  return Result<std::string, MimeTypeError>::Ok(it->second);
+
 }
 
 HttpResponse RequestProcessor::buildErrorResponse(int errorCode) {

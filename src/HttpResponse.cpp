@@ -17,7 +17,7 @@ void HttpResponse::addHeader(std::string name, std::string value) {
 
 std::ostream &operator<<(std::ostream &out, const HttpResponse &response) {
 
-  out << "[Status line] " << response.getStatusLine() << std::endl;
+  out << "[Status line] " << std::endl << response.getStatusLine() << std::endl;
   out<< "[Headers] " << std::endl;
 
   std::vector<std::pair<std::string, std::string>> headers = response.getHeaders();
@@ -25,13 +25,18 @@ std::ostream &operator<<(std::ostream &out, const HttpResponse &response) {
     out << it->first << ": " << it->second << std::endl;
   }
 
+  std::string body;
   try {
-    out << "[Body]" << std::endl << std::get<std::string>(response.getbodySource()) << std::endl;
+    body = "[string] " + std::get<std::string>(response.getbodySource());
   }
-  catch (const std::bad_variant_access& ex) {
+  catch (const std::bad_variant_access& ex) {}
 
+  try {
+    body =  "[path] " + std::get<std::filesystem::path>(response.getbodySource()).string();
   }
+  catch (const std::bad_variant_access& ex) {}
 
+  out  << "[Body]" << std::endl << body << std::endl;
   return out;
 }
 
