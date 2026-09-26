@@ -26,15 +26,11 @@ std::ostream &operator<<(std::ostream &out, const HttpResponse &response) {
   }
 
   std::string body;
-  try {
+  if (std::holds_alternative<std::string>(response.getbodySource()))
     body = "[string] " + std::get<std::string>(response.getbodySource());
-  }
-  catch (const std::bad_variant_access& ex) {}
-
-  try {
+  else
     body =  "[path] " + std::get<std::filesystem::path>(response.getbodySource()).string();
-  }
-  catch (const std::bad_variant_access& ex) {}
+  
 
   out  << "[Body]" << std::endl << body << std::endl;
   return out;

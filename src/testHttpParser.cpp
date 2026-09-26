@@ -64,9 +64,12 @@ int main(int argc, char **argv) {
   // sv[0] and sv[1] are now connected to each other, like a socket connection
 
   // Pretend sv[0] is "the client's socket" that your server writes to
-  while (!writer.isWritingHeaders()) {
-      writer.writeTo(sv[0]); // your code under test
+  while (!writer.isDone()) {
+      writer.writeTo(sv[0]); 
   }
+
+  
+ 
 
   // sv[1] is "the other end" — read from it to verify what got sent
   char buf[4096];
