@@ -6,7 +6,7 @@ SRC_DIR = ./src
 OBJ_DIR = ./obj
 SRC_CORE = Server.cpp  ConfigParser.cpp TokenType.cpp LocationConfig.cpp ServerConfig.cpp \
 	HttpParser.cpp HttpRequest.cpp HttpResponse.cpp Router.cpp RequestProcessor.cpp \
-	FileResolver.cpp 
+	FileResolver.cpp ResponseWriter.cpp
 OBJ_CORE = $(SRC_CORE:%.cpp=$(OBJ_DIR)/%.o)
 
 GTEST_REPO = https://github.com/google/googletest.git
