@@ -76,23 +76,20 @@ int Server::serverSetup() {
 
 void Server::receiveRequest(Client& client) {
 	
-	
-HttpRequest request;
-HttpParser	parser;
-	
+	HttpParser&	parser = client.getParser();
 	ssize_t	bytes;
 	char		buffer[4096];
 	// TO DO: check for errors in recv (-1 and 0) and remove client on error
 
 	bytes = recv(client.getClientFd(), buffer, sizeof(buffer), 0);
 	if (bytes > 0) {
-		// std::cout << buffer << "\n";	
-		client.getParser().parse(buffer);
-		// request = client.getParser().getRequest();
-		// std::cout << to_string(client.getParser().getParserState()) << "\n";
+		parser.parse(buffer);
+			
+		// HttpRequest request = parser.getRequest();
+		// std::cout << request << std::endl;
+		client.setLastActivity();
+		client.setClientState(ClientState::ReadingRequest);
 	}
-	client.setLastActivity();
-	client.setClientState(ClientState::ReadingRequest);
 	// client.appendToBuffer(buffer, bytes, RECEIVE); // the data appended to the buffer here will be the request
 	/**
 	 ** The buffer should keep being appended to until the request is complete.
@@ -103,7 +100,7 @@ HttpParser	parser;
 		** The response should then be built on a new string (?) to then be sent to the client
 		* 
 		**/
-	if (true) {
+	if (parser.getParserState() == HttpParserState::COMPLETE) {
 		client.setClientState(ClientState::RequestFinished);
 
 		// this loop should only happen AFTER the full request has come in
@@ -120,9 +117,9 @@ HttpParser	parser;
 	std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  client.getClientFd() << RESET << "-------------------" << std::endl;
 	std::cout << "-------------------" << MAGENTA << "connection through index: " << client.getServerConfigIndex() << " of the global config " << RESET << "-------------------" << std::endl;
 	std::cout << client.getClientReceiveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;
-	
 		
-		
+			
+			
 	if (bytes == 0) {
 		time_t timestamp;
 		time(&timestamp);
@@ -138,7 +135,9 @@ HttpParser	parser;
 		client.setShouldDisconnect(true);
 	}
 	std::cout << "end of receiveRequest\n";
+
 }
+
 
 int Server::connections() {
 	m_connectedFds.emplace_back(pollfd{m_tcpServerFd, POLLIN, 0}); // add the listening socket fd to the poll list 
@@ -323,8 +322,7 @@ int Server::serverCore() {
 				int localPort = m_listeners[listenerIndex].port;
 				size_t ServerConfigIndex = m_listeners[listenerIndex].serverIndexes[0];								
 				/* creates a client object directly on m_connectedClients and initializes the fd and ip address */
-				HttpParser parser = HttpParser();
-				m_connectedClients.try_emplace(clientFd, clientFd, inet_ntoa(m_clientAddress.sin_addr),localPort, ServerConfigIndex, parser);	// only inserts if clientFd is not present. clientfd is the map key, clientFd and inet_ntoa() are sent to the Client constructor
+				m_connectedClients.try_emplace(clientFd, clientFd, inet_ntoa(m_clientAddress.sin_addr),localPort, ServerConfigIndex);	// only inserts if clientFd is not present. clientfd is the map key, clientFd and inet_ntoa() are sent to the Client constructor
 			}
 		}
 		/* handle incoming data from the connected clients */

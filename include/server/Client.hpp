@@ -26,11 +26,11 @@ class Client {
 		time_t			m_lastActivity;							// stores the time since the client requested something
 		bool				m_shouldDisconnect;					// marks a client for disconnection
 		size_t			m_serverConfigIndex;
-		HttpParser& m_parser;
+		HttpParser 	m_parser;
 
 
 	public:
-		Client(int clientFd, const std::string& clientIp, int localPort, size_t ServerConfigIndex, HttpParser& parser) : m_parser(parser) {
+		Client(int clientFd, const std::string& clientIp, int localPort, size_t ServerConfigIndex) {
 			m_clientFd = clientFd;
 			m_clientIp = clientIp;
 			m_localPort = localPort;
@@ -40,7 +40,6 @@ class Client {
 			m_bytesSent = 0;
 			m_lastActivity = time(nullptr);
 			m_shouldDisconnect = false;
-			m_parser = HttpParser();
 			std::cout << "Client Object created\nClientFd: " << m_clientFd 
 								<< "\nClient Ip: " << m_clientIp << std::endl;
 
