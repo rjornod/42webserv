@@ -10,6 +10,7 @@
 #include "Server.hpp"
 #include "Client.hpp"
 #include "Colors.hpp"
+#include "HttpParser.hpp"
 
 volatile sig_atomic_t serverRunning = true;
 
@@ -74,29 +75,40 @@ int Server::serverSetup() {
 }
 
 void Server::receiveRequest(Client& client) {
+	
+	
+HttpRequest request;
+HttpParser	parser;
+	
 	ssize_t	bytes;
 	char		buffer[4096];
 	// TO DO: check for errors in recv (-1 and 0) and remove client on error
+
 	bytes = recv(client.getClientFd(), buffer, sizeof(buffer), 0);
 	if (bytes > 0) {
-		client.setLastActivity();
-		client.setClientState(ClientState::ReadingRequest);
-		client.appendToBuffer(buffer, bytes, RECEIVE); // the data appended to the buffer here will be the request
-		/**
-		 ** The buffer should keep being appended to until the request is complete.
-		 ** I guess the HTTP parsing would go in here.
-		 ** Once the requested is confirmed to be complete, it should mark the socket for POLLOUT
-		 * which means we are telling the kernel that we want to be notified as soon as the socket
-		 * is ready to receive data
-		 ** The response should then be built on a new string (?) to then be sent to the client
-		 * 
-		 **/
+		// std::cout << buffer << "\n";	
+		client.getParser().parse(buffer);
+		// request = client.getParser().getRequest();
+		// std::cout << to_string(client.getParser().getParserState()) << "\n";
+	}
+	client.setLastActivity();
+	client.setClientState(ClientState::ReadingRequest);
+	// client.appendToBuffer(buffer, bytes, RECEIVE); // the data appended to the buffer here will be the request
+	/**
+	 ** The buffer should keep being appended to until the request is complete.
+		** I guess the HTTP parsing would go in here.
+		** Once the requested is confirmed to be complete, it should mark the socket for POLLOUT
+		* which means we are telling the kernel that we want to be notified as soon as the socket
+		* is ready to receive data
+		** The response should then be built on a new string (?) to then be sent to the client
+		* 
+		**/
+	if (true) {
 		client.setClientState(ClientState::RequestFinished);
+
 		// this loop should only happen AFTER the full request has come in
 		buildResponse(client);																// check if build response gave an error
-		std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  client.getClientFd() << RESET << "-------------------" << std::endl;
-		std::cout << "-------------------" << MAGENTA << "connection through index: " << client.getServerConfigIndex() << " of the global config " << RESET << "-------------------" << std::endl;
-		std::cout << client.getClientReceiveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;
+
 		for (unsigned long i = 1; i < m_connectedFds.size(); i++) {					// loop that goes through every member of the pollfd struct 
 			if (m_connectedFds[i].fd == client.getClientFd()) {	
 				m_connectedFds[i].events |= POLLOUT; 									// |= bitwise OR operator, adds POLLOUT to the list of flags to watch out for
@@ -104,18 +116,28 @@ void Server::receiveRequest(Client& client) {
 			}
 		}
 	}
+
+	std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  client.getClientFd() << RESET << "-------------------" << std::endl;
+	std::cout << "-------------------" << MAGENTA << "connection through index: " << client.getServerConfigIndex() << " of the global config " << RESET << "-------------------" << std::endl;
+	std::cout << client.getClientReceiveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;
+	
+		
+		
 	if (bytes == 0) {
 		time_t timestamp;
 		time(&timestamp);
 		std::cout << client.getClientIp() << RED << " disconnected at:\n" << RESET << ctime(&timestamp) <<  std::endl;
 		client.setShouldDisconnect(true);
 	}
+
+
 	if (bytes < 0) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK)  // when a socket is set to non blocking, operations that would wait instead return one of these error immediately. Ignore for non blocking behavior
 			client.setShouldDisconnect(false);
 		perror("recv");
 		client.setShouldDisconnect(true);
 	}
+	std::cout << "end of receiveRequest\n";
 }
 
 int Server::connections() {
@@ -301,7 +323,8 @@ int Server::serverCore() {
 				int localPort = m_listeners[listenerIndex].port;
 				size_t ServerConfigIndex = m_listeners[listenerIndex].serverIndexes[0];								
 				/* creates a client object directly on m_connectedClients and initializes the fd and ip address */
-				m_connectedClients.try_emplace(clientFd, clientFd, inet_ntoa(m_clientAddress.sin_addr),localPort, ServerConfigIndex);	// only inserts if clientFd is not present. clientfd is the map key, clientFd and inet_ntoa() are sent to the Client constructor
+				HttpParser parser = HttpParser();
+				m_connectedClients.try_emplace(clientFd, clientFd, inet_ntoa(m_clientAddress.sin_addr),localPort, ServerConfigIndex, parser);	// only inserts if clientFd is not present. clientfd is the map key, clientFd and inet_ntoa() are sent to the Client constructor
 			}
 		}
 		/* handle incoming data from the connected clients */
@@ -320,6 +343,7 @@ int Server::serverCore() {
 			if (m_connectedFds[i].revents & POLLOUT) {
 				if (handleOutgoing(i)) {																													// if client was removed decrease the index
 					i--;
+					std::cout << "handled outgoing\n";
 					continue;
 				}
 			}
