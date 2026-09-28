@@ -32,6 +32,7 @@ class FileResolver {
     // Result<std::string, URIError> cleanUri(std::string_view raw);
     Result<std::string, UriDecodeError> percentDecode(std::string_view raw);
     Result<std::vector<std::string_view>, PathResolutionError> normalizeSegments(std::string_view decodedUri);
+    std::string joinPath(std::string_view base, std::string_view suffix);
     std::string makeFSPath(std::string root, std::vector<std::string_view> segments);
     Result<std::filesystem::path, FileResolutionError> checkWithinRoot(const std::filesystem::path& candidate, const std::filesystem::path& root);
     Result<std::filesystem::path, FileResolutionError> resolveIndex(const std::filesystem::path& directory, const std::vector<std::string>& indexCandidates);

@@ -172,7 +172,7 @@ Result<std::vector<std::string_view>, PathResolutionError> FileResolver::normali
 }
 
 //Joins two paths properly, i.e., by avoiding double slashes
-std::string joinPath(std::string_view base, std::string_view suffix) {
+std::string FileResolver::joinPath(std::string_view base, std::string_view suffix) {
     std::string result;
     result.reserve(base.size() + suffix.size() + 1);
 
