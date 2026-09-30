@@ -21,7 +21,6 @@ volatile sig_atomic_t serverRunning = true;
 
 void	Server:: closeAllFds() {
 	std::cout << "closing all fds" << std::endl;
-	std::cout << GREEN << "clients connected: " << RESET << m_connectedFds.size();
 
 	// close the fds of the connected clients and listening sockets
 	for (unsigned long i = 0; i < m_connectedFds.size(); i++)
