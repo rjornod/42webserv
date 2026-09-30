@@ -11,6 +11,11 @@
 #include "Client.hpp"
 #include "Colors.hpp"
 #include "HttpParser.hpp"
+#include "Router.hpp"
+#include "RequestContext.hpp"
+#include "RequestProcessor.hpp"
+#include "HttpResponse.hpp"
+#include "ResponseWriter.hpp"
 
 volatile sig_atomic_t serverRunning = true;
 
@@ -194,46 +199,59 @@ void Server::checkTimeouts() {
 }
 
 void Server::buildResponse(Client& client) {
-	std::string headers;
-	client.setClientState(ClientState::BuildingResponse);
-	if (readFile(client)) {																								// check if readFile returned an error
-		std::cout << "readfile error" << std::endl;
-		client.setShouldDisconnect(true);
-	}
-	headers += "HTTP/1.1 200 OK\r\n";
-	headers += "Content-Type: text/html\r\n";
-	headers += "Content-Length: " + std::to_string(client.getClientSendBuffer().size()) + "\r\n";
-	headers += "Connection: keep-alive\r\n";
-	headers += "\r\n";
-	client.getClientSendBuffer().insert(0, headers);
-	client.setShouldDisconnect(false);
+	// std::string headers;
+	// client.setClientState(ClientState::BuildingResponse);
+	// if (readFile(client)) {																								// check if readFile returned an error
+	// 	std::cout << "readfile error" << std::endl;
+	// 	client.setShouldDisconnect(true);
+	// }
+	// headers += "HTTP/1.1 200 OK\r\n";
+	// headers += "Content-Type: text/html\r\n";
+	// headers += "Content-Length: " + std::to_string(client.getClientSendBuffer().size()) + "\r\n";
+	// headers += "Connection: keep-alive\r\n";
+	// headers += "\r\n";
+	// client.getClientSendBuffer().insert(0, headers);
+	// client.setShouldDisconnect(false);
+
+	Router router;
+	RequestContext ctx = router.createContext(client.getParser().getRequest(), m_config, static_cast<int>(client.getServerConfigIndex()));
+	RequestProcessor processor;
+	HttpResponse response = processor.process(ctx);
+
+	client.setHttpResponse(response);
+
+	std::cout << client.getHttpResponse() << std::endl;
+
 }
 
 void Server::sendResponse(Client& client) {
-	int 	sentBytes = 0;
-	client.setBytesLeftToSend(client.getClientSendBuffer().size() - client.getBytesSent());					// calculates the remaining bytes we need to send
-	client.setClientState(ClientState::SendingResponse);
-	sentBytes = send(client.getClientFd(), client.getClientSendBuffer().c_str() + client.getBytesSent(), client.getBytesLeftToSend(), 0); 	// makes sure to only send the data we havent sent (if spread among multiple calls)
-	if (sentBytes > 0) {
-		 client.setBytesSent(client.getBytesSent() + sentBytes);
-		 if (client.getBytesSent() == client.getClientSendBuffer().size()) {
-			client.getClientSendBuffer().clear();																// sendBuffer gets cleared if we finished sending everything
-			client.getClientReceiveBuffer().clear();														// receiveBuffer also gets cleared
-			client.setBytesSent(0);																							// bytesSent gets reset if we finished sending everything
-			client.setClientState(ClientState::ReadingRequest);									// reset ClientState back to readingRequest after response is sent
-			// client.setLastActivity(); 																				// TO DO: figure out if we need to update the timestamp here
-		}
-	}
-	else if (sentBytes < 0) {
-		if (errno == EAGAIN || errno == EWOULDBLOCK) {												// if there is no more data to send at the moment, we ignore these errors
-			client.setShouldDisconnect(false);   
-		}
-		else {
-			perror("send()");
-			client.setShouldDisconnect(true);
-		}
-	}
-	client.setShouldDisconnect(false);
+	// int 	sentBytes = 0;
+	// client.setBytesLeftToSend(client.getClientSendBuffer().size() - client.getBytesSent());					// calculates the remaining bytes we need to send
+	// client.setClientState(ClientState::SendingResponse);
+	// sentBytes = send(client.getClientFd(), client.getClientSendBuffer().c_str() + client.getBytesSent(), client.getBytesLeftToSend(), 0); 	// makes sure to only send the data we havent sent (if spread among multiple calls)
+	// if (sentBytes > 0) {
+	// 	 client.setBytesSent(client.getBytesSent() + sentBytes);
+	// 	 if (client.getBytesSent() == client.getClientSendBuffer().size()) {
+	// 		client.getClientSendBuffer().clear();																// sendBuffer gets cleared if we finished sending everything
+	// 		client.getClientReceiveBuffer().clear();														// receiveBuffer also gets cleared
+	// 		client.setBytesSent(0);																							// bytesSent gets reset if we finished sending everything
+	// 		client.setClientState(ClientState::ReadingRequest);									// reset ClientState back to readingRequest after response is sent
+	// 		// client.setLastActivity(); 																				// TO DO: figure out if we need to update the timestamp here
+	// 	}
+	// }
+	// else if (sentBytes < 0) {
+	// 	if (errno == EAGAIN || errno == EWOULDBLOCK) {												// if there is no more data to send at the moment, we ignore these errors
+	// 		client.setShouldDisconnect(false);   
+	// 	}
+	// 	else {
+	// 		perror("send()");
+	// 		client.setShouldDisconnect(true);
+	// 	}
+	// }
+	// client.setShouldDisconnect(false);
+
+	ResponseWriter writer = ResponseWriter(client.getHttpResponse());
+	writer.writeTo(client.getClientFd());
 }
 
 bool	Server::handleIncoming(int fd) {

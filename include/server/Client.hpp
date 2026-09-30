@@ -6,6 +6,7 @@
 #define RECEIVE 2
 #include "Colors.hpp"
 #include "HttpParser.hpp"
+#include "HttpResponse.hpp"
 //client states
 #define KEEP_ALIVE 7
 #define CLOSING 8
@@ -27,6 +28,7 @@ class Client {
 		bool				m_shouldDisconnect;					// marks a client for disconnection
 		size_t			m_serverConfigIndex;
 		HttpParser 	m_parser;
+		HttpResponse m_response;
 
 
 	public:
@@ -49,6 +51,7 @@ class Client {
 		}
 		/* getters and setters */
 		HttpParser&					getParser()																				{return m_parser;}
+		HttpResponse&				getHttpResponse()																			{return m_response;}
 		int									getClientFd() 																		{return m_clientFd;}
 		const std::string& 	getClientIp() 																		{return m_clientIp;}
 		int 								getLocalPort()																		{return m_localPort;}
@@ -71,7 +74,8 @@ class Client {
 		void								setBytesLeftToSend(size_t bytes)									{m_bytesLeftToSend = bytes;}
 		void								setClientState(ClientState state)									{m_clientState = state;}
 		void 								setLastActivity()																	{m_lastActivity = time(nullptr);}
-		void								setShouldDisconnect(bool shouldDisconnect) 				{m_shouldDisconnect = shouldDisconnect;} 
+		void								setShouldDisconnect(bool shouldDisconnect) 				{m_shouldDisconnect = shouldDisconnect;}
+		void 								setHttpResponse(HttpResponse response)						{m_response = response;}
 
 		/* other member functions*/
 		void	appendToBuffer(std::string data, size_t len, int operation) {
