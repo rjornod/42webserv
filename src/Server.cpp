@@ -21,9 +21,11 @@ volatile sig_atomic_t serverRunning = true;
 
 void	Server:: closeAllFds() {
 	std::cout << "closing all fds" << std::endl;
-	for (unsigned long i = 0; i < m_connectedFds.size(); i++) {
+	std::cout << GREEN << "clients connected: " << RESET << m_connectedFds.size();
+
+	// close the fds of the connected clients and listening sockets
+	for (unsigned long i = 0; i < m_connectedFds.size(); i++)
 		close(m_connectedFds[i].fd);
-	}
 }
 
 void signalHandler(int sig) {
@@ -139,15 +141,6 @@ void Server::receiveRequest(Client& client) {
 		perror("recv");
 		client.setShouldDisconnect(true);
 	}
-	std::cout << "end of receiveRequest\n";
-
-}
-
-
-int Server::connections() {
-	m_connectedFds.emplace_back(pollfd{m_tcpServerFd, POLLIN, 0}); // add the listening socket fd to the poll list 
-	m_connectedFds[0].events = (POLLIN);
-	return 0;
 }
 
 void Server::eraseClient(int fd) {
