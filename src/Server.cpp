@@ -247,6 +247,9 @@ void Server::sendResponse(Client& client) {
 
 
 	// ResponseWriter writer = ResponseWriter(client.getHttpResponse());
+	// writer.writeTo(client.getClientFd());
+
+
 	if (!client.responseReady()){
 		std::cout << "Nothing to send" << std::endl; // Handle this as an error
 		client.setShouldDisconnect(true);
@@ -255,6 +258,7 @@ void Server::sendResponse(Client& client) {
 		client.writeToSocket();
 		client.setShouldDisconnect(false);
 	}
+
 }
 
 bool	Server::handleIncoming(int fd) {
@@ -277,7 +281,8 @@ bool	Server::handleOutgoing(size_t i) {
 			eraseClient(m_connectedFds[i].fd);
 			return true;																																	// client got disconnected
 		}
-		if (it->second.getClientSendBuffer().empty()){																	// if we finished sending our response we add POLLIN to events to again listen for data being sent
+		// if (it->second.getClientSendBuffer().empty()){
+		if (it->second.writerFinished()) {																	// if we finished sending our response we add POLLIN to events to again listen for data being sent
 			m_connectedFds[i].events = POLLIN;	
 		}				
 		else 

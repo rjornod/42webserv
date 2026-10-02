@@ -95,6 +95,8 @@ class Client {
 
 		bool responseReady() const {return m_writer != nullptr;}
 
+		bool writerFinished() const {return m_writer->getState() == WriterState::DONE;}
+
 		void writeToSocket() {m_writer->writeTo(m_clientFd);}
 
 		std::string printState() {
