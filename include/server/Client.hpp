@@ -5,6 +5,9 @@
 #define SEND 1
 #define RECEIVE 2
 #include "Colors.hpp"
+#include "HttpParser.hpp"
+#include "HttpResponse.hpp"
+#include "ResponseWriter.hpp"
 //client states
 #define KEEP_ALIVE 7
 #define CLOSING 8
@@ -25,6 +28,10 @@ class Client {
 		time_t			m_lastActivity;							// stores the time since the client requested something
 		bool				m_shouldDisconnect;					// marks a client for disconnection
 		size_t			m_serverConfigIndex;
+		HttpParser 	m_parser;
+		HttpResponse m_response;
+		std::unique_ptr<ResponseWriter> m_writer; //A pointer that will be null until the response is ready
+
 	public:
 		Client(int clientFd, const std::string& clientIp, int localPort, size_t ServerConfigIndex) {
 			m_clientFd = clientFd;
@@ -44,6 +51,9 @@ class Client {
 												<< std::endl;
 		}
 		/* getters and setters */
+		// std::unique_ptr<ResponseWriter> getWriter()											const {return m_writer;}		
+		HttpParser&					getParser()																				{return m_parser;}
+		HttpResponse&				getHttpResponse()																	{return m_response;}
 		int									getClientFd() 																		{return m_clientFd;}
 		const std::string& 	getClientIp() 																		{return m_clientIp;}
 		int 								getLocalPort()																		{return m_localPort;}
@@ -66,8 +76,9 @@ class Client {
 		void								setBytesLeftToSend(size_t bytes)									{m_bytesLeftToSend = bytes;}
 		void								setClientState(ClientState state)									{m_clientState = state;}
 		void 								setLastActivity()																	{m_lastActivity = time(nullptr);}
-		void								setShouldDisconnect(bool shouldDisconnect) 				{m_shouldDisconnect = shouldDisconnect;} 
-
+		void								setShouldDisconnect(bool shouldDisconnect) 				{m_shouldDisconnect = shouldDisconnect;}
+		void 								setHttpResponse(HttpResponse response)						{m_response = response;}
+		
 		/* other member functions*/
 		void	appendToBuffer(std::string data, size_t len, int operation) {
 			if (operation == RECEIVE) {
@@ -77,6 +88,17 @@ class Client {
 				m_sendBuffer.append(data.c_str(), len);
 			}
     }
+
+		void writerSetup(HttpResponse response) {
+			m_writer = std::make_unique<ResponseWriter>(std::move(response));
+		}
+
+		bool responseReady() const {return m_writer != nullptr;}
+
+		bool writerFinished() const {return m_writer->getState() == WriterState::DONE;}
+
+		void writeToSocket() {m_writer->writeTo(m_clientFd);}
+
 		std::string printState() {
 			std::cout << "Client fd: " << m_clientFd << " - ";
 			if (m_clientState == ClientState::ReadingRequest)

@@ -10,14 +10,21 @@
 #include "Server.hpp"
 #include "Client.hpp"
 #include "Colors.hpp"
+#include "HttpParser.hpp"
+#include "Router.hpp"
+#include "RequestContext.hpp"
+#include "RequestProcessor.hpp"
+#include "HttpResponse.hpp"
+#include "ResponseWriter.hpp"
 
 volatile sig_atomic_t serverRunning = true;
 
 void	Server:: closeAllFds() {
 	std::cout << "closing all fds" << std::endl;
-	for (unsigned long i = 0; i < m_connectedFds.size(); i++) {
+
+	// close the fds of the connected clients and listening sockets
+	for (unsigned long i = 0; i < m_connectedFds.size(); i++)
 		close(m_connectedFds[i].fd);
-	}
 }
 
 void signalHandler(int sig) {
@@ -74,29 +81,38 @@ int Server::serverSetup() {
 }
 
 void Server::receiveRequest(Client& client) {
+	
+	HttpParser&	parser = client.getParser();
 	ssize_t	bytes;
 	char		buffer[4096];
 	// TO DO: check for errors in recv (-1 and 0) and remove client on error
+
 	bytes = recv(client.getClientFd(), buffer, sizeof(buffer), 0);
 	if (bytes > 0) {
+		parser.parse(buffer);
+			
+		// HttpRequest request = parser.getRequest();
+		// std::cout << request << std::endl;
 		client.setLastActivity();
 		client.setClientState(ClientState::ReadingRequest);
-		client.appendToBuffer(buffer, bytes, RECEIVE); // the data appended to the buffer here will be the request
-		/**
-		 ** The buffer should keep being appended to until the request is complete.
-		 ** I guess the HTTP parsing would go in here.
-		 ** Once the requested is confirmed to be complete, it should mark the socket for POLLOUT
-		 * which means we are telling the kernel that we want to be notified as soon as the socket
-		 * is ready to receive data
-		 ** The response should then be built on a new string (?) to then be sent to the client
-		 * 
-		 **/
+	}
+	// client.appendToBuffer(buffer, bytes, RECEIVE); // the data appended to the buffer here will be the request
+	/**
+	 ** The buffer should keep being appended to until the request is complete.
+		** I guess the HTTP parsing would go in here.
+		** Once the requested is confirmed to be complete, it should mark the socket for POLLOUT
+		* which means we are telling the kernel that we want to be notified as soon as the socket
+		* is ready to receive data
+		** The response should then be built on a new string (?) to then be sent to the client
+		* 
+		**/
+	if (parser.getParserState() == HttpParserState::COMPLETE) {
 		client.setClientState(ClientState::RequestFinished);
+
 		// this loop should only happen AFTER the full request has come in
 		buildResponse(client);																// check if build response gave an error
-		std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  client.getClientFd() << RESET << "-------------------" << std::endl;
-		std::cout << "-------------------" << MAGENTA << "connection through index: " << client.getServerConfigIndex() << " of the global config " << RESET << "-------------------" << std::endl;
-		std::cout << client.getClientReceiveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;
+
+
 		for (unsigned long i = 1; i < m_connectedFds.size(); i++) {					// loop that goes through every member of the pollfd struct 
 			if (m_connectedFds[i].fd == client.getClientFd()) {	
 				m_connectedFds[i].events |= POLLOUT; 									// |= bitwise OR operator, adds POLLOUT to the list of flags to watch out for
@@ -104,24 +120,27 @@ void Server::receiveRequest(Client& client) {
 			}
 		}
 	}
+
+	std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  client.getClientFd() << RESET << "-------------------" << std::endl;
+	std::cout << "-------------------" << MAGENTA << "connection through index: " << client.getServerConfigIndex() << " of the global config " << RESET << "-------------------" << std::endl;
+	std::cout << client.getClientReceiveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;
+		
+			
+			
 	if (bytes == 0) {
 		time_t timestamp;
 		time(&timestamp);
 		std::cout << client.getClientIp() << RED << " disconnected at:\n" << RESET << ctime(&timestamp) <<  std::endl;
 		client.setShouldDisconnect(true);
 	}
+
+
 	if (bytes < 0) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK)  // when a socket is set to non blocking, operations that would wait instead return one of these error immediately. Ignore for non blocking behavior
 			client.setShouldDisconnect(false);
 		perror("recv");
 		client.setShouldDisconnect(true);
 	}
-}
-
-int Server::connections() {
-	m_connectedFds.emplace_back(pollfd{m_tcpServerFd, POLLIN, 0}); // add the listening socket fd to the poll list 
-	m_connectedFds[0].events = (POLLIN);
-	return 0;
 }
 
 void Server::eraseClient(int fd) {
@@ -173,46 +192,73 @@ void Server::checkTimeouts() {
 }
 
 void Server::buildResponse(Client& client) {
-	std::string headers;
-	client.setClientState(ClientState::BuildingResponse);
-	if (readFile(client)) {																								// check if readFile returned an error
-		std::cout << "readfile error" << std::endl;
-		client.setShouldDisconnect(true);
-	}
-	headers += "HTTP/1.1 200 OK\r\n";
-	headers += "Content-Type: text/html\r\n";
-	headers += "Content-Length: " + std::to_string(client.getClientSendBuffer().size()) + "\r\n";
-	headers += "Connection: keep-alive\r\n";
-	headers += "\r\n";
-	client.getClientSendBuffer().insert(0, headers);
-	client.setShouldDisconnect(false);
+	// std::string headers;
+	// client.setClientState(ClientState::BuildingResponse);
+	// if (readFile(client)) {																								// check if readFile returned an error
+	// 	std::cout << "readfile error" << std::endl;
+	// 	client.setShouldDisconnect(true);
+	// }
+	// headers += "HTTP/1.1 200 OK\r\n";
+	// headers += "Content-Type: text/html\r\n";
+	// headers += "Content-Length: " + std::to_string(client.getClientSendBuffer().size()) + "\r\n";
+	// headers += "Connection: keep-alive\r\n";
+	// headers += "\r\n";
+	// client.getClientSendBuffer().insert(0, headers);
+	// client.setShouldDisconnect(false);
+
+	Router router;
+	RequestContext ctx = router.createContext(client.getParser().getRequest(), m_config, static_cast<int>(client.getServerConfigIndex()));
+	RequestProcessor processor;
+	HttpResponse response = processor.process(ctx);
+
+	client.setHttpResponse(response);
+	client.writerSetup(response);
+
+	std::cout << client.getHttpResponse() << std::endl;
+
 }
 
 void Server::sendResponse(Client& client) {
-	int 	sentBytes = 0;
-	client.setBytesLeftToSend(client.getClientSendBuffer().size() - client.getBytesSent());					// calculates the remaining bytes we need to send
-	client.setClientState(ClientState::SendingResponse);
-	sentBytes = send(client.getClientFd(), client.getClientSendBuffer().c_str() + client.getBytesSent(), client.getBytesLeftToSend(), 0); 	// makes sure to only send the data we havent sent (if spread among multiple calls)
-	if (sentBytes > 0) {
-		 client.setBytesSent(client.getBytesSent() + sentBytes);
-		 if (client.getBytesSent() == client.getClientSendBuffer().size()) {
-			client.getClientSendBuffer().clear();																// sendBuffer gets cleared if we finished sending everything
-			client.getClientReceiveBuffer().clear();														// receiveBuffer also gets cleared
-			client.setBytesSent(0);																							// bytesSent gets reset if we finished sending everything
-			client.setClientState(ClientState::ReadingRequest);									// reset ClientState back to readingRequest after response is sent
-			// client.setLastActivity(); 																				// TO DO: figure out if we need to update the timestamp here
-		}
+	// int 	sentBytes = 0;
+	// client.setBytesLeftToSend(client.getClientSendBuffer().size() - client.getBytesSent());					// calculates the remaining bytes we need to send
+	// client.setClientState(ClientState::SendingResponse);
+	// sentBytes = send(client.getClientFd(), client.getClientSendBuffer().c_str() + client.getBytesSent(), client.getBytesLeftToSend(), 0); 	// makes sure to only send the data we havent sent (if spread among multiple calls)
+	// if (sentBytes > 0) {
+	// 	 client.setBytesSent(client.getBytesSent() + sentBytes);
+	// 	 if (client.getBytesSent() == client.getClientSendBuffer().size()) {
+	// 		client.getClientSendBuffer().clear();																// sendBuffer gets cleared if we finished sending everything
+	// 		client.getClientReceiveBuffer().clear();														// receiveBuffer also gets cleared
+	// 		client.setBytesSent(0);																							// bytesSent gets reset if we finished sending everything
+	// 		client.setClientState(ClientState::ReadingRequest);									// reset ClientState back to readingRequest after response is sent
+	// 		// client.setLastActivity(); 																				// TO DO: figure out if we need to update the timestamp here
+	// 	}
+	// }
+	// else if (sentBytes < 0) {
+	// 	if (errno == EAGAIN || errno == EWOULDBLOCK) {												// if there is no more data to send at the moment, we ignore these errors
+	// 		client.setShouldDisconnect(false);   
+	// 	}
+	// 	else {
+	// 		perror("send()");
+	// 		client.setShouldDisconnect(true);
+	// 	}
+	// }
+	// client.setShouldDisconnect(false);
+
+
+
+	// ResponseWriter writer = ResponseWriter(client.getHttpResponse());
+	// writer.writeTo(client.getClientFd());
+
+
+	if (!client.responseReady()){
+		std::cout << "Nothing to send" << std::endl; // Handle this as an error
+		client.setShouldDisconnect(true);
 	}
-	else if (sentBytes < 0) {
-		if (errno == EAGAIN || errno == EWOULDBLOCK) {												// if there is no more data to send at the moment, we ignore these errors
-			client.setShouldDisconnect(false);   
-		}
-		else {
-			perror("send()");
-			client.setShouldDisconnect(true);
-		}
+	else {
+		client.writeToSocket();
+		client.setShouldDisconnect(false);
 	}
-	client.setShouldDisconnect(false);
+
 }
 
 bool	Server::handleIncoming(int fd) {
@@ -235,7 +281,8 @@ bool	Server::handleOutgoing(size_t i) {
 			eraseClient(m_connectedFds[i].fd);
 			return true;																																	// client got disconnected
 		}
-		if (it->second.getClientSendBuffer().empty()){																	// if we finished sending our response we add POLLIN to events to again listen for data being sent
+		// if (it->second.getClientSendBuffer().empty()){
+		if (it->second.writerFinished()) {																	// if we finished sending our response we add POLLIN to events to again listen for data being sent
 			m_connectedFds[i].events = POLLIN;	
 		}				
 		else 
@@ -320,6 +367,7 @@ int Server::serverCore() {
 			if (m_connectedFds[i].revents & POLLOUT) {
 				if (handleOutgoing(i)) {																													// if client was removed decrease the index
 					i--;
+					std::cout << "handled outgoing\n";
 					continue;
 				}
 			}
