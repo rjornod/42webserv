@@ -112,6 +112,7 @@ void Server::receiveRequest(Client& client) {
 		// this loop should only happen AFTER the full request has come in
 		buildResponse(client);																// check if build response gave an error
 
+
 		for (unsigned long i = 1; i < m_connectedFds.size(); i++) {					// loop that goes through every member of the pollfd struct 
 			if (m_connectedFds[i].fd == client.getClientFd()) {	
 				m_connectedFds[i].events |= POLLOUT; 									// |= bitwise OR operator, adds POLLOUT to the list of flags to watch out for
@@ -211,6 +212,7 @@ void Server::buildResponse(Client& client) {
 	HttpResponse response = processor.process(ctx);
 
 	client.setHttpResponse(response);
+	client.writerSetup(response);
 
 	std::cout << client.getHttpResponse() << std::endl;
 
@@ -242,8 +244,17 @@ void Server::sendResponse(Client& client) {
 	// }
 	// client.setShouldDisconnect(false);
 
-	ResponseWriter writer = ResponseWriter(client.getHttpResponse());
-	writer.writeTo(client.getClientFd());
+
+
+	// ResponseWriter writer = ResponseWriter(client.getHttpResponse());
+	if (!client.responseReady()){
+		std::cout << "Nothing to send" << std::endl; // Handle this as an error
+		client.setShouldDisconnect(true);
+	}
+	else {
+		client.writeToSocket();
+		client.setShouldDisconnect(false);
+	}
 }
 
 bool	Server::handleIncoming(int fd) {
