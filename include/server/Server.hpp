@@ -26,7 +26,6 @@ class Server {
 		struct sockaddr_in 							m_tcpAddress;				// struct holding IP_v4 address information, used to specify where to connect, bind or listen for traffic 
 		// socklen_t 											m_tcpAddressLen;		// contains the length of the socket
 		std::vector<ListeningSockets> 	m_listeners;
-		int 														m_tcpServerFd;			// fd that will be used for the listening socket of the server
 		std::string 										m_buffer;						// stores the messages received from the clients
 		struct sockaddr_in							m_clientAddress;		// struct holding IPv4 info about the client
 		socklen_t												m_clientAddressLen;	// containts the length of the client socket
@@ -48,7 +47,6 @@ class Server {
 		}
 		const std::vector<pollfd> &getConnectedFds() const {return m_connectedFds;}
 		int 		serverSetup();
-		int 		connections();
 		int 		serverCore();
 		void 		receiveRequest(Client& client);
 		void		buildResponse(Client& client);

@@ -26,8 +26,6 @@ int main(int argc, char **argv) {
 	if (server.serverSetup() > 0) {
 		exitProgram(1, "ServerSetup");
 	}
-	if (server.connections() > 0) {
-		exitProgram(1, "Connections");
-	}
+
 	server.serverCore();
 }

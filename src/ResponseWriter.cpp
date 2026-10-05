@@ -1,9 +1,9 @@
 #include "ResponseWriter.hpp"
 
-ResponseWriter::ResponseWriter(HttpResponse response) : m_response(response), m_state(WriterState::WRITING_HEADERS) {
+ResponseWriter::ResponseWriter(HttpResponse response) : m_response(std::move(response)), m_state(WriterState::WRITING_HEADERS) {
   m_headersBuffer = m_response.getStatusLine();
 
-  std::vector<std::pair<std::string, std::string>> headers = response.getHeaders();
+  std::vector<std::pair<std::string, std::string>> headers = m_response.getHeaders();
   for (auto it = headers.begin(); it != headers.end(); it++) {
     m_headersBuffer += it->first + ": " + it->second + "\r\n";
   }
