@@ -99,6 +99,10 @@ class Client {
 
 		void writeToSocket() {m_writer->writeTo(m_clientFd);}
 
+		void resetWriter() {m_writer = nullptr;}
+
+		void clearParser() {m_parser.clearParser();}
+
 		std::string printState() {
 			std::cout << "Client fd: " << m_clientFd << " - ";
 			if (m_clientState == ClientState::ReadingRequest)

@@ -19,6 +19,7 @@ class RequestProcessor {
     HttpResponse process(RequestContext& ctx);
     bool allowedMethod(const RequestContext& ctx);
     HttpResponse staticHandler(RequestContext& ctx);
+    HttpResponse buildAutoIndexResponse(RequestContext& ctx);
     HttpResponse buildErrorResponse(int errorCode);
     Result<std::string,MimeTypeError>  guessMimeType(std::string file);
 

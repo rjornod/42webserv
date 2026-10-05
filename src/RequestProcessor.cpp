@@ -30,7 +30,9 @@ HttpResponse RequestProcessor::process(RequestContext& ctx){
         // break;
       case FileResolutionError::NOT_FOUND:
         return buildErrorResponse(404);
-        break;
+        // break;
+      case FileResolutionError::IS_DIRECTORY_NO_INDEX_FILE:
+        return buildAutoIndexResponse(ctx);
       case FileResolutionError::SERVER_ERROR:
         return buildErrorResponse(500);
         // break;
@@ -166,4 +168,23 @@ HttpResponse RequestProcessor::buildErrorResponse(int errorCode) {
   response.setBodySource(std::to_string(errorCode) + " " + reason);
 
   return response;
+}
+
+
+// TO DO: Consider moving this responsibility back to the FileResolver
+HttpResponse RequestProcessor::buildAutoIndexResponse(RequestContext& ctx) {
+  HttpResponse response;
+
+  if (ctx.getLocationConfig()->getAutoIndex()) {
+    response.makeStatusLine();
+    std::string listing = "Index Listing should be sent here";
+
+    response.addHeader("Content-Type", "text/plain");
+    response.addHeader("Content-Length", std::to_string(listing.size()));
+
+
+    response.setBodySource(listing);
+    return response;
+  }
+  return buildErrorResponse(403);
 }

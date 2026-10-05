@@ -53,9 +53,9 @@ Result<std::filesystem::path, FileResolutionError> FileResolver::resolve(const R
   if (std::filesystem::is_regular_file(status))
     return Result<std::filesystem::path, FileResolutionError>::Ok(path.value());
   else if (std::filesystem::is_directory(status)) {
-    auto indexResult = resolveIndex(path.value(), ctx.getLocationConfig()->getIndex());
+    auto indexResult = resolveIndex(path.value(), ctx.getLocationConfig()->getIndex(), ctx.getLocationConfig()->getAutoIndex());
     if (!indexResult)
-      return Result<std::filesystem::path, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
+      return Result<std::filesystem::path, FileResolutionError>::Err(FileResolutionError::IS_DIRECTORY_NO_INDEX_FILE);
     return Result<std::filesystem::path, FileResolutionError>::Ok(indexResult.value());
   }
   return Result<std::filesystem::path, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
@@ -216,7 +216,7 @@ Result<std::filesystem::path, FileResolutionError> FileResolver::checkWithinRoot
   
   std::error_code ec;
 
-  std::filesystem::path canonical_root = std::filesystem::canonical(root, ec);
+  std::filesystem::path canonicalRoot = std::filesystem::canonical(root, ec);
 
   if (ec)
     // Error code is set
@@ -225,7 +225,7 @@ Result<std::filesystem::path, FileResolutionError> FileResolver::checkWithinRoot
     return Result<std::filesystem::path, FileResolutionError>::Err(
       FileResolutionError::SERVER_ERROR);
 
-  std::filesystem::path canonical_path = std::filesystem::canonical(candidate, ec);
+  std::filesystem::path canonicalPath = std::filesystem::canonical(candidate, ec);
 
   if (ec)
     // Error code is set
@@ -236,17 +236,17 @@ Result<std::filesystem::path, FileResolutionError> FileResolver::checkWithinRoot
 
   // Now check if canonical_root is a prefix (in filesystem terms) of canonical_path
   // Meaning that the path escapes the root
-  auto [root_end, nothing] = std::mismatch(canonical_root.begin(),
-                                          canonical_root.end(),
-                                          canonical_path.begin());
+  auto [root_end, nothing] = std::mismatch(canonicalRoot.begin(),
+                                          canonicalRoot.end(),
+                                          canonicalPath.begin());
                                         
-  if (root_end != canonical_root.end())
+  if (root_end != canonicalRoot.end())
     // Means that the path escaped the root
     return Result<std::filesystem::path, FileResolutionError>::Err(
       FileResolutionError::FORBIDDEN);
 
   return Result<std::filesystem::path, FileResolutionError>::Ok(
-    std::move(canonical_path));
+    std::move(canonicalPath));
 
 }
 
@@ -255,7 +255,7 @@ Result<std::filesystem::path, FileResolutionError> FileResolver::checkWithinRoot
 */
 Result<std::filesystem::path, FileResolutionError> FileResolver::resolveIndex(
   const std::filesystem::path& directory,
-  const std::vector<std::string>& indexCandidates) {
+  const std::vector<std::string>& indexCandidates, bool autoIndex) {
 
   for (const auto& name : indexCandidates) {
     std::filesystem::path path = directory / name;
@@ -264,7 +264,9 @@ Result<std::filesystem::path, FileResolutionError> FileResolver::resolveIndex(
     if (std::filesystem::is_regular_file(path) && !ec)
       return Result<std::filesystem::path, FileResolutionError>::Ok(path);
   }
-
+  if (!autoIndex)
+    return Result<std::filesystem::path, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
+  // TO DO: If autoindex is on... make the list of files and send it as a string
   //If none of the index candidates exist, return an error
-  return Result<std::filesystem::path, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
+  return Result<std::filesystem::path, FileResolutionError>::Err(FileResolutionError::IS_DIRECTORY_NO_INDEX_FILE);
 }
