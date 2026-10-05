@@ -3,7 +3,7 @@
 
 void LocationConfig::setDefaultValues() {
 	m_root = "";
-	m_autoIndex = false;
+	m_autoIndex = -1;
 	m_allowedMethods.clear();
 	m_allowedMethods.push_back("GET");
 	m_maxBodySize = -1;
