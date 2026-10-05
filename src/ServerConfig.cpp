@@ -10,7 +10,7 @@ void ServerConfig::checkDuplicateLocations(const std::string& path) {
 void ServerConfig::setDefaultValues() {
 	m_root = "/www";
 	m_clientMaxBodySize = 100000000;
-	m_autoIndex = false;
+	m_autoIndex = -1;
 	m_errorPages.clear();
 }
 

@@ -10,7 +10,7 @@ class LocationConfig {
 	private:
 		std::string 																	m_path;
 		std::string 																	m_root;
-		bool																					m_autoIndex;
+		int																						m_autoIndex;
 		std::vector<std::string>											m_allowedMethods;
 		int																						m_maxBodySize;
 		std::vector<std::string>											m_index;
@@ -22,7 +22,7 @@ class LocationConfig {
 		LocationConfig() 																											{ setDefaultValues(); };
 		~LocationConfig() 																										{};
 		void	setRoot(const std::string& root)																{ m_root = root; }
-		void	setAutoIndex(bool isOn)																					{ m_autoIndex = isOn; }
+		void	setAutoIndex(int isOn)																					{ m_autoIndex = isOn; }
 		void	setBodySize(int size)																						{ m_maxBodySize = size; }
 		void	setIndex(const std::string& index)															{ m_index.emplace_back(index); }
 		void	setErrorPages(int error, const std::string& path)								{ m_errorPages.emplace(error, path); }
@@ -45,7 +45,7 @@ class LocationConfig {
 		const	std::unordered_map<std::string, std::string>& getCgiHandler() const	{ return m_cgiHandlers; }
 		
 			const std::string& 								getPath()												{ return m_path; }
-		bool 																getAutoIndex() 									{ return m_autoIndex; } 
+		int 																getAutoIndex() 									{ return m_autoIndex; } 
 		const std::string& 									getRoot() 											{ return m_root; }
 		int 																getMaxBodySize()								{ return m_maxBodySize; }
 		const std::vector<std::string>& 		getIndex() 											{ return m_index; }
