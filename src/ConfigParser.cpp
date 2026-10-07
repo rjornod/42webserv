@@ -777,6 +777,13 @@ void ConfigParser::resolveInheritances() {
 				for (const auto& [extension, path] : server.getCgiHandler())
     			location.setCgiHandler(extension, path);
 			}
+			if (server.getAutoIndex() == -1)
+				server.setAutoIndex(0);
+			if (location.getAutoIndex() == -1) {
+				int autoIndexState = server.getAutoIndex();
+				if (autoIndexState != -1) 
+					location.setAutoIndex(autoIndexState);
+			}
 		}
 	}
 }

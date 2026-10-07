@@ -16,7 +16,7 @@ class ServerConfig {
 		int 																					m_clientMaxBodySize;
 		std::vector<std::string>											m_index;
 		std::map<int, std::string>										m_errorPages;
-		bool																					m_autoIndex;
+		int																					m_autoIndex;
 		std::unordered_map<std::string, std::string>	m_cgiHandlers;
 		std::unordered_set<std::string> 							m_seenLocations;
 		std::unordered_set<std::string> 							m_seendirectives;
@@ -29,7 +29,7 @@ class ServerConfig {
 		void	setRoot(const std::string& root)																{ m_root = root; }
 		void	setBodySize(int size)																						{ m_clientMaxBodySize = size; }
 		void	setErrorPages(int error, const std::string& path)								{ m_errorPages.emplace(error, path); }
-		void	setAutoIndex(bool isOn)																					{ m_autoIndex = isOn; }
+		void	setAutoIndex(int isOn)																					{ m_autoIndex = isOn; }
 		void	setCgiHandler(const std::string& ext, const std::string& path)	{ m_cgiHandlers.try_emplace(ext, path); }
 		void	createLocationConfig()																					{ m_locationConfigs.emplace_back(); }
 		void 	setDefaultValues();
@@ -41,7 +41,7 @@ class ServerConfig {
 		void	printValues() const;
 		int 																getPort() const 												{ return m_listenPort; } 
 		int 																getClientMaxBody() const								{ return m_clientMaxBodySize; }
-		bool 																getAutoIndex() const 										{ return m_autoIndex; }
+		int 																getAutoIndex() const 										{ return m_autoIndex; }
 		const std::string& 									getServerName() const 									{ return m_serverName; }
 		const std::string& 									getRoot() const 												{ return m_root; }
 		const std::vector<std::string>& 		getIndex() const 												{ return m_index; }
