@@ -19,8 +19,13 @@ enum class FileResolutionError {
   BAD_REQUEST,    // From UriDecodeError -- client sent garbage
   FORBIDDEN,      // Path escaped root
   NOT_FOUND,
-  IS_DIRECTORY_NO_INDEX_FILE, //It's a directory and no index file was found
+//   IS_DIRECTORY_NO_INDEX_FILE, //It's a directory and no index file was found
   SERVER_ERROR
+};
+
+struct Resolution {
+  enum Kind {FILE, DIRECTORY} kind;
+  std::filesystem::path path;
 };
 
 class FileResolver {
@@ -29,14 +34,14 @@ class FileResolver {
 
   public:
 
-    Result<std::filesystem::path, FileResolutionError> resolve(const RequestContext& ctx); // Instead of string a std::filesystem::path
+    Result<Resolution, FileResolutionError> resolve(const RequestContext& ctx); // Instead of string a std::filesystem::path
     // Result<std::string, URIError> cleanUri(std::string_view raw);
     Result<std::string, UriDecodeError> percentDecode(std::string_view raw);
     Result<std::vector<std::string_view>, PathResolutionError> normalizeSegments(std::string_view decodedUri);
     std::string joinPath(std::string_view base, std::string_view suffix);
     std::string makeFSPath(std::string root, std::vector<std::string_view> segments);
     Result<std::filesystem::path, FileResolutionError> checkWithinRoot(const std::filesystem::path& candidate, const std::filesystem::path& root);
-    Result<std::filesystem::path, FileResolutionError> resolveIndex(const std::filesystem::path& directory, const std::vector<std::string>& indexCandidates, bool autoIndex);
+    Result<Resolution, FileResolutionError> resolveIndex(const std::filesystem::path& directory, const std::vector<std::string>& indexCandidates, bool autoIndex);
 };
 
 constexpr const char* to_string(UriDecodeError error)
@@ -64,7 +69,7 @@ constexpr const char* to_string(FileResolutionError error)
         case FileResolutionError::BAD_REQUEST: return "BAD_REQUEST";
         case FileResolutionError::FORBIDDEN: return "FORBIDDEN";
         case FileResolutionError::NOT_FOUND: return "NOT_FOUND";
-        case FileResolutionError::IS_DIRECTORY_NO_INDEX_FILE: return "IS_DIRECTORY_NO_INDEX_FILE";
+        // case FileResolutionError::IS_DIRECTORY_NO_INDEX_FILE: return "IS_DIRECTORY_NO_INDEX_FILE";
         case FileResolutionError::SERVER_ERROR: return "SERVER_ERROR";
     }
     return "ERROR";

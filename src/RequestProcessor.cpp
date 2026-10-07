@@ -1,6 +1,7 @@
 #include "RequestProcessor.hpp"
 #include "FileResolver.hpp"
 #include <algorithm>
+#include <sstream>
 
 HttpResponse RequestProcessor::process(RequestContext& ctx){
 
@@ -19,9 +20,9 @@ HttpResponse RequestProcessor::process(RequestContext& ctx){
 
   // std::cout << "File path: " << fileResolver.resolve(ctx) << std::endl;
   // ctx.setFilePath(fileResolver.resolve(ctx));
-  Result<std::filesystem::path, FileResolutionError> path = fileResolver.resolve(ctx);
-  if (!path) {
-    switch (path.error()) {
+  Result<Resolution, FileResolutionError> pathResult = fileResolver.resolve(ctx);
+  if (!pathResult) {
+    switch (pathResult.error()) {
       case FileResolutionError::BAD_REQUEST:
         return buildErrorResponse(400);
         // break;
@@ -31,8 +32,6 @@ HttpResponse RequestProcessor::process(RequestContext& ctx){
       case FileResolutionError::NOT_FOUND:
         return buildErrorResponse(404);
         // break;
-      case FileResolutionError::IS_DIRECTORY_NO_INDEX_FILE:
-        return buildAutoIndexResponse(ctx);
       case FileResolutionError::SERVER_ERROR:
         return buildErrorResponse(500);
         // break;
@@ -43,7 +42,9 @@ HttpResponse RequestProcessor::process(RequestContext& ctx){
     return response;
   }
   // The file path is canonical
-  ctx.setFilePath(path.value());
+  ctx.setFilePath(pathResult.value().path);
+  if (pathResult.value().kind == Resolution::DIRECTORY)
+    return buildAutoIndexResponse(ctx);
 
   HttpMethod method = ctx.getHttpRequest().getMethod();
 
@@ -163,8 +164,8 @@ HttpResponse RequestProcessor::buildErrorResponse(int errorCode) {
 
   response.makeStatusLine();
   std::string reason = response.getReasonPhrase();
-  response.addHeader("Content-Type", "text/plain");
-  response.addHeader("Content-Length", std::to_string(reason.size()));
+  response.addHeader("Content-Type", "text/html");
+  response.addHeader("Content-Length", std::to_string((std::to_string(errorCode) + " " + reason).size()));
   response.setBodySource(std::to_string(errorCode) + " " + reason);
 
   return response;
@@ -175,11 +176,13 @@ HttpResponse RequestProcessor::buildErrorResponse(int errorCode) {
 HttpResponse RequestProcessor::buildAutoIndexResponse(RequestContext& ctx) {
   HttpResponse response;
 
+  //This should always be true because we already check in the file resolver
   if (ctx.getLocationConfig()->getAutoIndex()) {
     response.makeStatusLine();
-    std::string listing = "Index Listing should be sent here";
+    // std::string listing = "Index Listing should be sent here. Directory: " + ctx.getFilePath().string();
 
-    response.addHeader("Content-Type", "text/plain");
+    std::string listing = generateAutoIndex(ctx.getFilePath(), ctx.getHttpRequest().getURI());
+    response.addHeader("Content-Type", "text/html");
     response.addHeader("Content-Length", std::to_string(listing.size()));
 
 
@@ -187,4 +190,57 @@ HttpResponse RequestProcessor::buildAutoIndexResponse(RequestContext& ctx) {
     return response;
   }
   return buildErrorResponse(403);
+}
+
+static std::string htmlEscape(const std::string& s) {
+    std::string out;
+    for (size_t i = 0; i < s.size(); ++i) {
+        switch (s[i]) {
+            case '&':  out += "&amp;";  break;
+            case '<':  out += "&lt;";   break;
+            case '>':  out += "&gt;";   break;
+            case '"':  out += "&quot;"; break;
+            case '\'': out += "&#39;";  break;
+            default:   out += s[i];
+        }
+    }
+    return out;
+}
+
+static std::string urlEncode(const std::string& s) {
+    static const char* hex = "0123456789ABCDEF";
+    std::string out;
+    for (size_t i = 0; i < s.size(); ++i) {
+        unsigned char c = s[i];
+        if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')
+            out += c;
+        else {
+            out += '%';
+            out += hex[c >> 4];
+            out += hex[c & 15];
+        }
+    }
+    return out;
+}
+
+std::string RequestProcessor::generateAutoIndex(const std::string& dirPath, const std::string& uri) {
+  std::vector<std::filesystem::directory_entry> entries;
+
+  for (const auto& e : std::filesystem::directory_iterator(dirPath))
+    entries.emplace_back(e);
+
+  std::ostringstream html;
+  html << "<!DOCTYPE html>\n<html>\n<head><title>Index of "
+      << uri 
+      << "</title></head>\n<body>\n<h1>Index of " << uri << "</h1>\n<hr>\n<ul>\n";
+
+  for (const auto& e : entries) {
+    std::string name = e.path().filename().string();
+    std::string suffix = e.is_directory() ? "/" : "";
+    html << "<li><a href= \""  << urlEncode(name) << suffix << "\">" << htmlEscape(name) << suffix << "</a></li> " << std::endl;
+  }
+
+  html << "</ul>\n<hr>\n</body>\n</html>\n";
+
+  return html.str();
 }

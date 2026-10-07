@@ -4,7 +4,7 @@
 // First it decodes escaped hex characters such as %2E -> '.' from the uri
 // Then it checks whether the decoded uri tries to escape the main directory
 // for safety of the host of the webserver
-Result<std::filesystem::path, FileResolutionError> FileResolver::resolve(const RequestContext& ctx){
+Result<Resolution, FileResolutionError> FileResolver::resolve(const RequestContext& ctx){
 
   std::string fSPString;
   std::string locationRoot = ctx.getLocationConfig()->getRoot();
@@ -17,16 +17,16 @@ Result<std::filesystem::path, FileResolutionError> FileResolver::resolve(const R
     switch (decodedUri.error()) {
       case UriDecodeError::MALFORMED_PERCENT_ENCODING:
         std::cout << "Invalid URI: " << to_string(decodedUri.error()) << std::endl;
-        return Result<std::filesystem::path, FileResolutionError>::Err(
+        return Result<Resolution, FileResolutionError>::Err(
           FileResolutionError::BAD_REQUEST);
         // break;
       case UriDecodeError::INVALID_BYTE:
         std::cout << "Invalid URI: " << to_string(decodedUri.error()) << std::endl;
-        return Result<std::filesystem::path, FileResolutionError>::Err(
+        return Result<Resolution, FileResolutionError>::Err(
           FileResolutionError::BAD_REQUEST);
         // break;
       default:
-        return Result<std::filesystem::path, FileResolutionError>::Err(
+        return Result<Resolution, FileResolutionError>::Err(
           FileResolutionError::BAD_REQUEST);
     }
   }
@@ -35,7 +35,7 @@ Result<std::filesystem::path, FileResolutionError> FileResolver::resolve(const R
 
   if (!segments) {
     std::cout << "Invalid URI segments: " << to_string(segments.error()) << std::endl;
-    return Result<std::filesystem::path, FileResolutionError>::Err(
+    return Result<Resolution, FileResolutionError>::Err(
       FileResolutionError::FORBIDDEN);
   }
 
@@ -46,19 +46,17 @@ Result<std::filesystem::path, FileResolutionError> FileResolver::resolve(const R
   std::filesystem::path root = locationRoot;
   Result<std::filesystem::path, FileResolutionError> path = checkWithinRoot(candidate, root);
   if (!path)
-    return Result<std::filesystem::path, FileResolutionError>::Err(path.error());
+    return Result<Resolution, FileResolutionError>::Err(path.error());
 
-  // Now check whether the file is a dirctory
+  // Now check whether the file is a directory
   auto status = std::filesystem::status(path.value());
   if (std::filesystem::is_regular_file(status))
-    return Result<std::filesystem::path, FileResolutionError>::Ok(path.value());
+    return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::FILE, path.value()});
   else if (std::filesystem::is_directory(status)) {
     auto indexResult = resolveIndex(path.value(), ctx.getLocationConfig()->getIndex(), ctx.getLocationConfig()->getAutoIndex());
-    if (!indexResult)
-      return Result<std::filesystem::path, FileResolutionError>::Err(FileResolutionError::IS_DIRECTORY_NO_INDEX_FILE);
-    return Result<std::filesystem::path, FileResolutionError>::Ok(indexResult.value());
+    return indexResult;
   }
-  return Result<std::filesystem::path, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
+  return Result<Resolution, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
 }
 
 bool is_hex(char c) {
@@ -245,15 +243,17 @@ Result<std::filesystem::path, FileResolutionError> FileResolver::checkWithinRoot
     return Result<std::filesystem::path, FileResolutionError>::Err(
       FileResolutionError::FORBIDDEN);
 
-  return Result<std::filesystem::path, FileResolutionError>::Ok(
-    std::move(canonicalPath));
+  return Result<std::filesystem::path, FileResolutionError>::Ok(canonicalPath);
 
 }
 
 /* Checks against the filesystem whether directory/location.indexCandidate exists
- returns the first index candidate that exists -- if none exists, return 403 (or 404)
+ returns the first index candidate that exists -- if none exists, 
+ checks if autoindex is on.
+ On: returns the path marked as a directory
+ Off: returns 403- forbidden
 */
-Result<std::filesystem::path, FileResolutionError> FileResolver::resolveIndex(
+Result<Resolution, FileResolutionError> FileResolver::resolveIndex(
   const std::filesystem::path& directory,
   const std::vector<std::string>& indexCandidates, bool autoIndex) {
 
@@ -262,11 +262,10 @@ Result<std::filesystem::path, FileResolutionError> FileResolver::resolveIndex(
 
     std::error_code ec;
     if (std::filesystem::is_regular_file(path) && !ec)
-      return Result<std::filesystem::path, FileResolutionError>::Ok(path);
+      return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::FILE, path});
   }
   if (!autoIndex)
-    return Result<std::filesystem::path, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
-  // TO DO: If autoindex is on... make the list of files and send it as a string
-  //If none of the index candidates exist, return an error
-  return Result<std::filesystem::path, FileResolutionError>::Err(FileResolutionError::IS_DIRECTORY_NO_INDEX_FILE);
+    return Result<Resolution, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
+
+  return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::DIRECTORY, directory});
 }

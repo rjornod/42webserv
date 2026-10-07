@@ -22,5 +22,6 @@ class RequestProcessor {
     HttpResponse buildAutoIndexResponse(RequestContext& ctx);
     HttpResponse buildErrorResponse(int errorCode);
     Result<std::string,MimeTypeError>  guessMimeType(std::string file);
+    std::string generateAutoIndex(const std::string& fsPath, const std::string& uri);
 
 };
