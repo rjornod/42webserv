@@ -35,8 +35,8 @@ HttpResponse RequestProcessor::process(RequestContext& ctx){
       case FileResolutionError::SERVER_ERROR:
         return buildErrorResponse(500);
         // break;
-      default:
-        return buildErrorResponse(418);; //Not sure what to do in this case
+      // default:
+        // return buildErrorResponse(500); //Not sure what to do in this case
         // break;
     }
     return response;
@@ -91,7 +91,6 @@ HttpResponse RequestProcessor::staticHandler(RequestContext& ctx) {
   const std::filesystem::path& path = ctx.getFilePath();
   
   HttpResponse response;
-  response.setStatusCode(200);
   response.makeStatusLine();
   response.addHeader("Content-Length", std::to_string(std::filesystem::file_size(path)));
   Result<std::string, MimeTypeError> mimeType = guessMimeType(path.string());
