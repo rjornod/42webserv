@@ -257,6 +257,7 @@ void Server::sendResponse(Client& client) {
 	else {
 		client.writeToSocket();
 		client.setShouldDisconnect(false);
+		//TO DO check / do something if there's an error on writing the response
 	}
 	if (client.writerFinished()) {
 		// client.resetWriter();

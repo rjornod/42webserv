@@ -1,4 +1,5 @@
 #include "FileResolver.hpp"
+#include <fstream>
 
 // Builds the file system path based on the uri and the location context
 // First it decodes escaped hex characters such as %2E -> '.' from the uri
@@ -50,8 +51,14 @@ Result<Resolution, FileResolutionError> FileResolver::resolve(const RequestConte
 
   // Now check whether the file is a directory
   auto status = std::filesystem::status(path.value());
-  if (std::filesystem::is_regular_file(status))
+  if (std::filesystem::is_regular_file(status)){
+    std::ifstream testOpen(path.value(), std::ios::binary);
+    if (!testOpen.is_open()) {
+      return Result<Resolution, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
+    }
+    testOpen.close();  
     return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::FILE, path.value()});
+  }
   else if (std::filesystem::is_directory(status)) {
     auto indexResult = resolveIndex(path.value(), ctx.getLocationConfig()->getIndex(), ctx.getLocationConfig()->getAutoIndex());
     return indexResult;
