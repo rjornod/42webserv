@@ -2,6 +2,7 @@
 #include "RequestContext.hpp"
 #include "HttpResponse.hpp"
 #include "Result.hpp"
+#include <optional>
 
 enum class MimeTypeError {
   EXTENSION_NOT_FOUND
