@@ -11,14 +11,13 @@ class RequestContext {
     const LocationConfig* m_locationConfig;
     ServerConfig   m_serverConfig; // For "global" settings
     std::filesystem::path    m_filePath;
-    // std::string   m_effectiveAllowedMethods;
 
   public:
     RequestContext() : m_locationConfig(nullptr) {};
     
     const LocationConfig* getLocationConfig() const {return m_locationConfig;}
     ServerConfig   getServerConfig() const {return m_serverConfig;}
-    // HttpRequest    getHttpRequest() const {return m_httpRequest;}
+    HttpRequest&    getHttpRequest() {return m_httpRequest;}
     const HttpRequest& getHttpRequest() const {return m_httpRequest;}
     std::filesystem::path    getFilePath() const {return m_filePath;}
     std::string getFilePathName() const {return m_filePath.string();}

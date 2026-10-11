@@ -39,6 +39,7 @@ class HttpResponse {
     void setBodySource(std::variant<std::string, std::filesystem::path> bodySource) {m_bodySource = bodySource;}
 
     void makeStatusLine();
+    void updateStatus(int status) {setStatusCode(status); makeStatusLine();}
     void addHeader(std::string name, std::string value);
 
 };

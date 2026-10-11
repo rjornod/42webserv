@@ -15,7 +15,7 @@ HttpResponse RequestProcessor::process(RequestContext& ctx){
 
   // Check method
   if (!allowedMethod(ctx)) {
-    return buildErrorResponse(405);
+    return buildDefaultErrorResponse(405);
   }
 
   // std::cout << "File path: " << fileResolver.resolve(ctx) << std::endl;
@@ -24,16 +24,16 @@ HttpResponse RequestProcessor::process(RequestContext& ctx){
   if (!pathResult) {
     switch (pathResult.error()) {
       case FileResolutionError::BAD_REQUEST:
-        return buildErrorResponse(400);
+        return buildDefaultErrorResponse(400);
         // break;
       case FileResolutionError::FORBIDDEN:
-        return buildErrorResponse(403);
+        return buildDefaultErrorResponse(403);
         // break;
       case FileResolutionError::NOT_FOUND:
-        return buildErrorResponse(404);
+        return buildErrorResponse(404, ctx);
         // break;
       case FileResolutionError::SERVER_ERROR:
-        return buildErrorResponse(500);
+        return buildDefaultErrorResponse(500);
         // break;
       // default:
         // return buildErrorResponse(500); //Not sure what to do in this case
@@ -136,7 +136,57 @@ Result<std::string, MimeTypeError> RequestProcessor::guessMimeType(std::string f
 
 }
 
-HttpResponse RequestProcessor::buildErrorResponse(int errorCode) {
+// Lookup in the LocationConfig the error page
+// Returns an optional that holds the string if found
+const std::optional<std::string> RequestProcessor::findErrorPage(int errorCode, const RequestContext& ctx) {
+  const auto& pages = ctx.getLocationConfig()->getErrorPages();
+  auto it = pages.find(errorCode);
+  if (it != pages.end())
+    return it->second;
+  return std::nullopt;
+}
+
+
+RequestContext RequestProcessor::makeErrorCtx(const RequestContext& ctx, const std::string& uri) {
+  RequestContext errorCtx = ctx;
+
+  HttpRequest& req = errorCtx.getHttpRequest();
+  req.setMethod(HttpMethod::GET);
+  req.setURI(uri);
+  req.clearBody();
+  // TODO Remove headers
+  errorCtx.setFilePath({});
+  return errorCtx;
+
+}
+
+HttpResponse RequestProcessor::buildErrorResponse(int errorCode, const RequestContext& ctx) {
+  // std::cout << "BUILDING ERROR RESPONSE" << std::endl;
+  if (auto errorPage = findErrorPage(errorCode, ctx)) {
+    // std::cout << "FOUND ERROR PAGE" << std::endl;
+    std::cout << *errorPage << std::endl;
+    RequestContext errorCtx = makeErrorCtx(ctx, *errorPage);
+    // std::cout << "Error context built: " << std::endl;
+    errorCtx.getLocationConfig()->printValues();
+    // std::cout << "File path from error ctx" << errorCtx.getFilePath();
+    FileResolver fileResolver;
+    auto result = fileResolver.resolve(errorCtx);
+    if (!result)
+      std::cout << "error on resolving error page path " << to_string(result.error()) << std::endl;
+    if (result && result.value().kind == Resolution::FILE) {
+      // std::cout << "Will serve " <<  result.value().path << std::endl;
+      errorCtx.setFilePath(result.value().path);
+      HttpResponse response = staticHandler(errorCtx);
+      response.updateStatus(errorCode);
+      return response;
+      // return buildDefaultErrorResponse(errorCode); // For debugging
+    }
+  }
+  return buildDefaultErrorResponse(errorCode);
+  
+}
+
+HttpResponse RequestProcessor::buildDefaultErrorResponse(int errorCode) {
 
   HttpResponse response;
 
@@ -188,7 +238,7 @@ HttpResponse RequestProcessor::buildAutoIndexResponse(RequestContext& ctx) {
     response.setBodySource(listing);
     return response;
   }
-  return buildErrorResponse(403);
+  return buildDefaultErrorResponse(403);
 }
 
 static std::string htmlEscape(const std::string& s) {

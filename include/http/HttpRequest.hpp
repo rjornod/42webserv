@@ -33,6 +33,7 @@ class HttpRequest {
     void setVersion(HttpVersion version) {m_version = version;}
     void setHeaders(std::unordered_map<std::string, std::string> headers) {m_headers = headers;}
     void setBody(std::string body) {m_body = body;}
+    void clearBody() {m_body = "";}
 
 };
 
