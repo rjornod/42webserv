@@ -46,6 +46,7 @@ class ServerConfig {
 		const std::string& 									getRoot() const 												{ return m_root; }
 		const std::vector<std::string>& 		getIndex() const 												{ return m_index; }
 		const std::map<int, std::string>&		getErrorPages() const 									{ return m_errorPages; }
+		std::map<int, std::string>&					getErrorPages()													{ return m_errorPages; }
 		const std::unordered_map<std::string, std::string>& getCgiHandler() const 	{ return m_cgiHandlers; }
 		const std::vector<LocationConfig>&	getLocationConfigs() const 							{ return m_locationConfigs; }
 		std::vector<LocationConfig>&				getLocationConfigs() 										{ return m_locationConfigs; }

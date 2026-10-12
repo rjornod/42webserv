@@ -9,20 +9,20 @@ class RequestContext {
   private:
     HttpRequest    m_httpRequest;
     const LocationConfig* m_locationConfig;
-    ServerConfig   m_serverConfig; // For "global" settings
+    const ServerConfig*   m_serverConfig; // For "global" settings
     std::filesystem::path    m_filePath;
 
   public:
     RequestContext() : m_locationConfig(nullptr) {};
     
     const LocationConfig* getLocationConfig() const {return m_locationConfig;}
-    ServerConfig   getServerConfig() const {return m_serverConfig;}
+    const ServerConfig*   getServerConfig() const {return m_serverConfig;}
     HttpRequest&    getHttpRequest() {return m_httpRequest;}
     const HttpRequest& getHttpRequest() const {return m_httpRequest;}
     std::filesystem::path    getFilePath() const {return m_filePath;}
     std::string getFilePathName() const {return m_filePath.string();}
     void           setHttpRequest(const HttpRequest& request) {m_httpRequest = request;}
-    void           setServerConfig(const ServerConfig& serverConfig) {m_serverConfig = serverConfig;}
+    void           setServerConfig(const ServerConfig* serverConfig) {m_serverConfig = serverConfig;}
     void           setLocationConfig(const LocationConfig* locationConfig) {m_locationConfig = locationConfig;}
     void           setFilePath(std::filesystem::path path) {m_filePath = path;}
 };

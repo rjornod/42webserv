@@ -262,6 +262,7 @@ void Server::sendResponse(Client& client) {
 	if (client.writerFinished()) {
 		// client.resetWriter();
 		client.clearParser();
+		client.setShouldDisconnect(true);// TODO KEEP-ALIVE/ keep connection?!
 	}
 
 }

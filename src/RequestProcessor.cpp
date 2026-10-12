@@ -9,18 +9,16 @@ HttpResponse RequestProcessor::process(RequestContext& ctx){
   HttpResponse response;
   FileResolver fileResolver;
 
-  if (ctx.getLocationConfig() == nullptr) {
-    response.setStatusCode(500);              //Actually it should just take the root from the server
-    return response;
-  }
+  // if (ctx.getLocationConfig() == nullptr) {
+  //   // response.setStatusCode(500);              //Actually it should just take the root from the server
+  //   return buildDefaultErrorResponse(500);
+  // }
 
   // Check method
   if (!allowedMethod(ctx)) {
     return buildDefaultErrorResponse(405);
   }
 
-  // std::cout << "File path: " << fileResolver.resolve(ctx) << std::endl;
-  // ctx.setFilePath(fileResolver.resolve(ctx));
   Result<Resolution, FileResolutionError> pathResult = fileResolver.resolve(ctx);
   if (!pathResult) {
     switch (pathResult.error()) {
@@ -40,12 +38,14 @@ HttpResponse RequestProcessor::process(RequestContext& ctx){
         // return buildErrorResponse(500); //Not sure what to do in this case
         // break;
     }
-    return response;
+    // return response;
   }
   // The file path is canonical
   ctx.setFilePath(pathResult.value().path);
-  if (pathResult.value().kind == Resolution::DIRECTORY)
+  if (pathResult.value().kind == Resolution::DIRECTORY) {
+    std::cout << "Uri is a directory, going to check autoindex" << std::endl;
     return buildAutoIndexResponse(ctx);
+  }
 
   HttpMethod method = ctx.getHttpRequest().getMethod();
 
@@ -75,7 +75,13 @@ HttpResponse RequestProcessor::process(RequestContext& ctx){
 bool RequestProcessor::allowedMethod(const RequestContext& ctx) {
   HttpMethod requestMethod = ctx.getHttpRequest().getMethod();
 
-  std::vector<std::string> allowedMethods = ctx.getLocationConfig()->getAllowedMethods();
+
+  std::vector<std::string> allowedMethods;
+  if (ctx.getLocationConfig())
+    allowedMethods = ctx.getLocationConfig()->getAllowedMethods();
+  else
+  //TODO change in ServerConfig
+    allowedMethods.emplace_back("GET");
 
   if (std::find(allowedMethods.begin(), allowedMethods.end(), to_string(requestMethod)) 
       == allowedMethods.end()) {
@@ -140,7 +146,13 @@ Result<std::string, MimeTypeError> RequestProcessor::guessMimeType(std::string f
 // Lookup in the LocationConfig the error page
 // Returns an optional that holds the string if found
 const std::optional<std::string> RequestProcessor::findErrorPage(int errorCode, const RequestContext& ctx) {
-  const auto& pages = ctx.getLocationConfig()->getErrorPages();
+
+  std::map<int, std::string> pages;
+  if (ctx.getLocationConfig())
+    pages = ctx.getLocationConfig()->getErrorPages();
+  else
+    pages = ctx.getServerConfig()->getErrorPages();
+
   auto it = pages.find(errorCode);
   if (it != pages.end())
     return it->second;
@@ -168,7 +180,7 @@ HttpResponse RequestProcessor::buildErrorResponse(int errorCode, const RequestCo
     std::cout << *errorPage << std::endl;
     RequestContext errorCtx = makeErrorCtx(ctx, *errorPage);
     // std::cout << "Error context built: " << std::endl;
-    errorCtx.getLocationConfig()->printValues();
+    // errorCtx.getLocationConfig()->printValues();
     // std::cout << "File path from error ctx" << errorCtx.getFilePath();
     FileResolver fileResolver;
     auto result = fileResolver.resolve(errorCtx);
@@ -227,7 +239,7 @@ HttpResponse RequestProcessor::buildAutoIndexResponse(RequestContext& ctx) {
   HttpResponse response;
 
   //This should always be true because we already check in the file resolver
-  if (ctx.getLocationConfig()->getAutoIndex()) {
+  // if (ctx.getLocationConfig()->getAutoIndex()) {
     response.makeStatusLine();
     // std::string listing = "Index Listing should be sent here. Directory: " + ctx.getFilePath().string();
 
@@ -238,8 +250,8 @@ HttpResponse RequestProcessor::buildAutoIndexResponse(RequestContext& ctx) {
 
     response.setBodySource(listing);
     return response;
-  }
-  return buildDefaultErrorResponse(403);
+  // }
+  // return buildDefaultErrorResponse(403);
 }
 
 static std::string htmlEscape(const std::string& s) {

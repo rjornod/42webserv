@@ -13,7 +13,7 @@ RequestContext Router::createContext(const HttpRequest& request, const GlobalCon
   const ServerConfig& serverConfig = config.getServerConfigs()[serverConfigIndex];
   auto uri = request.getURI();
   RequestContext ctx;
-  ctx.setServerConfig(serverConfig);
+  ctx.setServerConfig(&serverConfig);
   ctx.setHttpRequest(request);
   ctx.setLocationConfig(matchLocation(serverConfig.getLocationConfigs(), uri));
 

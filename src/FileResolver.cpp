@@ -8,7 +8,11 @@
 Result<Resolution, FileResolutionError> FileResolver::resolve(const RequestContext& ctx){
 
   std::string fSPString;
-  std::string locationRoot = ctx.getLocationConfig()->getRoot();
+  std::string locationRoot;
+  if (ctx.getLocationConfig())
+    locationRoot = ctx.getLocationConfig()->getRoot();
+  else
+    locationRoot = ctx.getServerConfig()->getRoot();
   HttpRequest request = ctx.getHttpRequest();
   std::string_view raw = request.getURI();
 
@@ -60,7 +64,17 @@ Result<Resolution, FileResolutionError> FileResolver::resolve(const RequestConte
     return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::FILE, path.value()});
   }
   else if (std::filesystem::is_directory(status)) {
-    auto indexResult = resolveIndex(path.value(), ctx.getLocationConfig()->getIndex(), ctx.getLocationConfig()->getAutoIndex());
+    std::vector<std::string> indexVec;
+    bool autoIndex;
+    if(ctx.getLocationConfig()) {
+      indexVec = ctx.getLocationConfig()->getIndex();
+      autoIndex = ctx.getLocationConfig()->getAutoIndex();
+    }
+    else {
+      indexVec = ctx.getServerConfig()->getIndex();
+      autoIndex = ctx.getServerConfig()->getAutoIndex();
+    }
+    auto indexResult = resolveIndex(path.value(), indexVec, autoIndex);
     return indexResult;
   }
   return Result<Resolution, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
