@@ -64,6 +64,11 @@ Result<Resolution, FileResolutionError> FileResolver::resolve(const RequestConte
     return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::FILE, path.value()});
   }
   else if (std::filesystem::is_directory(status)) {
+    std::ifstream testOpenDir(path.value(), std::ios::binary);
+    if (!testOpenDir.is_open()) {
+      return Result<Resolution, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
+    }
+    testOpenDir.close();  
     std::vector<std::string> indexVec;
     bool autoIndex;
     if(ctx.getLocationConfig()) {

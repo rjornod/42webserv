@@ -23,16 +23,16 @@ HttpResponse RequestProcessor::process(RequestContext& ctx){
   if (!pathResult) {
     switch (pathResult.error()) {
       case FileResolutionError::BAD_REQUEST:
-        return buildDefaultErrorResponse(400);
+        return buildErrorResponse(400, ctx);
         // break;
       case FileResolutionError::FORBIDDEN:
-        return buildDefaultErrorResponse(403);
+        return buildErrorResponse(403, ctx);
         // break;
       case FileResolutionError::NOT_FOUND:
         return buildErrorResponse(404, ctx);
         // break;
       case FileResolutionError::SERVER_ERROR:
-        return buildDefaultErrorResponse(500);
+        return buildErrorResponse(500, ctx);
         // break;
       // default:
         // return buildErrorResponse(500); //Not sure what to do in this case
@@ -219,22 +219,27 @@ HttpResponse RequestProcessor::buildDefaultErrorResponse(int errorCode) {
     case 500:
       response.setStatusCode(500);
         break;
-    default:
-      response.setStatusCode(418); // Not sure what to do in this case -- I guess we would never call the function with another status code
-      break;
   }
 
   response.makeStatusLine();
   std::string reason = response.getReasonPhrase();
+  std::string pathStr = "./data/error_pages/";
+  pathStr += std::to_string(errorCode) + ".html";
+  std::error_code ec;
+  std::filesystem::path path = std::filesystem::canonical(pathStr, ec);
   response.addHeader("Content-Type", "text/html");
-  response.addHeader("Content-Length", std::to_string((std::to_string(errorCode) + " " + reason).size()));
-  response.setBodySource(std::to_string(errorCode) + " " + reason);
+  if (ec) {
+    response.addHeader("Content-Length", std::to_string(std::to_string(errorCode).size() + reason.size() + 1));
+    std::cout << std::to_string(errorCode) + " " + reason << std::endl;
+    response.setBodySource(std::to_string(errorCode) + " " + reason);
+  }
+  else
+    response.setBodySource(path);
 
   return response;
 }
 
 
-// TO DO: Consider moving this responsibility back to the FileResolver
 HttpResponse RequestProcessor::buildAutoIndexResponse(RequestContext& ctx) {
   HttpResponse response;
 
