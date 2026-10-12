@@ -20,6 +20,7 @@ class RequestProcessor {
     HttpResponse process(RequestContext& ctx);
     bool allowedMethod(const RequestContext& ctx);
     HttpResponse staticHandler(RequestContext& ctx);
+    HttpResponse deleteHandler(RequestContext& ctx);
     HttpResponse buildAutoIndexResponse(RequestContext& ctx);
     HttpResponse buildErrorResponse(int errorCode, const RequestContext& ctx);
     HttpResponse buildDefaultErrorResponse(int errorCode);

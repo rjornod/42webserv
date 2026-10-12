@@ -40,17 +40,17 @@ HttpResponse RequestProcessor::process(RequestContext& ctx){
     }
     // return response;
   }
+  HttpMethod method = ctx.getHttpRequest().getMethod();
+
+
   // The file path is canonical
   ctx.setFilePath(pathResult.value().path);
-  if (pathResult.value().kind == Resolution::DIRECTORY) {
-    std::cout << "Uri is a directory, going to check autoindex" << std::endl;
-    return buildAutoIndexResponse(ctx);
-  }
-
-  HttpMethod method = ctx.getHttpRequest().getMethod();
 
   switch (method) {
     case HttpMethod::GET:
+      if (pathResult.value().kind == Resolution::DIRECTORY) {
+        return buildAutoIndexResponse(ctx);
+      }
       response = staticHandler(ctx);
       break;
     case HttpMethod::POST:
@@ -58,6 +58,10 @@ HttpResponse RequestProcessor::process(RequestContext& ctx){
       break;
     case HttpMethod::DELETE:
       std::cout << "Handling delete" << std::endl;
+      if (pathResult.value().kind == Resolution::DIRECTORY) {
+        return buildErrorResponse(409, ctx);
+      }
+      response = deleteHandler(ctx);
       break;
     default:
       std::cout << "Handling method not allowed" << std::endl;
@@ -203,24 +207,7 @@ HttpResponse RequestProcessor::buildDefaultErrorResponse(int errorCode) {
 
   HttpResponse response;
 
-  switch(errorCode) {
-    case 400:
-      response.setStatusCode(400);
-      break;
-    case 403:
-      response.setStatusCode(403);
-      break;
-    case 404:
-      response.setStatusCode(404);
-      break;
-    case 405:
-      response.setStatusCode(405);
-      break;
-    case 500:
-      response.setStatusCode(500);
-        break;
-  }
-
+  response.setStatusCode(errorCode);
   response.makeStatusLine();
   std::string reason = response.getReasonPhrase();
   std::string pathStr = "./data/error_pages/";
@@ -233,8 +220,10 @@ HttpResponse RequestProcessor::buildDefaultErrorResponse(int errorCode) {
     std::cout << std::to_string(errorCode) + " " + reason << std::endl;
     response.setBodySource(std::to_string(errorCode) + " " + reason);
   }
-  else
+  else {
+    response.addHeader("Content-Length", std::to_string(std::filesystem::file_size(path)));
     response.setBodySource(path);
+  }
 
   return response;
 }
@@ -310,4 +299,46 @@ std::string RequestProcessor::generateAutoIndex(const std::string& dirPath, cons
   html << "</ul>\n<hr>\n</body>\n</html>\n";
 
   return html.str();
+}
+
+
+// Handles a delete request
+// Assumes that the file path in the context is not a directory, since that case was handled before
+// 
+HttpResponse RequestProcessor::deleteHandler(RequestContext& ctx) {
+
+  HttpResponse response;
+
+  std::filesystem::path path = ctx.getFilePath();
+
+  std::filesystem::path root;
+  if (ctx.getLocationConfig())
+    root = ctx.getLocationConfig()->getRoot();
+  else
+    root = ctx.getServerConfig()->getRoot();
+  std::filesystem::path canonincalRoot = std::filesystem::canonical(root);
+  std::filesystem::path canonicalTarget = std::filesystem::canonical(path);
+  // Check that the resolved file is not the root
+  if (std::filesystem::equivalent(canonicalTarget, canonincalRoot))
+    return buildErrorResponse(403, ctx);
+  
+  std::error_code ec;
+
+  bool removed = std::filesystem::remove(path, ec);
+
+  if (ec) {
+  if (ec == std::errc::permission_denied || ec == std::errc::operation_not_permitted ||
+    ec == std::errc::read_only_file_system)
+    return buildErrorResponse(403, ctx);
+  if (ec == std::errc::no_such_file_or_directory)
+    return buildErrorResponse(404, ctx);
+  if (ec == std::errc::is_a_directory || ec == std::errc::directory_not_empty)
+    return buildErrorResponse(409, ctx);
+  return buildErrorResponse(500, ctx);
+  }
+  if (!removed)
+    return buildErrorResponse(404, ctx);
+  response.setStatusCode(204);
+  response.makeStatusLine();
+  return response;
 }
