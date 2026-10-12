@@ -12,6 +12,7 @@ void ServerConfig::setDefaultValues() {
 	m_clientMaxBodySize = 100000000;
 	m_autoIndex = -1;
 	m_errorPages.clear();
+	m_allowedMethods.emplace_back("GET");
 }
 
 void ServerConfig::seenDirective(std::string directive) {
@@ -63,6 +64,13 @@ void ServerConfig::printValues() const {
 	// }
 	// printIndex();
 	// printErrorPages();
+	std::cout << YELLOW << "ALLOWED METHODS: " << RESET;
+	if (m_allowedMethods.empty())
+		std::cout << "(not set)";
+	else
+		for (const std::string& method : m_allowedMethods)
+			std::cout << method << " ";
+	std::cout << std::endl;
 	std::cout << YELLOW << "LOCATION CONFIGS: " << RESET;
 	if (m_locationConfigs.empty()) {
 		std::cout << "(not set)" << std::endl;
