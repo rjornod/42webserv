@@ -16,7 +16,8 @@ class ServerConfig {
 		int 																					m_clientMaxBodySize;
 		std::vector<std::string>											m_index;
 		std::map<int, std::string>										m_errorPages;
-		int																					m_autoIndex;
+		int																						m_autoIndex;
+		std::vector<std::string>											m_allowedMethods;
 		std::unordered_map<std::string, std::string>	m_cgiHandlers;
 		std::unordered_set<std::string> 							m_seenLocations;
 		std::unordered_set<std::string> 							m_seendirectives;
@@ -30,8 +31,10 @@ class ServerConfig {
 		void	setBodySize(int size)																						{ m_clientMaxBodySize = size; }
 		void	setErrorPages(int error, const std::string& path)								{ m_errorPages.emplace(error, path); }
 		void	setAutoIndex(int isOn)																					{ m_autoIndex = isOn; }
+		void	setAllowedMethod(const std::string& method)											{ m_allowedMethods.emplace_back(method); }
 		void	setCgiHandler(const std::string& ext, const std::string& path)	{ m_cgiHandlers.try_emplace(ext, path); }
-		void	createLocationConfig()																					{ m_locationConfigs.emplace_back(); }
+		void	createLocationConfig()																					{ m_locationConfigs.emplace_back();}
+		void 	clearDefaultMethods()																						{ m_allowedMethods.clear(); }
 		void 	setDefaultValues();
 		void 	checkDuplicateLocations(const std::string& path);
 		void	seenDirective(std::string directive);
@@ -42,6 +45,8 @@ class ServerConfig {
 		int 																getPort() const 												{ return m_listenPort; } 
 		int 																getClientMaxBody() const								{ return m_clientMaxBodySize; }
 		int 																getAutoIndex() const 										{ return m_autoIndex; }
+		const std::vector<std::string>& 		getAllowedMethods() const								{ return m_allowedMethods; }
+		std::vector<std::string>& 					getAllowedMethods()											{ return m_allowedMethods; }	// non const to be able to clear vector	
 		const std::string& 									getServerName() const 									{ return m_serverName; }
 		const std::string& 									getRoot() const 												{ return m_root; }
 		const std::vector<std::string>& 		getIndex() const 												{ return m_index; }

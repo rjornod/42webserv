@@ -46,7 +46,7 @@ class ConfigParser {
 		void	handleAutoIndex(int scope);
 		void	handleErrorPages(int scope);
 		void	handleReturn();
-		void	handleAllowedMethods();
+		void	handleAllowedMethods(int scope);
 		void	handleUploadStore();
 		void	handleCGI(int scope);
 		int		validateErrorCode(std::string code);

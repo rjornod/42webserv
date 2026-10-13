@@ -2,6 +2,7 @@
 #include <string_view>
 
 enum class DirectiveType {
+	ALLOWEDMETHODS,
 	LISTEN,
 	NAME,
 	ROOT,
@@ -15,6 +16,7 @@ enum class DirectiveType {
 };
 
 DirectiveType directiveFromString(std::string_view name) {
+	if (name == "allowed_methods") 			return DirectiveType::ALLOWEDMETHODS;
 	if (name == "listen") 							return DirectiveType::LISTEN;
 	if (name == "server_name")					return DirectiveType::NAME;
 	if (name == "root") 								return DirectiveType::ROOT;

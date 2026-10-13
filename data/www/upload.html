@@ -1,0 +1,65 @@
+<html style="background-color:darkmagenta; margin:0;">
+	<head>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Comic+Neue:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="style.css">
+	<style>
+		.bowlby-one-regular {
+			font-family: "Bowlby One", sans-serif;
+			font-weight: 400;
+			font-style: normal;
+			color:whitesmoke;
+			font-size: 300%;
+		}
+		.bowlby-one-smaller {
+			font-family: "Bowlby One", sans-serif;
+			font-weight: 200;
+			font-style: normal;
+			color:whitesmoke;
+			font-size: 100%;
+		}
+		.button {
+			align-items: center;
+			background-clip: padding-box;
+			background-color: #d7c9ec;
+			border: 1px solid transparent;
+			border-radius: .25rem;
+			box-shadow: rgba(0, 0, 0, 0.02) 0 1px 3px 0;
+			box-sizing: border-box;
+			color: rgb(96, 0, 96);
+			cursor: pointer;
+			display: inline-flex;
+			font-size: 16px;
+			font-weight: 400;
+			justify-content: center;
+			line-height: 1.25;
+			margin: 20px;
+			min-height: 3rem;
+			padding: calc(.875rem - 1px) calc(1.5rem - 1px);
+			position: relative;
+			text-decoration: none;
+			transition: all 250ms;
+			user-select: none;
+			-webkit-user-select: none;
+			touch-action: manipulation;
+			vertical-align: baseline;
+			width: auto;
+		}
+		button:active{
+			background-color:red;
+			color: white;
+		}
+	</style>
+	<div>
+		<div style="padding: 10px;">
+				<form method="POST" enctype="multipart/form-data"> <!-- this enctype is necessary when user will upload a file through the form -->
+					<label class="bowlby-one-regular" for="upload">Choose an image to upload:</label><br>
+					<input class="bowlby-one-smaller" type="file" id="upload" name="image" accept="image/*" /><br>
+					<button type="submit" class="bowlby-one-smaller button">Submit</button>
+				</form>
+		</div>
+	
+
+	</div>
+</html>
