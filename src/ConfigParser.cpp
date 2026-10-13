@@ -484,7 +484,7 @@ void ConfigParser::handleReturn() {
  * At least one method, max 3;
  * Allowed methods are POST, GET, DELETE;
  */
-void ConfigParser::handleAllowedMethods() {
+void ConfigParser::handleAllowedMethods(int scope) {
 	incTokenIndex(1);
 	std::unordered_set<std::string> seen;																												// store every method to account for duplicates
 	int methodCount = 0;
@@ -492,7 +492,10 @@ void ConfigParser::handleAllowedMethods() {
 		throw ConfigParseException("allowed_methods directive is missing an argument");
 	if (!isType(currentToken(), TokenType::Word) || !isValidToken(currentToken()))
 		throw ConfigParseException("allowed_methods directive is malformed");
-	currentLocation().clearDefaultMethods();
+	if (scope == GLOBAL)
+		currentServer().clearDefaultMethods();
+	else
+		currentLocation().clearDefaultMethods();
 	while (!isType(currentToken(), TokenType::EndDirective)) {
 		if (methodCount>= 3)
 			throw ConfigParseException("Too many arguments for allowed_methods. Max 3 allowed.");
@@ -500,9 +503,14 @@ void ConfigParser::handleAllowedMethods() {
 			throw ConfigParseException("Duplicate methods are not allowed: " + currentToken().value);
 		if (isType(currentToken(), TokenType::Word) && knownDirectives.count(m_tokens[m_tokenIndex + 1].value))
 			throw ConfigParseException("Allowed methods directive is missing a semicolon");
+		// continue from here
 		if (isType(currentToken(), TokenType::Word) && 
-			allowedMethods.count(currentToken().value))
-			currentLocation().setAllowedMethod(currentToken().value);
+				allowedMethods.count(currentToken().value)) {
+			if (scope == GLOBAL)
+				currentServer().setAllowedMethod(currentToken().value);
+			else
+				currentLocation().setAllowedMethod(currentToken().value);	
+		}
 		else
 			throw ConfigParseException("Method incorrect. Only GET, POST and DELETE allowed: " + currentToken().value);
 		methodCount++;
@@ -587,7 +595,7 @@ void ConfigParser::handleLocationDirective() {
 			handleUploadStore();
 			break;
 		case LocationDirectiveType::ALLOWEDMETHODS:
-			handleAllowedMethods();
+			handleAllowedMethods(LOCAL);
 			break;
 		case LocationDirectiveType::RETURN:
 			handleReturn();
@@ -606,6 +614,9 @@ void ConfigParser::handleLocationDirective() {
  */
 void ConfigParser::handleDirective() {
 	switch(directiveFromString(currentToken().value)) {
+		case DirectiveType::ALLOWEDMETHODS:
+			handleAllowedMethods(GLOBAL);
+			break;
 		case DirectiveType::LISTEN:
 			handleListen();
 			break;
