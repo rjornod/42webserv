@@ -1,79 +1,181 @@
 #include "RequestProcessor.hpp"
-#include "FileResolver.hpp"
 #include <algorithm>
 #include <sstream>
 
 
+static int statusFromError(FileResolutionError e) {
+  switch (e) {
+    case FileResolutionError::BAD_REQUEST: return 400;
+    case FileResolutionError::FORBIDDEN:   return 403;
+    case FileResolutionError::NOT_FOUND:   return 404;
+    case FileResolutionError::SERVER_ERROR:
+    default:                               return 500;
+  }
+}
+
+
 HttpResponse RequestProcessor::process(RequestContext& ctx){
 
-  HttpResponse response;
+  if (!allowedMethod(ctx)) {
+    return buildErrorResponse(405, ctx);
+  }
+
+  switch (ctx.getHttpRequest().getMethod())
+  {
+  case HttpMethod::GET: return handleGet(ctx);
+  case HttpMethod::POST: return handlePost(ctx);
+  case HttpMethod::DELETE: return handleDelete(ctx);
+  default: return buildErrorResponse(405, ctx);
+  }
+
+}
+
+//Resolves the path and handles the request
+HttpResponse RequestProcessor::handleGet(RequestContext& ctx) {
+
+  Resolution res;
+  HttpResponse err;
+
+  if (!resolvePath(ctx, res, err))
+    return err;
+
+  if (res.kind == Resolution::DIRECTORY)
+    return buildAutoIndexResponse(ctx);
+  return staticHandler(ctx);
+}
+
+//Resolves the path and handles the request
+HttpResponse RequestProcessor::handleDelete(RequestContext& ctx) {
+
+  Resolution res;
+  HttpResponse err;
+
+  if (!resolvePath(ctx, res, err))
+    return err;
+  if (res.kind == Resolution::DIRECTORY)
+    return buildErrorResponse(409, ctx);
+  return deleteHandler(ctx);
+}
+
+HttpResponse RequestProcessor::handlePost(RequestContext& ctx) {
+  const HttpRequest& req = ctx.getHttpRequest();
+
+  if (!postHeadersPresent(req))
+    return buildErrorResponse(411, ctx);
+  if (!checkContentLength(ctx))
+    return buildErrorResponse(413, ctx);
+  std::cout << "Handling POST request" << std::endl;
+  return HttpResponse();
+} 
+
+//Returns true on success and fills out the response; on failure returns false and fills out errResponse
+bool RequestProcessor::resolvePath(RequestContext& ctx, Resolution& out, HttpResponse& errResponse) {
+  
   FileResolver fileResolver;
 
-  // if (ctx.getLocationConfig() == nullptr) {
-  //   // response.setStatusCode(500);              //Actually it should just take the root from the server
-  //   return buildDefaultErrorResponse(500);
-  // }
-
-  // Check method
-  if (!allowedMethod(ctx)) {
-    return buildDefaultErrorResponse(405);
-  }
-
   Result<Resolution, FileResolutionError> pathResult = fileResolver.resolve(ctx);
+
   if (!pathResult) {
-    switch (pathResult.error()) {
-      case FileResolutionError::BAD_REQUEST:
-        return buildErrorResponse(400, ctx);
-        // break;
-      case FileResolutionError::FORBIDDEN:
-        return buildErrorResponse(403, ctx);
-        // break;
-      case FileResolutionError::NOT_FOUND:
-        return buildErrorResponse(404, ctx);
-        // break;
-      case FileResolutionError::SERVER_ERROR:
-        return buildErrorResponse(500, ctx);
-        // break;
-      // default:
-        // return buildErrorResponse(500); //Not sure what to do in this case
-        // break;
-    }
-    // return response;
-  }
-  HttpMethod method = ctx.getHttpRequest().getMethod();
-
-
-  // The file path is canonical
-  ctx.setFilePath(pathResult.value().path);
-
-  switch (method) {
-    case HttpMethod::GET:
-      if (pathResult.value().kind == Resolution::DIRECTORY) {
-        return buildAutoIndexResponse(ctx);
-      }
-      response = staticHandler(ctx);
-      break;
-    case HttpMethod::POST:
-      std::cout << "Handling upload" << std::endl;
-      break;
-    case HttpMethod::DELETE:
-      std::cout << "Handling delete" << std::endl;
-      if (pathResult.value().kind == Resolution::DIRECTORY) {
-        return buildErrorResponse(409, ctx);
-      }
-      response = deleteHandler(ctx);
-      break;
-    default:
-      std::cout << "Handling method not allowed" << std::endl;
+    errResponse = buildErrorResponse(statusFromError(pathResult.error()), ctx);
+    return false;
   }
 
+  out = pathResult.value();
+  ctx.setFilePath(out.path);
+  return true;
+}
 
-  // Call appropriate handler that will build the appropriate response
-  // return staticFileHandler.handle(ctx);
 
-  // std::cout << "FilePath: " << ctx.getFilePathName() << std::endl;
+// HttpResponse RequestProcessor::process(RequestContext& ctx){
 
-  return response;
+//   HttpResponse response;
+//   FileResolver fileResolver;
+
+//   // Check method
+//   if (!allowedMethod(ctx)) {
+//     return buildDefaultErrorResponse(405);
+//   }
+
+//   HttpMethod method = ctx.getHttpRequest().getMethod();
+
+
+//   Result<Resolution, FileResolutionError> pathResult = fileResolver.resolve(ctx);
+
+  
+//   if (!pathResult) {
+//     switch (pathResult.error()) {
+//       case FileResolutionError::BAD_REQUEST:
+//         return buildErrorResponse(400, ctx);
+//       case FileResolutionError::FORBIDDEN:
+//         return buildErrorResponse(403, ctx);
+//       case FileResolutionError::NOT_FOUND:
+//         return buildErrorResponse(404, ctx);
+//       case FileResolutionError::SERVER_ERROR:
+//         return buildErrorResponse(500, ctx);
+//     }
+//   }
+  
+//   // The file path is canonical
+//   ctx.setFilePath(pathResult.value().path);
+
+  
+//   HttpRequest req = ctx.getHttpRequest();
+
+//   switch (method) {
+//     case HttpMethod::GET:
+//       if (pathResult.value().kind == Resolution::DIRECTORY)
+//         return buildAutoIndexResponse(ctx);
+//       response = staticHandler(ctx);
+//       break;
+//     case HttpMethod::POST:
+//       std::cout << "Handling post" << std::endl;
+//       if (!postHeadersPresent(req))
+//         return buildErrorResponse(411, ctx);
+//       if (!checkContentLength(ctx))
+//         return buildErrorResponse(413, ctx);
+//       break;
+//     case HttpMethod::DELETE:
+//       std::cout << "Handling delete" << std::endl;
+//       if (pathResult.value().kind == Resolution::DIRECTORY) 
+//         return buildErrorResponse(409, ctx);
+//       response = deleteHandler(ctx);
+//       break;
+//     default:
+//       std::cout << "Handling method not allowed" << std::endl;
+//   }
+
+//   return response;
+// }
+
+bool RequestProcessor::checkContentLength(const RequestContext& ctx) {
+
+  int maxBodySize;
+  if (ctx.getLocationConfig())
+    maxBodySize = ctx.getLocationConfig()->getMaxBodySize();
+  else
+    maxBodySize = ctx.getServerConfig()->getClientMaxBody();
+  
+  std::unordered_map<std::string, std::string> headers = ctx.getHttpRequest().getHeaders();
+  auto contentLen = headers.find("content-length");
+
+  if (contentLen == headers.end())
+    return true;
+  try {
+    int len = std::stoi(contentLen->second);
+    return len <= maxBodySize;
+  }
+  catch (const std::out_of_range& oor) {
+    return false;
+  }
+
+}
+
+bool RequestProcessor::postHeadersPresent(const HttpRequest& req) {
+
+  std::unordered_map<std::string, std::string> headers = req.getHeaders();
+  auto contentLen = headers.find("content-length");
+  auto transferEncoding = headers.find("transfer-encoding");
+  return (contentLen != headers.end() || transferEncoding != headers.end());
 }
 
 bool RequestProcessor::allowedMethod(const RequestContext& ctx) {

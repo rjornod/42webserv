@@ -11,10 +11,10 @@
 int main(int argc, char **argv) {
 
   std::string request =
-    "GET / HTTP/1.1\r\n"
+    "POST / HTTP/1.1\r\n"
     "Host: example.com\r\n"
     "User-Agent: test\r\n"
-    "Content-Length: 5\r\n"
+    "Content-Length: 200\r\n"
     "\r\n"
     "hello";
 
@@ -55,15 +55,8 @@ int main(int argc, char **argv) {
     ctx.getServerConfig()->printValues();
   }
 
-  // else
-  //   std::cout << "No suitable location found" << std::endl;
-  
-
   RequestProcessor processor;
   HttpResponse response = processor.process(ctx);
-  
-
-  // std::cout << std::endl << "Response: " << std::endl << response << std::endl;
 
   ResponseWriter writer = ResponseWriter(response);
   int sv[2];
@@ -74,9 +67,6 @@ int main(int argc, char **argv) {
   while (!writer.isDone()) {
       writer.writeTo(sv[0]); 
   }
-
-  
- 
 
   // sv[1] is "the other end" — read from it to verify what got sent
   char buf[4096];

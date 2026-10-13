@@ -2,6 +2,7 @@
 #include "RequestContext.hpp"
 #include "HttpResponse.hpp"
 #include "Result.hpp"
+#include "FileResolver.hpp"
 #include <optional>
 
 enum class MimeTypeError {
@@ -29,4 +30,12 @@ class RequestProcessor {
 
     RequestContext makeErrorCtx(const RequestContext& ctx, const std::string& uri);
     const std::optional<std::string> findErrorPage(int errorCode, const RequestContext& ctx);
+    bool postHeadersPresent(const HttpRequest& req);
+    bool checkContentLength(const RequestContext& ctx);
+
+    //Re factoring
+    bool resolvePath(RequestContext& ctx, Resolution& out, HttpResponse& errResponse);
+    HttpResponse handleGet(RequestContext& ctx);
+    HttpResponse handleDelete(RequestContext& ctx);
+    HttpResponse handlePost(RequestContext& ctx);
 };
