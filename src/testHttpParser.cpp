@@ -15,6 +15,7 @@ int main(int argc, char **argv) {
     "Host: example.com\r\n"
     "User-Agent: test\r\n"
     "Content-Length: 200\r\n"
+    "Content-Type: text/plain\r\n"
     "\r\n"
     "hello";
 

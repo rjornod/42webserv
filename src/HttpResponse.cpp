@@ -47,6 +47,7 @@ const std::map<int, std::string> HttpResponse::M_STATUSCODES = {
   {409, "Conflict"},
   {411, "Length Required"},
   {413, "Content Too Large"},
+  {415, "Unsupported Media Type"},
   {418, "I'm a teapot"}, 
   {500, "Internal Server Error"},
   {505, "HTTP Version Not Supported"}

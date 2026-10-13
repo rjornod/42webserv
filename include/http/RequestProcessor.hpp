@@ -38,4 +38,6 @@ class RequestProcessor {
     HttpResponse handleGet(RequestContext& ctx);
     HttpResponse handleDelete(RequestContext& ctx);
     HttpResponse handlePost(RequestContext& ctx);
+
+    bool parseContentType(const HttpRequest& req, std::unordered_map<std::string, std::string>& params, std::string& type);
 };

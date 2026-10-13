@@ -65,8 +65,34 @@ HttpResponse RequestProcessor::handlePost(RequestContext& ctx) {
   if (!checkContentLength(ctx))
     return buildErrorResponse(413, ctx);
   std::cout << "Handling POST request" << std::endl;
+
+  std::unordered_map<std::string, std::string> params;
+  std::string type;
+
+  if (!parseContentType(req, params, type))
+    return buildErrorResponse(400, ctx);
+
   return HttpResponse();
 } 
+
+
+bool RequestProcessor::parseContentType(const HttpRequest& req, std::unordered_map<std::string, std::string>& params, std::string& type) {
+
+  std::unordered_map<std::string, std::string> headers = req.getHeaders();
+  auto it = headers.find("content-type");
+
+  if (it == headers.end())
+    return false;
+
+  auto contentType = it->second;
+
+  std::cout << contentType << std::endl;
+  
+  (void)params;
+  (void)type;
+  return true;
+
+}
 
 //Returns true on success and fills out the response; on failure returns false and fills out errResponse
 bool RequestProcessor::resolvePath(RequestContext& ctx, Resolution& out, HttpResponse& errResponse) {
