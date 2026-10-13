@@ -120,10 +120,10 @@ void Server::receiveRequest(Client& client) {
 			}
 		}
 	}
-
 	std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  client.getClientFd() << RESET << "-------------------" << std::endl;
 	std::cout << client.getParser().getRequest() << std::endl;
 	std::cout << "-------------------" << MAGENTA << "connection through index: " << client.getServerConfigIndex() << " of the global config " << RESET << "-------------------" << std::endl;
+	std::cout << client.getParser().getRequest() << std::endl;
 	std::cout << client.getClientReceiveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;
 		
 			
@@ -258,6 +258,12 @@ void Server::sendResponse(Client& client) {
 	else {
 		client.writeToSocket();
 		client.setShouldDisconnect(false);
+		//TO DO check / do something if there's an error on writing the response
+	}
+	if (client.writerFinished()) {
+		// client.resetWriter();
+		client.clearParser();
+		client.setShouldDisconnect(true);// TODO KEEP-ALIVE/ keep connection?!
 	}
 
 }

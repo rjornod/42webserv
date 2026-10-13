@@ -97,7 +97,14 @@ class Client {
 
 		bool writerFinished() const {return m_writer->getState() == WriterState::DONE;}
 
+		// bool writerError(const WriteResult& result) const {return result == WriteResult::ERROR;}
+
 		void writeToSocket() {m_writer->writeTo(m_clientFd);}
+
+
+		void resetWriter() {m_writer = nullptr;}
+
+		void clearParser() {m_parser.clearParser();}
 
 		std::string printState() {
 			std::cout << "Client fd: " << m_clientFd << " - ";

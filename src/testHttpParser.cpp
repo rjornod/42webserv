@@ -11,7 +11,7 @@
 int main(int argc, char **argv) {
 
   std::string request =
-    "GET test.txt HTTP/1.1\r\n"
+    "GET / HTTP/1.1\r\n"
     "Host: example.com\r\n"
     "User-Agent: test\r\n"
     "Content-Length: 5\r\n"
@@ -46,17 +46,24 @@ int main(int argc, char **argv) {
   Router router;
   RequestContext ctx = router.createContext(parser.getRequest(), globalConfig, 0);
 
-  std::cout << "Request context is: " << std::endl;
-  if (ctx.getLocationConfig())
+  if (ctx.getLocationConfig()) {
+    std::cout << "Request context is: " << std::endl;
     ctx.getLocationConfig()->printValues();
-  else
-    std::cout << "No suitable location found" << std::endl;
+  }
+  else {
+    std::cout << "Request context is global: " << std::endl;
+    ctx.getServerConfig()->printValues();
+  }
+
+  // else
+  //   std::cout << "No suitable location found" << std::endl;
   
 
   RequestProcessor processor;
   HttpResponse response = processor.process(ctx);
+  
 
-  std::cout << std::endl << "Response: " << std::endl << response << std::endl;
+  // std::cout << std::endl << "Response: " << std::endl << response << std::endl;
 
   ResponseWriter writer = ResponseWriter(response);
   int sv[2];

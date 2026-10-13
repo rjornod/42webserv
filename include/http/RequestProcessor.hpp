@@ -2,6 +2,7 @@
 #include "RequestContext.hpp"
 #include "HttpResponse.hpp"
 #include "Result.hpp"
+#include <optional>
 
 enum class MimeTypeError {
   EXTENSION_NOT_FOUND
@@ -19,7 +20,13 @@ class RequestProcessor {
     HttpResponse process(RequestContext& ctx);
     bool allowedMethod(const RequestContext& ctx);
     HttpResponse staticHandler(RequestContext& ctx);
-    HttpResponse buildErrorResponse(int errorCode);
+    HttpResponse deleteHandler(RequestContext& ctx);
+    HttpResponse buildAutoIndexResponse(RequestContext& ctx);
+    HttpResponse buildErrorResponse(int errorCode, const RequestContext& ctx);
+    HttpResponse buildDefaultErrorResponse(int errorCode);
     Result<std::string,MimeTypeError>  guessMimeType(std::string file);
+    std::string generateAutoIndex(const std::string& fsPath, const std::string& uri);
 
+    RequestContext makeErrorCtx(const RequestContext& ctx, const std::string& uri);
+    const std::optional<std::string> findErrorPage(int errorCode, const RequestContext& ctx);
 };
