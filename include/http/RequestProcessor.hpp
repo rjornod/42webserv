@@ -4,6 +4,7 @@
 #include "Result.hpp"
 #include "FileResolver.hpp"
 #include <optional>
+#include <unordered_set>
 
 enum class MimeTypeError {
   EXTENSION_NOT_FOUND
@@ -38,6 +39,9 @@ class RequestProcessor {
     HttpResponse handleGet(RequestContext& ctx);
     HttpResponse handleDelete(RequestContext& ctx);
     HttpResponse handlePost(RequestContext& ctx);
+    HttpResponse handleRawUpload(RequestContext& ctx);
 
     bool parseContentType(const HttpRequest& req, std::unordered_map<std::string, std::string>& params, std::string& type);
+    bool checkSupportedMedia(std::string type);
+
 };

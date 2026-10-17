@@ -295,3 +295,57 @@ Result<Resolution, FileResolutionError> FileResolver::resolveIndex(
 
   return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::DIRECTORY, directory});
 }
+
+// TO DO: Refactor to extract the first part that is the same as the usual resolve
+// File resolution for DELETE and POST
+// Processes the URI (decodes it and generates the segments)
+// Identifies the full path (candidate) and the parent directory to validate it
+// and check that it falls within the root
+Result<std::filesystem::path, FileResolutionError> FileResolver::resolveForWrite(const RequestContext& ctx) {
+
+  // Same as the original resolve; decode and build the segments
+  std::string locationRoot;
+  if (ctx.getLocationConfig())
+    locationRoot = ctx.getLocationConfig()->getRoot();
+  else
+    locationRoot = ctx.getServerConfig()->getRoot();
+  HttpRequest request = ctx.getHttpRequest();
+  std::string_view raw = request.getURI();
+
+  auto decodedUri = percentDecode(raw);
+
+  if (!decodedUri)
+    return Result<std::filesystem::path, FileResolutionError>::Err(
+          FileResolutionError::BAD_REQUEST);
+
+  auto segments = normalizeSegments(decodedUri.value());
+
+  if (!segments) {
+    std::cout << "Invalid URI segments: " << to_string(segments.error()) << std::endl;
+    return Result<std::filesystem::path, FileResolutionError>::Err(
+      FileResolutionError::FORBIDDEN);
+  }
+
+  // Get the name of the file and the parent directory from the URI
+  std::string fileName(segments.value().back());
+  std::filesystem::path parentCandidate = locationRoot;
+  for (size_t i = 0; i + 1 < segments.value().size(); ++i)
+    parentCandidate /= segments.value()[i];
+
+  //Canonicalize root and parent and check whether parent is in root
+  Result<std::filesystem::path, FileResolutionError> parent = checkWithinRoot(parentCandidate, locationRoot);
+  if (!parent)
+    return Result<std::filesystem::path, FileResolutionError>::Err(parent.error());
+  if (!std::filesystem::is_directory(parent.value()))
+    return Result<std::filesystem::path, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
+  
+  // Build final path and 
+  std::error_code ec;
+  std::filesystem::path target = parent.value() / fileName;
+  auto st = std::filesystem::symlink_status(target, ec);
+  bool exists = !ec && st.type() != std::filesystem::file_type::not_found;
+  if (exists && (std::filesystem::is_symlink(st) || std::filesystem::is_directory(st)))
+    return Result<std::filesystem::path, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
+  
+  return Result<std::filesystem::path, FileResolutionError>::Ok(target);
+}

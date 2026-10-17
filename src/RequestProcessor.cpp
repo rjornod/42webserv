@@ -69,11 +69,86 @@ HttpResponse RequestProcessor::handlePost(RequestContext& ctx) {
   std::unordered_map<std::string, std::string> params;
   std::string type;
 
+  //TO DO parse the params 
   if (!parseContentType(req, params, type))
     return buildErrorResponse(400, ctx);
+  if (!checkSupportedMedia(type))
+    return buildErrorResponse(415, ctx);
+  
+  if (type == "multipart/form-data")
+    return buildErrorResponse(500, ctx); // For now... TO DO: handle multipart
+
+  return handleRawUpload(ctx);
+
 
   return HttpResponse();
-} 
+}
+
+// int writeFileAtomically(const std::filesystem::path& target, const std::string& data) {
+
+//   // Temp file in the SAME directory, so rename() stays on one filesystem (atomic)
+//   std::filesystem::path tmp = target.parent_path() / (".tmp_" + target.filename().string() + "_" + uniqueSuffix());
+
+//   {
+//     std::ofstream out(tmp, std::ios::binary | std::ios::trunc);
+//     if (!out.is_open())
+//       return errno;                  // permission denied, no space for the inode, ...
+//     out.write(data.data(), static_cast<std::streamsize>(data.size()));
+//     out.close();
+//     if (!out) {                      // write or flush failed (e.g. disk full)
+//       std::error_code ignored;
+//       fs::remove(tmp, ignored);
+//       return EIO;
+//     }
+//   }
+
+//   std::error_code ec;
+//   fs::rename(tmp, target, ec);
+//   if (ec) {
+//     std::error_code ignored;
+//     fs::remove(tmp, ignored);        // don't leave the temp file behind
+//     return ec.value();
+//   }
+//   return 0;
+// }
+
+HttpResponse RequestProcessor::handleRawUpload(RequestContext& ctx) {
+  const HttpRequest req = ctx.getHttpRequest();
+
+  FileResolver fileResolver;
+  auto target = fileResolver.resolveForWrite(ctx);
+  if (!target)
+    return buildErrorResponse(statusFromError(target.error()), ctx);
+  
+  // If the file exists we refuse to overwrite POLICY
+  std::error_code ec;
+  if (std::filesystem::exists(target.value(), ec))
+    return buildErrorResponse(409, ctx);
+  
+  // Write the body to disk
+  int err = writeFileAtomically(target.value().path, req.getBody());
+  if (err != 0)
+    return buildErrorResponse(statusFromError(err), ctx);
+
+  // 4. 201 Created, with Location pointing at the new resource
+  HttpResponse resp;
+  resp.setStatusCode(201);
+  resp.addHeader("Location", req.getURI());
+  resp.addHeader("Content-Length", "0");
+  return resp;
+
+}
+
+bool RequestProcessor::checkSupportedMedia(std::string type) {
+
+  std::unordered_set<std::string> supportedMedia = {"text/html", "text/css",
+    "image/gif", "application/javascript",
+    "text/plain", "application/json", "application/pdf",
+    "multipart/form-data"};
+
+  return supportedMedia.contains(type);
+
+}
 
 
 bool RequestProcessor::parseContentType(const HttpRequest& req, std::unordered_map<std::string, std::string>& params, std::string& type) {
@@ -84,12 +159,17 @@ bool RequestProcessor::parseContentType(const HttpRequest& req, std::unordered_m
   if (it == headers.end())
     return false;
 
-  auto contentType = it->second;
+  auto contentTypeHeader = it->second;
 
-  std::cout << contentType << std::endl;
-  
+  size_t colon = contentTypeHeader.find(';');
+  if (colon == std::string::npos)
+    type = contentTypeHeader;
+  else
+    type = contentTypeHeader.substr(0, colon);
+  std::for_each(type.begin(), type.end(), [](char& c) {c = tolower(c);});
+ 
+  //TO DO trim from white space
   (void)params;
-  (void)type;
   return true;
 
 }
@@ -110,68 +190,6 @@ bool RequestProcessor::resolvePath(RequestContext& ctx, Resolution& out, HttpRes
   ctx.setFilePath(out.path);
   return true;
 }
-
-
-// HttpResponse RequestProcessor::process(RequestContext& ctx){
-
-//   HttpResponse response;
-//   FileResolver fileResolver;
-
-//   // Check method
-//   if (!allowedMethod(ctx)) {
-//     return buildDefaultErrorResponse(405);
-//   }
-
-//   HttpMethod method = ctx.getHttpRequest().getMethod();
-
-
-//   Result<Resolution, FileResolutionError> pathResult = fileResolver.resolve(ctx);
-
-  
-//   if (!pathResult) {
-//     switch (pathResult.error()) {
-//       case FileResolutionError::BAD_REQUEST:
-//         return buildErrorResponse(400, ctx);
-//       case FileResolutionError::FORBIDDEN:
-//         return buildErrorResponse(403, ctx);
-//       case FileResolutionError::NOT_FOUND:
-//         return buildErrorResponse(404, ctx);
-//       case FileResolutionError::SERVER_ERROR:
-//         return buildErrorResponse(500, ctx);
-//     }
-//   }
-  
-//   // The file path is canonical
-//   ctx.setFilePath(pathResult.value().path);
-
-  
-//   HttpRequest req = ctx.getHttpRequest();
-
-//   switch (method) {
-//     case HttpMethod::GET:
-//       if (pathResult.value().kind == Resolution::DIRECTORY)
-//         return buildAutoIndexResponse(ctx);
-//       response = staticHandler(ctx);
-//       break;
-//     case HttpMethod::POST:
-//       std::cout << "Handling post" << std::endl;
-//       if (!postHeadersPresent(req))
-//         return buildErrorResponse(411, ctx);
-//       if (!checkContentLength(ctx))
-//         return buildErrorResponse(413, ctx);
-//       break;
-//     case HttpMethod::DELETE:
-//       std::cout << "Handling delete" << std::endl;
-//       if (pathResult.value().kind == Resolution::DIRECTORY) 
-//         return buildErrorResponse(409, ctx);
-//       response = deleteHandler(ctx);
-//       break;
-//     default:
-//       std::cout << "Handling method not allowed" << std::endl;
-//   }
-
-//   return response;
-// }
 
 bool RequestProcessor::checkContentLength(const RequestContext& ctx) {
 
@@ -251,7 +269,7 @@ const std::unordered_map<std::string, std::string> RequestProcessor::M_MIME_TYPE
   {"js", "application/javascript"},
   {"txt", "text/plain"},
   {"json", "application/json"},
-  {"pdf", "application/pdf"}
+  {"pdf", "application/pdf"},
 };
 
 Result<std::string, MimeTypeError> RequestProcessor::guessMimeType(std::string file) {
