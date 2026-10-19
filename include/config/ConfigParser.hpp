@@ -49,7 +49,7 @@ class ConfigParser {
 		void	handleAllowedMethods(int scope);
 		void	handleUploadStore();
 		void	handleCGI(int scope);
-		int		validateErrorCode(std::string code);
+		int		validateCode(std::string code, std::unordered_set<std::string_view>& allowedCodes);
 		std::string	findURI();
 		void	checkEndOfDirective(std::string directive);
 		void	checkIfBlockEmpty(std::string blockType);
@@ -66,6 +66,7 @@ class ConfigParser {
 		};
 		std::unordered_set<std::string_view> allowedMethods = {"GET", "POST", "DELETE"};
 		std::unordered_set<std::string_view> errorCodes = {"400", "403", "404", "405","408", "413", "500", "505"};
+		std::unordered_set<std::string_view> statusCodes = {"301", "302"};
 		void 	incTokenIndex(unsigned int amount);
 		void 	checkDuplicatePorts(int port);
 		void	checkDuplicateServerNames(const std::string& name);
