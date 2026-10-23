@@ -16,6 +16,7 @@ static int statusFromError(FileResolutionError e) {
 
 HttpResponse RequestProcessor::process(RequestContext& ctx){
 
+  std::cout << "Processing request" << std::endl;
   if (!allowedMethod(ctx)) {
     return buildErrorResponse(405, ctx);
   }
@@ -58,19 +59,19 @@ HttpResponse RequestProcessor::handleDelete(RequestContext& ctx) {
 }
 
 HttpResponse RequestProcessor::handlePost(RequestContext& ctx) {
+
   const HttpRequest& req = ctx.getHttpRequest();
 
   if (!postHeadersPresent(req))
     return buildErrorResponse(411, ctx);
   if (!checkContentLength(ctx))
     return buildErrorResponse(413, ctx);
-  std::cout << "Handling POST request" << std::endl;
 
   std::unordered_map<std::string, std::string> params;
   std::string type;
 
   //TO DO parse the params 
-  if (!parseContentType(req, params, type))
+  if (!parseContentType(req, params, type)) 
     return buildErrorResponse(400, ctx);
   if (!checkSupportedMedia(type))
     return buildErrorResponse(415, ctx);
@@ -84,33 +85,34 @@ HttpResponse RequestProcessor::handlePost(RequestContext& ctx) {
   return HttpResponse();
 }
 
-// int writeFileAtomically(const std::filesystem::path& target, const std::string& data) {
+//TO DO: return a FileSystem error instead of an int in case of error
+int writeFileAtomically(const std::filesystem::path& target, const std::string& data) {
 
-//   // Temp file in the SAME directory, so rename() stays on one filesystem (atomic)
-//   std::filesystem::path tmp = target.parent_path() / (".tmp_" + target.filename().string() + "_" + uniqueSuffix());
+  // Temp file in the SAME directory, so rename() stays on one filesystem (atomic)
+  std::filesystem::path tmp = target.parent_path() / (".tmp_" + target.filename().string() + "_"); // TO DO: add + uniqueSuffix()
 
-//   {
-//     std::ofstream out(tmp, std::ios::binary | std::ios::trunc);
-//     if (!out.is_open())
-//       return errno;                  // permission denied, no space for the inode, ...
-//     out.write(data.data(), static_cast<std::streamsize>(data.size()));
-//     out.close();
-//     if (!out) {                      // write or flush failed (e.g. disk full)
-//       std::error_code ignored;
-//       fs::remove(tmp, ignored);
-//       return EIO;
-//     }
-//   }
+  {
+    std::ofstream out(tmp, std::ios::binary | std::ios::trunc);
+    if (!out.is_open())
+      return errno;                  // permission denied, no space for the inode, ...
+    out.write(data.data(), static_cast<std::streamsize>(data.size()));
+    out.close();
+    if (!out) {                      // write or flush failed (e.g. disk full)
+      std::error_code ignored;
+      std::filesystem::remove(tmp, ignored);
+      return EIO;
+    }
+  }
 
-//   std::error_code ec;
-//   fs::rename(tmp, target, ec);
-//   if (ec) {
-//     std::error_code ignored;
-//     fs::remove(tmp, ignored);        // don't leave the temp file behind
-//     return ec.value();
-//   }
-//   return 0;
-// }
+  std::error_code ec;
+  std::filesystem::rename(tmp, target, ec);
+  if (ec) {
+    std::error_code ignored;
+    std::filesystem::remove(tmp, ignored);        // don't leave the temp file behind
+    return ec.value();
+  }
+  return 0;
+}
 
 HttpResponse RequestProcessor::handleRawUpload(RequestContext& ctx) {
   const HttpRequest req = ctx.getHttpRequest();
@@ -120,19 +122,21 @@ HttpResponse RequestProcessor::handleRawUpload(RequestContext& ctx) {
   if (!target)
     return buildErrorResponse(statusFromError(target.error()), ctx);
   
-  // If the file exists we refuse to overwrite POLICY
+  // If the file exists we refuse to overwrite (POLICY)
   std::error_code ec;
   if (std::filesystem::exists(target.value(), ec))
     return buildErrorResponse(409, ctx);
   
   // Write the body to disk
-  int err = writeFileAtomically(target.value().path, req.getBody());
-  if (err != 0)
-    return buildErrorResponse(statusFromError(err), ctx);
-
+  int err = writeFileAtomically(target.value(), req.getBody());
+  if (err != 0) {
+    std::cout << "Some error occured in writeFileAtomically" << std::endl;
+    return buildErrorResponse(statusFromError(FileResolutionError::BAD_REQUEST), ctx); // TO DO: introduce here the proper error to send; for now 400
+  }
   // 4. 201 Created, with Location pointing at the new resource
   HttpResponse resp;
   resp.setStatusCode(201);
+  resp.makeStatusLine();
   resp.addHeader("Location", req.getURI());
   resp.addHeader("Content-Length", "0");
   return resp;
@@ -153,12 +157,13 @@ bool RequestProcessor::checkSupportedMedia(std::string type) {
 
 bool RequestProcessor::parseContentType(const HttpRequest& req, std::unordered_map<std::string, std::string>& params, std::string& type) {
 
+  
   std::unordered_map<std::string, std::string> headers = req.getHeaders();
   auto it = headers.find("content-type");
 
   if (it == headers.end())
     return false;
-
+  
   auto contentTypeHeader = it->second;
 
   size_t colon = contentTypeHeader.find(';');
@@ -219,7 +224,7 @@ bool RequestProcessor::postHeadersPresent(const HttpRequest& req) {
   std::unordered_map<std::string, std::string> headers = req.getHeaders();
   auto contentLen = headers.find("content-length");
   auto transferEncoding = headers.find("transfer-encoding");
-  return (contentLen != headers.end() || transferEncoding != headers.end());
+  return (contentLen == headers.end() || transferEncoding == headers.end());
 }
 
 bool RequestProcessor::allowedMethod(const RequestContext& ctx) {
@@ -243,7 +248,6 @@ bool RequestProcessor::allowedMethod(const RequestContext& ctx) {
 }
 
 HttpResponse RequestProcessor::staticHandler(RequestContext& ctx) {
-  // std::cout << "Called the static handler on context with filepath:" << ctx.getFilePath() << std::endl;
   
   const std::filesystem::path& path = ctx.getFilePath();
   
@@ -282,8 +286,6 @@ Result<std::string, MimeTypeError> RequestProcessor::guessMimeType(std::string f
     return Result<std::string, MimeTypeError>::Ok("application/octet-stream");
 
   std::string ext = fileName.substr(dot + 1);
-
-  // std::cout << "File extension: " << ext << std::endl;
 
   auto it = M_MIME_TYPES.find(ext);
   if (it == M_MIME_TYPES.end())

@@ -11,11 +11,11 @@
 int main(int argc, char **argv) {
 
   std::string request =
-    "POST / HTTP/1.1\r\n"
+    "POST /secret_dir/hello.txt HTTP/1.1\r\n"
     "Host: example.com\r\n"
     "User-Agent: test\r\n"
-    "Content-Length: 200\r\n"
-    "Content-Type: multipart/form; charset=utf-8 \r\n"
+    "Content-Length: 5\r\n"
+    "Content-Type: text/plain\r\n"
     "\r\n"
     "hello";
 
@@ -28,21 +28,29 @@ int main(int argc, char **argv) {
 
   parser.parse(request);
 
-  // std::cout << "------------------------- Request: ------------------" << std::endl << parser.getRequest() << std::endl;
-  // std::cout << "-----------------------------------------------------" << std::endl;
+  std::cout << "Parser state : " << to_string(parser.getParserState()) << std::endl;
+
+  std::cout << "------------------------- Request: ------------------" << std::endl << parser.getRequest() << std::endl;
+  std::cout << "-----------------------------------------------------" << std::endl;
+
+  (void)argc;
+  if (parser.getParserState() != HttpParserState::COMPLETE) {
+    std::cout << "Request incomplete" << std::endl;
+    exit(0);
+  }
+  
 
   GlobalConfig globalConfig;
   ConfigParser config(argv[1], globalConfig);
 	if (!config.processConfig()) {
     std::cout << "Error in parsing the config file" << std::endl;
 	}
-  (void)argc;
   
-  for (unsigned long i = 0; i < globalConfig.getServerConfigs().size(); i++) {
-		std::cout << GREEN << "*************** Index: " << i << " ***************" << RESET << std::endl;
-		globalConfig.getServerConfigs()[i].printValues(); 
-		// std::cout << GREEN << "****************************************" << RESET << std::endl;
-	}
+  // for (unsigned long i = 0; i < globalConfig.getServerConfigs().size(); i++) {
+	// 	std::cout << GREEN << "*************** Index: " << i << " ***************" << RESET << std::endl;
+	// 	globalConfig.getServerConfigs()[i].printValues(); 
+	// 	// std::cout << GREEN << "****************************************" << RESET << std::endl;
+	// }
 
   Router router;
   RequestContext ctx = router.createContext(parser.getRequest(), globalConfig, 0);

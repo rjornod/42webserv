@@ -5,6 +5,7 @@
 #include "FileResolver.hpp"
 #include <optional>
 #include <unordered_set>
+#include <fstream>
 
 enum class MimeTypeError {
   EXTENSION_NOT_FOUND
