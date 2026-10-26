@@ -326,25 +326,21 @@ RequestContext RequestProcessor::makeErrorCtx(const RequestContext& ctx, const s
 }
 
 HttpResponse RequestProcessor::buildErrorResponse(int errorCode, const RequestContext& ctx) {
-  // std::cout << "BUILDING ERROR RESPONSE" << std::endl;
+  
   if (auto errorPage = findErrorPage(errorCode, ctx)) {
-    // std::cout << "FOUND ERROR PAGE" << std::endl;
-    std::cout << *errorPage << std::endl;
+    
+    
     RequestContext errorCtx = makeErrorCtx(ctx, *errorPage);
-    // std::cout << "Error context built: " << std::endl;
-    // errorCtx.getLocationConfig()->printValues();
-    // std::cout << "File path from error ctx" << errorCtx.getFilePath();
+
     FileResolver fileResolver;
     auto result = fileResolver.resolve(errorCtx);
     if (!result)
       std::cout << "error on resolving error page path " << to_string(result.error()) << std::endl;
     if (result && result.value().kind == Resolution::FILE) {
-      // std::cout << "Will serve " <<  result.value().path << std::endl;
       errorCtx.setFilePath(result.value().path);
       HttpResponse response = staticHandler(errorCtx);
       response.updateStatus(errorCode);
       return response;
-      // return buildDefaultErrorResponse(errorCode); // For debugging
     }
   }
   return buildDefaultErrorResponse(errorCode);

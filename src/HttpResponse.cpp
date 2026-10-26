@@ -51,5 +51,6 @@ const std::map<int, std::string> HttpResponse::M_STATUSCODES = {
   {415, "Unsupported Media Type"},
   {418, "I'm a teapot"}, 
   {500, "Internal Server Error"},
+  {501, "Not Implemented"},
   {505, "HTTP Version Not Supported"}
 };

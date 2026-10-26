@@ -11,7 +11,7 @@
 int main(int argc, char **argv) {
 
   std::string request =
-    "POST /secret_dir/hello.txt HTTP/1.1\r\n"
+    "BREW /secret_dir/hello.txt HTTP/11\r\n"
     "Host: example.com\r\n"
     "User-Agent: test\r\n"
     "Content-Length: 5\r\n"
@@ -34,7 +34,8 @@ int main(int argc, char **argv) {
   std::cout << "-----------------------------------------------------" << std::endl;
 
   (void)argc;
-  if (parser.getParserState() != HttpParserState::COMPLETE) {
+  if (parser.getParserState() != HttpParserState::COMPLETE &&
+      parser.getParserState() != HttpParserState::ERROR) {
     std::cout << "Request incomplete" << std::endl;
     exit(0);
   }

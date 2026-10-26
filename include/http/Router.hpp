@@ -13,6 +13,7 @@ class Router : public IRouter {
 
     RequestContext   createContext(const HttpRequest& request, const GlobalConfig& config,
       int serverConfigIndex);
+    RequestContext createErrorContext(const GlobalConfig& config, int serverConfigIndex);
     const LocationConfig*  matchLocation(const std::vector<LocationConfig>& locationConfigs, std::string uri);
     bool isPrefixMatch(std::string_view path, std::string uri);
 };

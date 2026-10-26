@@ -7,6 +7,14 @@ void HttpParser::reportErrors() {
     std::cerr << RED <<  "Http Request Error: " << RESET << m_errorMessage << std::endl;
 }
 
+/* Sets the state as error and records the status on what the failure was about*/
+void HttpParser::fail(int status) {
+  if (m_state == HttpParserState::ERROR)
+    return; //MEans that it already failed on something else
+  m_state = HttpParserState::ERROR;
+  m_errorStatus = status;
+}
+
 void HttpParser::parse(std::string_view chunk) {
 
   m_buffer += chunk;
@@ -84,13 +92,13 @@ bool HttpParser::parseRequestLine() {
 
   size_t firstSpace = reqLine.find(' ');
   if (firstSpace == std::string_view::npos) {
-    m_state = HttpParserState::ERROR;
+    fail(404); // malformed request
     m_errorMessage = "Missing URI";
     return false;
   }
   size_t secondSpace = reqLine.find(' ', firstSpace + 1);
   if (secondSpace == std::string_view::npos) {
-    m_state = HttpParserState::ERROR;
+    fail(404); // malformed request
     m_errorMessage = "Missing HTTP version";
     return false;
   }
@@ -98,7 +106,7 @@ bool HttpParser::parseRequestLine() {
   // Method
   m_request.setMethod(parseMethod(reqLine.substr(0, firstSpace)));
   if (m_request.getMethod() == HttpMethod::UNKNOWN) {
-    m_state = HttpParserState::ERROR;
+    fail(501);
     m_errorMessage = "Unsupported method";
     return false;
   }
@@ -106,8 +114,8 @@ bool HttpParser::parseRequestLine() {
   std::string_view versionStr = reqLine.substr(secondSpace + 1);
   HttpVersion version = validateHttpVersion(versionStr);
   if (version == HttpVersion::UNSUPPORTED) {
-    m_state = HttpParserState::ERROR;
-    m_errorMessage = "Invalid Http Version";
+    fail(505);
+    m_errorMessage = "Http Version Not Supported";
     return false;
   }
   m_request.setVersion(version);
@@ -159,7 +167,7 @@ bool HttpParser::parseHeaders() {
 
     size_t colon = header.find(':');
     if (colon == std::string_view::npos) {
-      m_state = HttpParserState::ERROR;
+      fail(404); // malformed request
       m_errorMessage = "Header missing colon";
       return false;
     }
@@ -169,7 +177,6 @@ bool HttpParser::parseHeaders() {
     m_buffer.erase(0, end + 2);
   }
 }
-
 
 void HttpParser::determineBodyLength() {
 
@@ -182,26 +189,26 @@ void HttpParser::determineBodyLength() {
     m_expectedBodyLen = std::stoi(it->second);
     if (m_expectedBodyLen < 0) {
       m_errorMessage = "Content-Length Out Of Range";
-      m_state = HttpParserState::ERROR;
+      fail(404); // malformed request
       m_expectedBodyLen = -1;
       return;
     }
   }
   catch (const std::invalid_argument& ia) {
     m_errorMessage = "Invalid Content-Length";
-    m_state = HttpParserState::ERROR;
+    fail(404); // malformed request
     m_expectedBodyLen = -1;
     return;
   }
   catch (const std::out_of_range& oor) {
     m_errorMessage = "Content-Length Out Of Range";
-    m_state = HttpParserState::ERROR;
+    fail(404); // malformed request
     m_expectedBodyLen = -1;
     return;
   }
   catch (const std::exception& e) {
     m_errorMessage = "Unknown error on Content-Length argument";
-    m_state = HttpParserState::ERROR;
+    fail(404); // malformed request
     m_expectedBodyLen = -1;
     return;
   }
