@@ -348,12 +348,12 @@ Result<Resolution, FileResolutionError> FileResolver::resolveForWrite(const Requ
   std::filesystem::path target = parent.value() / fileName;
   auto st = std::filesystem::symlink_status(target, ec);
   bool exists = !ec && st.type() != std::filesystem::file_type::not_found;
-  if (exists)
+  if (exists) {
     if (std::filesystem::is_symlink(st))
       return Result<Resolution, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
     if (std::filesystem::is_directory(st))
       return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::DIRECTORY, target});
-
+  }
   
   return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::FILE, target});
 }
