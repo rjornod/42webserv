@@ -95,7 +95,7 @@ class Client {
 
 		bool responseReady() const {return m_writer != nullptr;}
 
-		bool writerFinished() const {return m_writer->getState() == WriterState::DONE;}
+		bool writerFinished() const {return !m_writer || m_writer->getState() == WriterState::DONE;}
 
 		// bool writerError(const WriteResult& result) const {return result == WriteResult::ERROR;}
 

@@ -46,15 +46,21 @@ HttpResponse RequestProcessor::handleGet(RequestContext& ctx) {
 }
 
 //Resolves the path and handles the request
-HttpResponse RequestProcessor::handleDelete(RequestContext& ctx) {
+HttpResponse RequestProcessor:: handleDelete(RequestContext& ctx) {
 
   Resolution res;
-  HttpResponse err;
+  HttpResponse errResponse;
+  FileResolver fileResolver;
 
-  if (!resolvePath(ctx, res, err))
-    return err;
+  Result<Resolution, FileResolutionError> pathResult = fileResolver.resolveForWrite(ctx);
+
+  if (!pathResult)
+    return buildErrorResponse(statusFromError(pathResult.error()), ctx);
+
+  res = pathResult.value();
   if (res.kind == Resolution::DIRECTORY)
     return buildErrorResponse(409, ctx);
+  ctx.setFilePath(res.path);
   return deleteHandler(ctx);
 }
 
@@ -124,11 +130,11 @@ HttpResponse RequestProcessor::handleRawUpload(RequestContext& ctx) {
   
   // If the file exists we refuse to overwrite (POLICY)
   std::error_code ec;
-  if (std::filesystem::exists(target.value(), ec))
+  if (std::filesystem::exists(target.value().path, ec))
     return buildErrorResponse(409, ctx);
   
   // Write the body to disk
-  int err = writeFileAtomically(target.value(), req.getBody());
+  int err = writeFileAtomically(target.value().path, req.getBody());
   if (err != 0) {
     std::cout << "Some error occured in writeFileAtomically" << std::endl;
     return buildErrorResponse(statusFromError(FileResolutionError::BAD_REQUEST), ctx); // TO DO: introduce here the proper error to send; for now 400

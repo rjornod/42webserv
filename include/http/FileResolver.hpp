@@ -35,7 +35,7 @@ class FileResolver {
   public:
 
     Result<Resolution, FileResolutionError> resolve(const RequestContext& ctx); // Instead of string a std::filesystem::path
-    Result<std::filesystem::path, FileResolutionError> resolveForWrite(const RequestContext& ctx);
+    Result<Resolution, FileResolutionError> resolveForWrite(const RequestContext& ctx);
     Result<std::string, UriDecodeError> percentDecode(std::string_view raw);
     Result<std::vector<std::string_view>, PathResolutionError> normalizeSegments(std::string_view decodedUri);
     std::string joinPath(std::string_view base, std::string_view suffix);
