@@ -36,6 +36,7 @@ void HttpParser::parse(std::string_view chunk) {
       determineBodyLength();
       if (m_expectedBodyLen == 0) {
         m_request.setBody("");
+        m_request.setBodySize(m_expectedBodyLen);
         m_state = HttpParserState::COMPLETE;
         return;
       }
@@ -51,6 +52,7 @@ void HttpParser::parse(std::string_view chunk) {
         reportErrors();
         return;
       }
+      m_request.setBodySize(m_expectedBodyLen);
       m_state = HttpParserState::COMPLETE;
       [[fallthrough]];
 
