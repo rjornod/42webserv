@@ -313,12 +313,9 @@ HttpResponse RequestProcessor::buildReturnResponse(int code, const std::string& 
   resp.makeStatusLine();
   resp.addHeader("Location", target);
   resp.addHeader("Content-Length", std::to_string(6 + 2 * resp.getReasonPhrase().size() + 84));
-  std::string body = "<html>\n";
-    "<head><title>" + std::to_string(code) + resp.getReasonPhrase() +
-    "</title></head>\n"
-   "<body><center><h1>" + std::to_string(code) + resp.getReasonPhrase() +
-   "</h1></center></body>\n"
-   "</html>";
+  std::string body = "<html>\n<head><title>" + std::to_string(code) + resp.getReasonPhrase() +
+    "</title></head>\n<body><center><h1>" + std::to_string(code) + resp.getReasonPhrase() +
+   "</h1></center></body>\n</html>";
   resp.setBodySource(body);
   return resp;
 }
