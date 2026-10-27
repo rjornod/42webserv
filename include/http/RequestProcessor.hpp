@@ -24,6 +24,7 @@ class RequestProcessor {
     bool allowedMethod(const RequestContext& ctx);
     HttpResponse staticHandler(RequestContext& ctx);
     HttpResponse deleteHandler(RequestContext& ctx);
+    // HttpResponse buildReturnResponse(int code, const std::string& target);
     HttpResponse buildAutoIndexResponse(RequestContext& ctx);
     HttpResponse buildErrorResponse(int errorCode, const RequestContext& ctx);
     HttpResponse buildDefaultErrorResponse(int errorCode);

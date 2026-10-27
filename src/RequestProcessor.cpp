@@ -17,10 +17,13 @@ static int statusFromError(FileResolutionError e) {
 HttpResponse RequestProcessor::process(RequestContext& ctx){
 
   std::cout << "Processing request" << std::endl;
-  if (ctx.getHttpRequest().getBodySize() > ctx.getClientBodySize())
+  if (!checkContentLength(ctx))
     return buildErrorResponse(413, ctx);
   if (!allowedMethod(ctx))
     return buildErrorResponse(405, ctx);
+  // if (ctx.getLocationConfig() && ctx.getLocationConfig()->getReturn().first != 0)
+  //   return buildReturnResponse(ctx.getLocationConfig()->getReturn().first, ctx.getLocationConfig()->getReturn().second);
+  //TO DO same with server config
 
   switch (ctx.getHttpRequest().getMethod())
   {
