@@ -21,9 +21,9 @@ HttpResponse RequestProcessor::process(RequestContext& ctx){
     return buildErrorResponse(413, ctx);
   if (!allowedMethod(ctx))
     return buildErrorResponse(405, ctx);
-  // if (ctx.getLocationConfig() && ctx.getLocationConfig()->getReturn().first != 0)
-  //   return buildReturnResponse(ctx.getLocationConfig()->getReturn().first, ctx.getLocationConfig()->getReturn().second);
-  //TO DO same with server config
+  if (ctx.getLocationConfig() && ctx.getLocationConfig()->getReturn().first != 0)
+    return buildReturnResponse(ctx.getLocationConfig()->getReturn().first, ctx.getLocationConfig()->getReturn().second);
+  //TO DO: no return in server config?
 
   switch (ctx.getHttpRequest().getMethod())
   {
@@ -303,6 +303,24 @@ Result<std::string, MimeTypeError> RequestProcessor::guessMimeType(std::string f
 
   return Result<std::string, MimeTypeError>::Ok(it->second);
 
+}
+
+// Builds the appropriate response for a return directive
+HttpResponse RequestProcessor::buildReturnResponse(int code, const std::string& target) {
+
+  HttpResponse resp;
+  resp.setStatusCode(code);
+  resp.makeStatusLine();
+  resp.addHeader("Location", target);
+  resp.addHeader("Content-Length", std::to_string(6 + 2 * resp.getReasonPhrase().size() + 84));
+  std::string body = "<html>\n";
+    "<head><title>" + std::to_string(code) + resp.getReasonPhrase() +
+    "</title></head>\n"
+   "<body><center><h1>" + std::to_string(code) + resp.getReasonPhrase() +
+   "</h1></center></body>\n"
+   "</html>";
+  resp.setBodySource(body);
+  return resp;
 }
 
 // Lookup in the LocationConfig the error page

@@ -11,13 +11,13 @@
 int main(int argc, char **argv) {
 
   std::string request =
-    "POST /secret_dir/hello.txt HTTP/1.1\r\n"
+    "GET / HTTP/1.1\r\n"
     "Host: example.com\r\n"
     "User-Agent: test\r\n"
-    "Content-Length: 47\r\n"
+    "Content-Length: 5\r\n"
     "Content-Type: text/plain\r\n"
     "\r\n"
-    "helloxxxxxxxxxxxxxxxxxxxxxxxxxxxxccccccchfgghfg";
+    "hello";
 
   if (argc != 2) {
     std::cout << "Usage ./webserv <path/to/configfile>" << std::endl;

@@ -40,6 +40,8 @@ const std::map<int, std::string> HttpResponse::M_STATUSCODES = {
   {200, "OK"},
   {201, "Created"},
   {204, "No Content"},
+  {301, "Moved Permanently"},
+  {302, "Found"},
   {400, "Bad Request"},
   {403, "Forbidden"},
   {404, "Not found"},
