@@ -54,10 +54,13 @@ class Server {
 		void 		sendResponse(Client& client);
 		void		eraseClient(int fd);
 		void		closeAllFds();
-		bool		readFile(Client& client);
 		void		checkTimeouts();
 		bool		handleIncoming(int fd);
 		bool		handleOutgoing(size_t i);
+		void 		checkFdEvents();
+
+		// debug
+		void	printNewClient();
 	
 		
 };

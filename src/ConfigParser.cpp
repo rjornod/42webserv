@@ -403,15 +403,13 @@ void ConfigParser::handleAutoIndex(int scope) {
  * and if the error code is allowed;
  * 
  */
-int ConfigParser::validateErrorCode(std::string errorCode) {
-	
-	if (errorCode.size() != 3)
-		throw ConfigParseException("Error code in error_page is invalid: " + errorCode );
-	validateDigits(errorCode);
-	int code = std::stoi(errorCode);
-	if (!errorCodes.count(currentToken().value))
-		throw ConfigParseException("Error code not allowed: " + errorCode);
-	return code;
+	int	ConfigParser::validateCode(std::string code, std::unordered_set<std::string_view>& allowedCodes) {
+	if (code.size() != 3 || !validateDigits(code))
+		throw ConfigParseException("Invalid status/error code: " + code );
+	int val = std::stoi(code);
+	if (!allowedCodes.count(code))
+		throw ConfigParseException("Status/Error code not allowed: " + code);
+	return val;
 }
 
 /**
@@ -451,9 +449,9 @@ void ConfigParser::handleErrorPages(int scope) {
 				isValidToken(currentToken()) &&
 				!isType(currentTokenPlus(1), TokenType::EndDirective) ) {
 		if (scope == GLOBAL)
-			currentServer().setErrorPages(validateErrorCode(currentToken().value), path);
+			currentServer().setErrorPages(validateCode(currentToken().value, errorCodes), path);
 		else if (scope == LOCAL)
-			currentLocation().setErrorPages(validateErrorCode(currentToken().value), path);
+			currentLocation().setErrorPages(validateCode(currentToken().value, errorCodes), path);
 		incTokenIndex(1);
 	}
 	incTokenIndex(1);
@@ -471,7 +469,7 @@ void ConfigParser::handleReturn() {
 			!isType(currentTokenPlus(1), TokenType::Word) ||
 			!isValidToken(currentToken()))
 		throw ConfigParseException("return directive is malformed");
-	int code = validateErrorCode(currentToken().value);
+	int code = validateCode(currentToken().value, statusCodes);
 	incTokenIndex(1);
 	std::string errorPath = currentToken().value;
 	currentLocation().setReturn(code, errorPath);

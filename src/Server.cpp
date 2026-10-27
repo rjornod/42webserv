@@ -132,7 +132,7 @@ void Server::receiveRequest(Client& client) {
 	std::cout << "-------------------" << MAGENTA << "connection through index: " << client.getServerConfigIndex() << " of the global config " << RESET << "-------------------" << std::endl;
 	std::cout << client.getParser().getRequest() << std::endl;
 	std::cout << client.getClientReceiveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;
-		
+	std::cout << RED << "Clients connected: " << RESET << m_connectedClients.size() << std::endl;	
 			
 			
 	if (bytes == 0) {
@@ -142,12 +142,14 @@ void Server::receiveRequest(Client& client) {
 		client.setShouldDisconnect(true);
 	}
 
-
 	if (bytes < 0) {
-		if (errno == EAGAIN || errno == EWOULDBLOCK)  // when a socket is set to non blocking, operations that would wait instead return one of these error immediately. Ignore for non blocking behavior
-			client.setShouldDisconnect(false);
-		perror("recv");
-		client.setShouldDisconnect(true);
+		// if -1 is returned just disconnect the client
+		// if (errno == EAGAIN || errno == EWOULDBLOCK)  // when a socket is set to non blocking, operations that would wait instead return one of these error immediately. Ignore for non blocking behavior
+		// 	client.setShouldDisconnect(false);
+		// perror("recv");
+		// client.setShouldDisconnect(true);
+		// TO DO: should client be erased here or setShouldDisconnect(true) 
+		eraseClient(client.getClientFd());
 	}
 }
 
@@ -160,31 +162,8 @@ void Server::eraseClient(int fd) {
 			m_connectedFds.pop_back();										// erases the last element in the vector, which is now the disconnected client
 			break ; 																			// break after removal to not keep scanning the vector
 		}
-	}		
+	}
 	std::cout << RED << "Clients connected: " << RESET << m_connectedClients.size() << std::endl;
-}
-
-bool Server::readFile(Client& client) {
-	// std::string string;
-	int fileFd = open("data/www/index.html", O_RDONLY);
-	if (fileFd < 0) {
-		std::cout << "error" << std::endl;
-		return true;
-	}
-	char buffer[100];
-	ssize_t bytes;
-
-	while ((bytes = read(fileFd, buffer, sizeof(buffer))) > 0)
-	{
-		if (bytes > 0) 
-			client.getClientSendBuffer().append(buffer, bytes);
-		else if (bytes == 0)
-			break;
-		else if (bytes == -1)
-			return true;
-	}
-	close(fileFd);
-	return false;
 }
 
 /*
@@ -200,20 +179,6 @@ void Server::checkTimeouts() {
 }
 
 void Server::buildResponse(Client& client) {
-	// std::string headers;
-	// client.setClientState(ClientState::BuildingResponse);
-	// if (readFile(client)) {																								// check if readFile returned an error
-	// 	std::cout << "readfile error" << std::endl;
-	// 	client.setShouldDisconnect(true);
-	// }
-	// headers += "HTTP/1.1 200 OK\r\n";
-	// headers += "Content-Type: text/html\r\n";
-	// headers += "Content-Length: " + std::to_string(client.getClientSendBuffer().size()) + "\r\n";
-	// headers += "Connection: keep-alive\r\n";
-	// headers += "\r\n";
-	// client.getClientSendBuffer().insert(0, headers);
-	// client.setShouldDisconnect(false);
-
 	Router router;
 	RequestContext ctx = router.createContext(client.getParser().getRequest(), m_config, static_cast<int>(client.getServerConfigIndex()));
 	RequestProcessor processor;
@@ -286,7 +251,7 @@ void Server::sendResponse(Client& client) {
 	if (client.writerFinished()) {
 		// client.resetWriter();
 		client.clearParser();
-		client.setShouldDisconnect(true);// TODO KEEP-ALIVE/ keep connection?!
+		// client.setShouldDisconnect(true);// TODO KEEP-ALIVE/ keep connection?!
 	}
 
 }
@@ -370,11 +335,9 @@ int Server::serverCore() {
 						continue;
 				}
 				m_connectedFds.push_back(pollfd{clientFd, POLLIN, 0}); 		// creates a new pollfd struct initialized with the clientFd and inserts it in the poll struct
-				time_t timestamp;
-				time(&timestamp);
-				std::cout << GREEN << "New client connected: " << RESET << inet_ntoa(m_clientAddress.sin_addr) << ":" 
-				<< ntohs(m_clientAddress.sin_port) << std::endl;
-				std::cout << ctime(&timestamp) << std::endl;					// displays the exact time a client connected	
+				
+				printNewClient();
+				
 				int localPort = m_listeners[listenerIndex].port;
 				size_t ServerConfigIndex = m_listeners[listenerIndex].serverIndexes[0];								
 				/* creates a client object directly on m_connectedClients and initializes the fd and ip address */
@@ -382,26 +345,40 @@ int Server::serverCore() {
 			}
 		}
 		/* handle incoming data from the connected clients */
-		for (size_t i = 1; i < m_connectedFds.size(); i++) {
-			if (m_connectedFds[i].revents & POLLHUP || m_connectedFds[i].revents & POLLERR) { 	// errors related to client disconnect
-				eraseClient(m_connectedFds[i].fd);
-				i--;																																							// decrement i to account for the client deletion
-				continue;																																					// continue so we dont check for POLLIN and POLLOUT for the deleted client
-			}
-			if (m_connectedFds[i].revents & POLLIN) { 																					// socket has fresh data for us
- 				if (handleIncoming(m_connectedFds[i].fd)) {
-					i--;
-					continue;
-				} 																									
-			}
-			if (m_connectedFds[i].revents & POLLOUT) {
-				if (handleOutgoing(i)) {																													// if client was removed decrease the index
-					i--;
-					std::cout << "handled outgoing\n";
-					continue;
-				}
+		checkFdEvents();
+	}
+	return 0;
+}
+
+void Server::checkFdEvents() {
+	for (size_t i = 1; i < m_connectedFds.size(); i++) {
+		if (m_connectedFds[i].revents & POLLHUP || m_connectedFds[i].revents & POLLERR) { 	// errors related to client disconnect
+			eraseClient(m_connectedFds[i].fd);
+			i--;																																							// decrement i to account for the client deletion
+			continue;																																					// continue so we dont check for POLLIN and POLLOUT for the deleted client
+		}
+		if (m_connectedFds[i].revents & POLLIN) { 																					// socket has fresh data for us
+			if (handleIncoming(m_connectedFds[i].fd)) {
+				i--;
+				continue;
+			} 																									
+		}
+		if (m_connectedFds[i].revents & POLLOUT) {
+			if (handleOutgoing(i)) {																													// if client was removed decrease the index
+				i--;
+				std::cout << "handled outgoing\n";
+				continue;
 			}
 		}
 	}
-	return 0;
+}
+
+// debug functions
+void Server::printNewClient() {
+	// TO DO: remove these debug prints
+	time_t timestamp;
+	time(&timestamp);
+	std::cout << GREEN << "New client connected: " << RESET << inet_ntoa(m_clientAddress.sin_addr) << ":" 
+	<< ntohs(m_clientAddress.sin_port) << std::endl;
+	std::cout << ctime(&timestamp) << std::endl;					// displays the exact time a client connected	
 }
