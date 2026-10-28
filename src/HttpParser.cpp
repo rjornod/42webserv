@@ -98,13 +98,6 @@ bool HttpParser::parseRequestLine() {
     m_errorMessage = "Missing URI";
     return false;
   }
-  size_t secondSpace = reqLine.find(' ', firstSpace + 1);
-  if (secondSpace == std::string_view::npos) {
-    fail(404); // malformed request
-    m_errorMessage = "Missing HTTP version";
-    return false;
-  }
-  //TO DO: Method, URI, Version validation
   // Method
   m_request.setMethod(parseMethod(reqLine.substr(0, firstSpace)));
   if (m_request.getMethod() == HttpMethod::UNKNOWN) {
@@ -112,7 +105,14 @@ bool HttpParser::parseRequestLine() {
     m_errorMessage = "Unsupported method";
     return false;
   }
+  size_t secondSpace = reqLine.find(' ', firstSpace + 1);
   m_request.setURI(reqLine.substr(firstSpace + 1, secondSpace - firstSpace - 1));
+  if (secondSpace == std::string_view::npos) {
+    fail(404); // malformed request
+    m_errorMessage = "Missing HTTP version";
+    return false;
+  }
+  //TO DO: Method, URI, Version validation
   std::string_view versionStr = reqLine.substr(secondSpace + 1);
   HttpVersion version = validateHttpVersion(versionStr);
   if (version == HttpVersion::UNSUPPORTED) {
