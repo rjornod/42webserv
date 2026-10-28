@@ -94,7 +94,7 @@ bool HttpParser::parseRequestLine() {
 
   size_t firstSpace = reqLine.find(' ');
   if (firstSpace == std::string_view::npos) {
-    fail(404); // malformed request
+    fail(400); // malformed request
     m_errorMessage = "Missing URI";
     return false;
   }
@@ -108,7 +108,7 @@ bool HttpParser::parseRequestLine() {
   size_t secondSpace = reqLine.find(' ', firstSpace + 1);
   m_request.setURI(reqLine.substr(firstSpace + 1, secondSpace - firstSpace - 1));
   if (secondSpace == std::string_view::npos) {
-    fail(404); // malformed request
+    fail(400); // malformed request
     m_errorMessage = "Missing HTTP version";
     return false;
   }
@@ -169,7 +169,7 @@ bool HttpParser::parseHeaders() {
 
     size_t colon = header.find(':');
     if (colon == std::string_view::npos) {
-      fail(404); // malformed request
+      fail(400); // malformed request
       m_errorMessage = "Header missing colon";
       return false;
     }
@@ -191,26 +191,26 @@ void HttpParser::determineBodyLength() {
     m_expectedBodyLen = std::stoi(it->second);
     if (m_expectedBodyLen < 0) {
       m_errorMessage = "Content-Length Out Of Range";
-      fail(404); // malformed request
+      fail(400); // malformed request
       m_expectedBodyLen = -1;
       return;
     }
   }
   catch (const std::invalid_argument& ia) {
     m_errorMessage = "Invalid Content-Length";
-    fail(404); // malformed request
+    fail(400); // malformed request
     m_expectedBodyLen = -1;
     return;
   }
   catch (const std::out_of_range& oor) {
     m_errorMessage = "Content-Length Out Of Range";
-    fail(404); // malformed request
+    fail(400); // malformed request
     m_expectedBodyLen = -1;
     return;
   }
   catch (const std::exception& e) {
     m_errorMessage = "Unknown error on Content-Length argument";
-    fail(404); // malformed request
+    fail(400); // malformed request
     m_expectedBodyLen = -1;
     return;
   }
