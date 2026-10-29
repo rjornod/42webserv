@@ -47,7 +47,7 @@ class ConfigParser {
 		void	handleErrorPages(int scope);
 		void	handleReturn();
 		void	handleAllowedMethods(int scope);
-		void	handleUploadStore();
+		void	handleUploadStore(int scope);
 		void	handleCGI(int scope);
 		int		validateCode(std::string code, std::unordered_set<std::string_view>& allowedCodes);
 		std::string	findURI();

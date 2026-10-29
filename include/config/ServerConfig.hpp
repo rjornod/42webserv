@@ -16,6 +16,7 @@ class ServerConfig {
 		int 																					m_clientMaxBodySize;
 		std::vector<std::string>											m_index;
 		std::map<int, std::string>										m_errorPages;
+		std::string																		m_upload_store;
 		int																						m_autoIndex;
 		std::vector<std::string>											m_allowedMethods;
 		std::unordered_map<std::string, std::string>	m_cgiHandlers;
@@ -30,6 +31,7 @@ class ServerConfig {
 		void	setRoot(const std::string& root)																{ m_root = root; }
 		void	setBodySize(int size)																						{ m_clientMaxBodySize = size; }
 		void	setErrorPages(int error, const std::string& path)								{ m_errorPages.emplace(error, path); }
+		void	setUploadStore(const std::string& path)													{ m_upload_store = path; }
 		void	setAutoIndex(int isOn)																					{ m_autoIndex = isOn; }
 		void	setAllowedMethod(const std::string& method)											{ m_allowedMethods.emplace_back(method); }
 		void	setCgiHandler(const std::string& ext, const std::string& path)	{ m_cgiHandlers.try_emplace(ext, path); }
@@ -52,6 +54,7 @@ class ServerConfig {
 		const std::vector<std::string>& 		getIndex() const 												{ return m_index; }
 		const std::map<int, std::string>&		getErrorPages() const 									{ return m_errorPages; }
 		std::map<int, std::string>&					getErrorPages()													{ return m_errorPages; }
+		const std::string& 									getUploadStore() const 									{ return m_upload_store; }
 		const std::unordered_map<std::string, std::string>& getCgiHandler() const 	{ return m_cgiHandlers; }
 		const std::vector<LocationConfig>&	getLocationConfigs() const 							{ return m_locationConfigs; }
 		std::vector<LocationConfig>&				getLocationConfigs() 										{ return m_locationConfigs; }
