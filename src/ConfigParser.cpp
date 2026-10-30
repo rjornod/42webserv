@@ -523,14 +523,17 @@ void ConfigParser::handleAllowedMethods(int scope) {
  * Syntax: upload_store <directory>;
  * Only one argument allowed;
  */
-void ConfigParser::handleUploadStore() {
+void ConfigParser::handleUploadStore(int scope) {
 	incTokenIndex(1);
 	if (!isType(currentToken(), TokenType::Word) || 
 			!isValidToken(currentToken()) ||
 			!isType(currentTokenPlus(1), TokenType::EndDirective)
 			)
 		throw ConfigParseException("upload_store directive is malformed");
-	currentLocation().setUploadStore(currentToken().value);
+	if (scope == GLOBAL)
+			currentServer().setUploadStore(currentToken().value);
+	else
+		currentLocation().setUploadStore(currentToken().value);
 	checkEndOfDirective("upload_store");
 }
 
@@ -590,7 +593,7 @@ void ConfigParser::handleLocationDirective() {
 			handleErrorPages(LOCAL);
 			break;
 		case LocationDirectiveType::UPLOADSTORE:
-			handleUploadStore();
+			handleUploadStore(LOCAL);
 			break;
 		case LocationDirectiveType::ALLOWEDMETHODS:
 			handleAllowedMethods(LOCAL);
@@ -641,6 +644,9 @@ void ConfigParser::handleDirective() {
 			break;
 		case DirectiveType::CGIHANDLER:
 			handleCGI(GLOBAL);
+			break;
+		case DirectiveType::UPLOADSTORE:
+			handleUploadStore(GLOBAL);
 			break;
 		case DirectiveType::UNKNOWN:
 			handleUnknown();
