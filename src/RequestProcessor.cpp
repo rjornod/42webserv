@@ -128,7 +128,8 @@ HttpResponse RequestProcessor::handleRawUpload(RequestContext& ctx) {
   const HttpRequest req = ctx.getHttpRequest();
 
   FileResolver fileResolver;
-  auto target = fileResolver.resolveForWrite(ctx);
+  auto target = fileResolver.ResolveTargetUpload(ctx);
+  // auto target = fileResolver.resolveForWrite(ctx);
   if (!target)
     return buildErrorResponse(statusFromError(target.error()), ctx);
   
@@ -141,9 +142,9 @@ HttpResponse RequestProcessor::handleRawUpload(RequestContext& ctx) {
   int err = writeFileAtomically(target.value().path, req.getBody());
   if (err != 0) {
     std::cout << "Some error occured in writeFileAtomically" << std::endl;
-    return buildErrorResponse(statusFromError(FileResolutionError::BAD_REQUEST), ctx); // TO DO: introduce here the proper error to send; for now 400
+    return buildErrorResponse(statusFromError(FileResolutionError::SERVER_ERROR), ctx); // TO DO: introduce here the proper error to send; for now 500
   }
-  // 4. 201 Created, with Location pointing at the new resource
+  // 201 Created, with Location pointing at the new resource
   HttpResponse resp;
   resp.setStatusCode(201);
   resp.makeStatusLine();
