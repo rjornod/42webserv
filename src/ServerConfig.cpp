@@ -13,6 +13,7 @@ void ServerConfig::setDefaultValues() {
 	m_autoIndex = -1;
 	m_errorPages.clear();
 	m_allowedMethods.emplace_back("GET");
+	m_upload_store = "www/uploads";
 }
 
 void ServerConfig::seenDirective(std::string directive) {
@@ -58,7 +59,8 @@ void ServerConfig::printValues() const {
 						<< YELLOW << "\nSERVER NAME: " << RESET << (m_serverName.empty() ? "(not set)" : m_serverName)
 						<< YELLOW << "\nROOT: " << RESET << (m_root.empty() ? "(not set)" : m_root)
 						<< YELLOW << "\nAUTOINDEX: " << RESET << m_autoIndex
-						<< YELLOW << "\nCLIENT MAX BODY SIZE: " << RESET << m_clientMaxBodySize << std::endl;
+						<< YELLOW << "\nCLIENT MAX BODY SIZE: " << RESET << m_clientMaxBodySize << std::endl
+						<< YELLOW << "\nUPLOAD STORE: " << RESET << m_upload_store << std::endl;
 	// for (auto it = m_cgiHandlers.begin(); it != m_cgiHandlers.end(); it++) {
 	// 	std::cout << it->first << ", " << it->second << "\n";
 	// }

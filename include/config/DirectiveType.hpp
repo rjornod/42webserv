@@ -12,6 +12,7 @@ enum class DirectiveType {
 	AUTOINDEX,
 	MAXBODYSIZE,
 	CGIHANDLER,
+	UPLOADSTORE,
 	UNKNOWN
 };
 
@@ -25,6 +26,7 @@ DirectiveType directiveFromString(std::string_view name) {
 	if (name == "location") 						return DirectiveType::LOCATION;
 	if (name == "autoindex") 						return DirectiveType::AUTOINDEX;
 	if (name == "client_max_body_size") return DirectiveType::MAXBODYSIZE;
+	if (name == "upload_store")					return DirectiveType::UPLOADSTORE;	
 	if (name == "cgi_handler") 					return DirectiveType::CGIHANDLER;
 	return DirectiveType::UNKNOWN;
 }
