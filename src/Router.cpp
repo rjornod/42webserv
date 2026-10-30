@@ -21,6 +21,19 @@ RequestContext Router::createContext(const HttpRequest& request, const GlobalCon
 
 }
 
+/* Builds a context when there was an error in the parser. Therefore it builds it 
+as usual, but leaves the request empty, since it's irrelevant */
+RequestContext Router::createErrorContext(const GlobalConfig& config, int serverConfigIndex) {
+
+  const ServerConfig& serverConfig = config.getServerConfigs()[serverConfigIndex];
+
+  RequestContext ctx;
+  ctx.setServerConfig(&serverConfig);
+  ctx.setHttpRequest(HttpRequest());   // empty request
+  ctx.setLocationConfig(matchLocation(serverConfig.getLocationConfigs(), "/"));
+  return ctx;
+}
+
 /* Checks whether the prefix is actually a "complete" prefix
 
 For example for uri /images-old/logo.png  the path /images-old is a "well formed"

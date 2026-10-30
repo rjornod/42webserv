@@ -22,6 +22,7 @@ class HttpParser : public IHttpParser {
     HttpParserState m_state;
     HttpRequest m_request;
     std::string m_errorMessage;
+    int m_errorStatus;
 
   public:
 
@@ -36,6 +37,7 @@ class HttpParser : public IHttpParser {
     HttpRequest getRequest() const {return m_request;}
     HttpParserState getParserState() const {return m_state;}
     std::string getErrorMessage() const {return m_errorMessage;}
+    int getErrorStatus() const {return m_errorStatus;}
     void setParserState(HttpParserState state) {m_state = state;}
 
     void parse(std::string_view chunk);
@@ -44,6 +46,7 @@ class HttpParser : public IHttpParser {
     bool parseBody();
     void determineBodyLength();
     void reportErrors();
+    void fail(int status);
 
     //Mainly for the tests, clear the parser in order to reuse it
     void clearParser();

@@ -38,15 +38,21 @@ std::ostream &operator<<(std::ostream &out, const HttpResponse &response) {
 
 const std::map<int, std::string> HttpResponse::M_STATUSCODES = {
   {200, "OK"},
+  {201, "Created"},
   {204, "No Content"},
+  {301, "Moved Permanently"},
+  {302, "Found"},
   {400, "Bad Request"},
   {403, "Forbidden"},
   {404, "Not found"},
   {405, "Method Not Allowed"},
   {408, "Request Timeout"},
   {409, "Conflict"},
+  {411, "Length Required"},
   {413, "Content Too Large"},
+  {415, "Unsupported Media Type"},
   {418, "I'm a teapot"}, 
   {500, "Internal Server Error"},
+  {501, "Not Implemented"},
   {505, "HTTP Version Not Supported"}
 };

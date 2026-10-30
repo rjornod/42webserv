@@ -25,4 +25,5 @@ class RequestContext {
     void           setServerConfig(const ServerConfig* serverConfig) {m_serverConfig = serverConfig;}
     void           setLocationConfig(const LocationConfig* locationConfig) {m_locationConfig = locationConfig;}
     void           setFilePath(std::filesystem::path path) {m_filePath = path;}
+    int            getClientBodySize() {if (m_locationConfig) return m_locationConfig->getMaxBodySize(); return m_serverConfig->getClientMaxBody();}
 };

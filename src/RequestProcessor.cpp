@@ -1,79 +1,241 @@
 #include "RequestProcessor.hpp"
-#include "FileResolver.hpp"
 #include <algorithm>
 #include <sstream>
 
 
+static int statusFromError(FileResolutionError e) {
+  switch (e) {
+    case FileResolutionError::BAD_REQUEST: return 400;
+    case FileResolutionError::FORBIDDEN:   return 403;
+    case FileResolutionError::NOT_FOUND:   return 404;
+    case FileResolutionError::SERVER_ERROR:
+    default:                               return 500;
+  }
+}
+
+
 HttpResponse RequestProcessor::process(RequestContext& ctx){
 
-  HttpResponse response;
+  std::cout << "Processing request" << std::endl;
+  if (!checkContentLength(ctx))
+    return buildErrorResponse(413, ctx);
+  if (!allowedMethod(ctx))
+    return buildErrorResponse(405, ctx);
+  if (ctx.getLocationConfig() && ctx.getLocationConfig()->getReturn().first != 0)
+    return buildReturnResponse(ctx.getLocationConfig()->getReturn().first, ctx.getLocationConfig()->getReturn().second);
+  //TO DO: no return in server config?
+
+  switch (ctx.getHttpRequest().getMethod())
+  {
+  case HttpMethod::GET: return handleGet(ctx);
+  case HttpMethod::POST: return handlePost(ctx);
+  case HttpMethod::DELETE: return handleDelete(ctx);
+  default: return buildErrorResponse(405, ctx);
+  }
+
+}
+
+//Resolves the path and handles the request
+HttpResponse RequestProcessor::handleGet(RequestContext& ctx) {
+
+  Resolution res;
+  HttpResponse err;
+
+  if (!resolvePath(ctx, res, err))
+    return err;
+
+  if (res.kind == Resolution::DIRECTORY)
+    return buildAutoIndexResponse(ctx);
+  return staticHandler(ctx);
+}
+
+//Resolves the path and handles the request
+HttpResponse RequestProcessor:: handleDelete(RequestContext& ctx) {
+
+  Resolution res;
+  HttpResponse errResponse;
   FileResolver fileResolver;
 
-  // if (ctx.getLocationConfig() == nullptr) {
-  //   // response.setStatusCode(500);              //Actually it should just take the root from the server
-  //   return buildDefaultErrorResponse(500);
-  // }
+  Result<Resolution, FileResolutionError> pathResult = fileResolver.resolveForWrite(ctx);
 
-  // Check method
-  if (!allowedMethod(ctx)) {
-    return buildDefaultErrorResponse(405);
+  if (!pathResult)
+    return buildErrorResponse(statusFromError(pathResult.error()), ctx);
+
+  res = pathResult.value();
+  if (res.kind == Resolution::DIRECTORY)
+    return buildErrorResponse(409, ctx);
+  ctx.setFilePath(res.path);
+  return deleteHandler(ctx);
+}
+
+HttpResponse RequestProcessor::handlePost(RequestContext& ctx) {
+
+  const HttpRequest& req = ctx.getHttpRequest();
+
+  if (!postHeadersPresent(req))
+    return buildErrorResponse(411, ctx);
+  if (!checkContentLength(ctx))
+    return buildErrorResponse(413, ctx);
+
+  std::unordered_map<std::string, std::string> params;
+  std::string type;
+
+  //TO DO parse the params 
+  if (!parseContentType(req, params, type)) 
+    return buildErrorResponse(400, ctx);
+  if (!checkSupportedMedia(type))
+    return buildErrorResponse(415, ctx);
+  
+  if (type == "multipart/form-data")
+    return buildErrorResponse(500, ctx); // For now... TO DO: handle multipart
+
+  return handleRawUpload(ctx);
+
+
+  return HttpResponse();
+}
+
+//TO DO: return a FileSystem error instead of an int in case of error
+int writeFileAtomically(const std::filesystem::path& target, const std::string& data) {
+
+  // Temp file in the SAME directory, so rename() stays on one filesystem (atomic)
+  std::filesystem::path tmp = target.parent_path() / (".tmp_" + target.filename().string() + "_"); // TO DO: add + uniqueSuffix()
+
+  {
+    std::ofstream out(tmp, std::ios::binary | std::ios::trunc);
+    if (!out.is_open())
+      return errno;                  // permission denied, no space for the inode, ...
+    out.write(data.data(), static_cast<std::streamsize>(data.size()));
+    out.close();
+    if (!out) {                      // write or flush failed (e.g. disk full)
+      std::error_code ignored;
+      std::filesystem::remove(tmp, ignored);
+      return EIO;
+    }
   }
+
+  std::error_code ec;
+  std::filesystem::rename(tmp, target, ec);
+  if (ec) {
+    std::error_code ignored;
+    std::filesystem::remove(tmp, ignored);        // don't leave the temp file behind
+    return ec.value();
+  }
+  return 0;
+}
+
+HttpResponse RequestProcessor::handleRawUpload(RequestContext& ctx) {
+  const HttpRequest req = ctx.getHttpRequest();
+
+  FileResolver fileResolver;
+  auto target = fileResolver.ResolveTargetUpload(ctx);
+  // auto target = fileResolver.resolveForWrite(ctx);
+  if (!target)
+    return buildErrorResponse(statusFromError(target.error()), ctx);
+  
+  // If the file exists we refuse to overwrite (POLICY)
+  std::error_code ec;
+  if (std::filesystem::exists(target.value().path, ec))
+    return buildErrorResponse(409, ctx);
+  
+  // Write the body to disk
+  int err = writeFileAtomically(target.value().path, req.getBody());
+  if (err != 0) {
+    std::cout << "Some error occured in writeFileAtomically" << std::endl;
+    return buildErrorResponse(statusFromError(FileResolutionError::SERVER_ERROR), ctx); // TO DO: introduce here the proper error to send; for now 500
+  }
+  // 201 Created, with Location pointing at the new resource
+  HttpResponse resp;
+  resp.setStatusCode(201);
+  resp.makeStatusLine();
+  resp.addHeader("Location", req.getURI());
+  resp.addHeader("Content-Length", "0");
+  return resp;
+
+}
+
+bool RequestProcessor::checkSupportedMedia(std::string type) {
+
+  std::unordered_set<std::string> supportedMedia = {"text/html", "text/css",
+    "image/gif", "application/javascript",
+    "text/plain", "application/json", "application/pdf",
+    "multipart/form-data"};
+
+  return supportedMedia.contains(type);
+
+}
+
+
+bool RequestProcessor::parseContentType(const HttpRequest& req, std::unordered_map<std::string, std::string>& params, std::string& type) {
+
+  
+  std::unordered_map<std::string, std::string> headers = req.getHeaders();
+  auto it = headers.find("content-type");
+
+  if (it == headers.end())
+    return false;
+  
+  auto contentTypeHeader = it->second;
+
+  size_t colon = contentTypeHeader.find(';');
+  if (colon == std::string::npos)
+    type = contentTypeHeader;
+  else
+    type = contentTypeHeader.substr(0, colon);
+  std::for_each(type.begin(), type.end(), [](char& c) {c = tolower(c);});
+ 
+  //TO DO trim from white space
+  (void)params;
+  return true;
+
+}
+
+//Returns true on success and fills out the response; on failure returns false and fills out errResponse
+bool RequestProcessor::resolvePath(RequestContext& ctx, Resolution& out, HttpResponse& errResponse) {
+  
+  FileResolver fileResolver;
 
   Result<Resolution, FileResolutionError> pathResult = fileResolver.resolve(ctx);
+
   if (!pathResult) {
-    switch (pathResult.error()) {
-      case FileResolutionError::BAD_REQUEST:
-        return buildErrorResponse(400, ctx);
-        // break;
-      case FileResolutionError::FORBIDDEN:
-        return buildErrorResponse(403, ctx);
-        // break;
-      case FileResolutionError::NOT_FOUND:
-        return buildErrorResponse(404, ctx);
-        // break;
-      case FileResolutionError::SERVER_ERROR:
-        return buildErrorResponse(500, ctx);
-        // break;
-      // default:
-        // return buildErrorResponse(500); //Not sure what to do in this case
-        // break;
-    }
-    // return response;
-  }
-  HttpMethod method = ctx.getHttpRequest().getMethod();
-
-
-  // The file path is canonical
-  ctx.setFilePath(pathResult.value().path);
-
-  switch (method) {
-    case HttpMethod::GET:
-      if (pathResult.value().kind == Resolution::DIRECTORY) {
-        return buildAutoIndexResponse(ctx);
-      }
-      response = staticHandler(ctx);
-      break;
-    case HttpMethod::POST:
-      std::cout << "Handling upload" << std::endl;
-      break;
-    case HttpMethod::DELETE:
-      std::cout << "Handling delete" << std::endl;
-      if (pathResult.value().kind == Resolution::DIRECTORY) {
-        return buildErrorResponse(409, ctx);
-      }
-      response = deleteHandler(ctx);
-      break;
-    default:
-      std::cout << "Handling method not allowed" << std::endl;
+    errResponse = buildErrorResponse(statusFromError(pathResult.error()), ctx);
+    return false;
   }
 
+  out = pathResult.value();
+  ctx.setFilePath(out.path);
+  return true;
+}
 
-  // Call appropriate handler that will build the appropriate response
-  // return staticFileHandler.handle(ctx);
+bool RequestProcessor::checkContentLength(const RequestContext& ctx) {
 
-  // std::cout << "FilePath: " << ctx.getFilePathName() << std::endl;
+  int maxBodySize;
+  if (ctx.getLocationConfig())
+    maxBodySize = ctx.getLocationConfig()->getMaxBodySize();
+  else
+    maxBodySize = ctx.getServerConfig()->getClientMaxBody();
+  
+  std::unordered_map<std::string, std::string> headers = ctx.getHttpRequest().getHeaders();
+  auto contentLen = headers.find("content-length");
 
-  return response;
+  if (contentLen == headers.end())
+    return true;
+  try {
+    int len = std::stoi(contentLen->second);
+    return len <= maxBodySize;
+  }
+  catch (const std::out_of_range& oor) {
+    return false;
+  }
+
+}
+
+bool RequestProcessor::postHeadersPresent(const HttpRequest& req) {
+
+  std::unordered_map<std::string, std::string> headers = req.getHeaders();
+  auto contentLen = headers.find("content-length");
+  auto transferEncoding = headers.find("transfer-encoding");
+  return (contentLen == headers.end() || transferEncoding == headers.end());
 }
 
 bool RequestProcessor::allowedMethod(const RequestContext& ctx) {
@@ -97,7 +259,6 @@ bool RequestProcessor::allowedMethod(const RequestContext& ctx) {
 }
 
 HttpResponse RequestProcessor::staticHandler(RequestContext& ctx) {
-  // std::cout << "Called the static handler on context with filepath:" << ctx.getFilePath() << std::endl;
   
   const std::filesystem::path& path = ctx.getFilePath();
   
@@ -123,7 +284,7 @@ const std::unordered_map<std::string, std::string> RequestProcessor::M_MIME_TYPE
   {"js", "application/javascript"},
   {"txt", "text/plain"},
   {"json", "application/json"},
-  {"pdf", "application/pdf"}
+  {"pdf", "application/pdf"},
 };
 
 Result<std::string, MimeTypeError> RequestProcessor::guessMimeType(std::string file) {
@@ -137,14 +298,27 @@ Result<std::string, MimeTypeError> RequestProcessor::guessMimeType(std::string f
 
   std::string ext = fileName.substr(dot + 1);
 
-  // std::cout << "File extension: " << ext << std::endl;
-
   auto it = M_MIME_TYPES.find(ext);
   if (it == M_MIME_TYPES.end())
     return Result<std::string, MimeTypeError>::Err(MimeTypeError::EXTENSION_NOT_FOUND);
 
   return Result<std::string, MimeTypeError>::Ok(it->second);
 
+}
+
+// Builds the appropriate response for a return directive
+HttpResponse RequestProcessor::buildReturnResponse(int code, const std::string& target) {
+
+  HttpResponse resp;
+  resp.setStatusCode(code);
+  resp.makeStatusLine();
+  resp.addHeader("Location", target);
+  resp.addHeader("Content-Length", std::to_string(6 + (2 * resp.getReasonPhrase().size()) + 86));
+  std::string body = "<html>\n<head><title>" + std::to_string(code) + " " + resp.getReasonPhrase() +
+    "</title></head>\n<body><center><h1>" + std::to_string(code) + " "+ resp.getReasonPhrase() +
+   "</h1></center></body>\n</html>";
+  resp.setBodySource(body);
+  return resp;
 }
 
 // Lookup in the LocationConfig the error page
@@ -178,25 +352,21 @@ RequestContext RequestProcessor::makeErrorCtx(const RequestContext& ctx, const s
 }
 
 HttpResponse RequestProcessor::buildErrorResponse(int errorCode, const RequestContext& ctx) {
-  // std::cout << "BUILDING ERROR RESPONSE" << std::endl;
+  
   if (auto errorPage = findErrorPage(errorCode, ctx)) {
-    // std::cout << "FOUND ERROR PAGE" << std::endl;
-    std::cout << *errorPage << std::endl;
+    
+    
     RequestContext errorCtx = makeErrorCtx(ctx, *errorPage);
-    // std::cout << "Error context built: " << std::endl;
-    // errorCtx.getLocationConfig()->printValues();
-    // std::cout << "File path from error ctx" << errorCtx.getFilePath();
+
     FileResolver fileResolver;
     auto result = fileResolver.resolve(errorCtx);
     if (!result)
       std::cout << "error on resolving error page path " << to_string(result.error()) << std::endl;
     if (result && result.value().kind == Resolution::FILE) {
-      // std::cout << "Will serve " <<  result.value().path << std::endl;
       errorCtx.setFilePath(result.value().path);
       HttpResponse response = staticHandler(errorCtx);
       response.updateStatus(errorCode);
       return response;
-      // return buildDefaultErrorResponse(errorCode); // For debugging
     }
   }
   return buildDefaultErrorResponse(errorCode);
