@@ -366,6 +366,13 @@ Result<Resolution, FileResolutionError> FileResolver::resolveForWrite(const Requ
   return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::FILE, target});
 }
 
+// Helper that generates a name
+std::string generateName() {
+  static unsigned long counter = 0;
+  return "upload_" + std::to_string(std::time(nullptr)) + "_" + std::to_string(counter++);
+}
+
+
 Result<Resolution, FileResolutionError> FileResolver::ResolveTargetUpload(const RequestContext& ctx) {
 
   // Same as the original resolve; decode and build the segments
@@ -385,26 +392,50 @@ Result<Resolution, FileResolutionError> FileResolver::ResolveTargetUpload(const 
     return Result<Resolution, FileResolutionError>::Err(
       FileResolutionError::FORBIDDEN);
   }
-  //Get the file name for the upload
-  std::string fileName(segments.value().back());
-  std::cout << "Target file name : " << fileName << std::endl;
-
-  //TODO: Should do this for ServerConfig as well
-  std::error_code ec;
-  std::filesystem::path parent = ctx.getLocationConfig()->getUploadStore();
-  std::filesystem::path target = parent / fileName;
-  auto st = std::filesystem::symlink_status(target, ec);
-  bool exists = !ec && st.type() != std::filesystem::file_type::not_found;
-  if (exists) {
-    if (std::filesystem::is_symlink(st)) {
-      std::cerr << "is_symlink" << std::endl;
-      return Result<Resolution, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
-    }
-    if (std::filesystem::is_directory(st))
-      return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::DIRECTORY, target});
-  }
   
-  return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::FILE, target});
+  // ----- NEW ---- always generate a name
+  std::filesystem::path parent;
+  if (ctx.getLocationConfig())
+    parent = ctx.getLocationConfig()->getUploadStore();
+  else
+    parent = ctx.getServerConfig()->getUploadStore();
+  std::error_code ec;
+  std::filesystem::path store = std::filesystem::canonical(parent, ec);
+  if (ec || !std::filesystem::is_directory(parent, ec))
+    return Result<Resolution, FileResolutionError>::Err(FileResolutionError::SERVER_ERROR);  // config problem → 500
 
+  // Check if generated name collides, and retry if so
+  for (int attempt = 0; attempt < 5; ++attempt) {
+    std::filesystem::path target = store / generateName();
+    if (!std::filesystem::exists(std::filesystem::symlink_status(target, ec)))
+      return Result<Resolution, FileResolutionError>::Ok(Resolution{Resolution::FILE, target});
+  }
+  return Result<Resolution, FileResolutionError>::Err(FileResolutionError::SERVER_ERROR);
+
+  
+  //----- OLD------
+  //Get the file name for the upload
+  // std::string fileName(segments.value().back());
+  // std::cout << "Target file name : " << fileName << std::endl;
+
+  // std::error_code ec;
+  // std::filesystem::path parent;
+  // if (ctx.getLocationConfig())
+  //   parent = ctx.getLocationConfig()->getUploadStore();
+  // else
+  //   parent = ctx.getServerConfig()->getUploadStore();
+  // std::filesystem::path target = parent / fileName;
+  // auto st = std::filesystem::symlink_status(target, ec);
+  // bool exists = !ec && st.type() != std::filesystem::file_type::not_found;
+  // if (exists) {
+  //   if (std::filesystem::is_symlink(st)) {
+  //     std::cerr << "is_symlink" << std::endl;
+  //     return Result<Resolution, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
+  //   }
+  //   if (std::filesystem::is_directory(st))
+  //     return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::DIRECTORY, target});
+  // }
+  
+  // return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::FILE, target});
 
 }

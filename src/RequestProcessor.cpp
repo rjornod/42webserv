@@ -132,6 +132,8 @@ HttpResponse RequestProcessor::handleRawUpload(RequestContext& ctx) {
   // auto target = fileResolver.resolveForWrite(ctx);
   if (!target)
     return buildErrorResponse(statusFromError(target.error()), ctx);
+
+  //TO DO what if it's a directory (no name)
   
   // If the file exists we refuse to overwrite (POLICY)
   std::error_code ec;
