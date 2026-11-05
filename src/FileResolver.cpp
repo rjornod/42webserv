@@ -326,6 +326,7 @@ Result<Resolution, FileResolutionError> FileResolver::resolveForWrite(const Requ
       FileResolutionError::FORBIDDEN);
   }
 
+
   // "/" (or "/." etc.) → no segments → the target is the root itself
   if (segments.value().empty()) {
     std::cerr << "Empty segments" << std::endl;
@@ -352,8 +353,12 @@ Result<Resolution, FileResolutionError> FileResolver::resolveForWrite(const Requ
   // Build final path and 
   std::error_code ec;
   std::filesystem::path target = parent.value() / fileName;
+  
   auto st = std::filesystem::symlink_status(target, ec);
-  bool exists = !ec && st.type() != std::filesystem::file_type::not_found;
+
+  if (ec)
+    return Result<Resolution, FileResolutionError>::Err(FileResolutionError::NOT_FOUND);
+  bool exists = !ec && st.type() != std::filesystem::file_type::not_found; //Not necessary to do && (we already know !ec)
   if (exists) {
     if (std::filesystem::is_symlink(st)) {
       std::cerr << "is_symlink" << std::endl;
