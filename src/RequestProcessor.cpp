@@ -132,26 +132,28 @@ HttpResponse RequestProcessor::handleRawUpload(RequestContext& ctx) {
   // auto target = fileResolver.resolveForWrite(ctx);
   if (!target)
     return buildErrorResponse(statusFromError(target.error()), ctx);
-
-  //TO DO what if it's a directory (no name)
   
-  // If the file exists we refuse to overwrite (POLICY)
-  std::error_code ec;
-  if (std::filesystem::exists(target.value().path, ec))
-    return buildErrorResponse(409, ctx);
+  // // If the file exists we refuse to overwrite (POLICY)
+  // Not checking anymore because we always generate a name; and we generate
+  // until the file name doesn't exist
+  // std::error_code ec;
+  // if (std::filesystem::exists(target.value().path, ec))
+  //   return buildErrorResponse(409, ctx);
   
   // Write the body to disk
   int err = writeFileAtomically(target.value().path, req.getBody());
   if (err != 0) {
     std::cout << "Some error occured in writeFileAtomically" << std::endl;
-    return buildErrorResponse(statusFromError(FileResolutionError::SERVER_ERROR), ctx); // TO DO: introduce here the proper error to send; for now 500
+    return buildErrorResponse(500, ctx);
   }
   // 201 Created, with Location pointing at the new resource
+  std::string body = "Created: " + target.value().path.filename().string() + "\n"; 
   HttpResponse resp;
   resp.setStatusCode(201);
   resp.makeStatusLine();
-  resp.addHeader("Location", req.getURI());
-  resp.addHeader("Content-Length", "0");
+  resp.addHeader("Content-Type", "text/plain; charset=utf-8");
+  resp.addHeader("Content-Length", std::to_string(body.size()));
+  resp.setBodySource(body);
   return resp;
 
 }

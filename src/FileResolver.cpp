@@ -375,23 +375,23 @@ std::string generateName() {
 
 Result<Resolution, FileResolutionError> FileResolver::ResolveTargetUpload(const RequestContext& ctx) {
 
-  // Same as the original resolve; decode and build the segments
-  HttpRequest request = ctx.getHttpRequest();
-  std::string_view raw = request.getURI();
+  // // Same as the original resolve; decode and build the segments
+  // HttpRequest request = ctx.getHttpRequest();
+  // std::string_view raw = request.getURI();
 
-  auto decodedUri = percentDecode(raw);
+  // auto decodedUri = percentDecode(raw);
 
-  if (!decodedUri)
-    return Result<Resolution, FileResolutionError>::Err(
-          FileResolutionError::BAD_REQUEST);
+  // if (!decodedUri)
+  //   return Result<Resolution, FileResolutionError>::Err(
+  //         FileResolutionError::BAD_REQUEST);
 
-  auto segments = normalizeSegments(decodedUri.value());
+  // auto segments = normalizeSegments(decodedUri.value());
 
-  if (!segments) {
-    std::cout << "Invalid URI segments: " << to_string(segments.error()) << std::endl;
-    return Result<Resolution, FileResolutionError>::Err(
-      FileResolutionError::FORBIDDEN);
-  }
+  // if (!segments) {
+  //   std::cout << "Invalid URI segments: " << to_string(segments.error()) << std::endl;
+  //   return Result<Resolution, FileResolutionError>::Err(
+  //     FileResolutionError::FORBIDDEN);
+  // }
   
   // ----- NEW ---- always generate a name
   std::filesystem::path parent;
