@@ -16,7 +16,7 @@ static int statusFromError(FileResolutionError e) {
 
 HttpResponse RequestProcessor::process(RequestContext& ctx){
 
-  std::cout << "Processing request" << std::endl;
+  // std::cout << "Processing request" << std::endl;
   if (!checkContentLength(ctx))
     return buildErrorResponse(413, ctx);
   if (!allowedMethod(ctx))
@@ -317,10 +317,10 @@ HttpResponse RequestProcessor::buildReturnResponse(int code, const std::string& 
   resp.setStatusCode(code);
   resp.makeStatusLine();
   resp.addHeader("Location", target);
-  resp.addHeader("Content-Length", std::to_string(6 + (2 * resp.getReasonPhrase().size()) + 86));
   std::string body = "<html>\n<head><title>" + std::to_string(code) + " " + resp.getReasonPhrase() +
-    "</title></head>\n<body><center><h1>" + std::to_string(code) + " "+ resp.getReasonPhrase() +
-   "</h1></center></body>\n</html>";
+  "</title></head>\n<body><center><h1>" + std::to_string(code) + " "+ resp.getReasonPhrase() +
+  "</h1></center></body>\n</html>";
+  resp.addHeader("Content-Length", std::to_string(body.size()));
   resp.setBodySource(body);
   return resp;
 }
