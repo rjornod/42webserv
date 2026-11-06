@@ -50,6 +50,7 @@ class Server {
 		int 		serverCore();
 		void 		receiveRequest(Client& client);
 		void		buildResponse(Client& client);
+		void 		buildParserErrorResponse(Client& client);
 		void 		sendResponse(Client& client);
 		void		eraseClient(int fd);
 		void		closeAllFds();

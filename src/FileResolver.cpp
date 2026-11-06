@@ -295,3 +295,152 @@ Result<Resolution, FileResolutionError> FileResolver::resolveIndex(
 
   return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::DIRECTORY, directory});
 }
+
+// TO DO: Refactor to extract the first part that is the same as the usual resolve
+// File resolution for DELETE and POST
+// Processes the URI (decodes it and generates the segments)
+// Identifies the full path (candidate) and the parent directory to validate it
+// and check that it falls within the root
+Result<Resolution, FileResolutionError> FileResolver::resolveForWrite(const RequestContext& ctx) {
+
+  // Same as the original resolve; decode and build the segments
+  std::string locationRoot;
+  if (ctx.getLocationConfig())
+    locationRoot = ctx.getLocationConfig()->getRoot();
+  else
+    locationRoot = ctx.getServerConfig()->getRoot();
+  HttpRequest request = ctx.getHttpRequest();
+  std::string_view raw = request.getURI();
+
+  auto decodedUri = percentDecode(raw);
+
+  if (!decodedUri)
+    return Result<Resolution, FileResolutionError>::Err(
+          FileResolutionError::BAD_REQUEST);
+
+  auto segments = normalizeSegments(decodedUri.value());
+
+  if (!segments) {
+    std::cout << "Invalid URI segments: " << to_string(segments.error()) << std::endl;
+    return Result<Resolution, FileResolutionError>::Err(
+      FileResolutionError::FORBIDDEN);
+  }
+
+
+  // "/" (or "/." etc.) → no segments → the target is the root itself
+  if (segments.value().empty()) {
+    std::cerr << "Empty segments" << std::endl;
+    return Result<Resolution, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
+  }
+
+  // Get the name of the file and the parent directory from the URI
+  std::string fileName(segments.value().back());
+  std::filesystem::path parentCandidate = locationRoot;
+  for (size_t i = 0; i + 1 < segments.value().size(); ++i)
+    parentCandidate /= segments.value()[i];
+
+  //Canonicalize root and parent and check whether parent is in root
+  Result<std::filesystem::path, FileResolutionError> parent = checkWithinRoot(parentCandidate, locationRoot);
+  if (!parent) {
+    std::cout << "CheckWithinRoot failed" << std::endl;
+    return Result<Resolution, FileResolutionError>::Err(parent.error());
+  }
+  if (!std::filesystem::is_directory(parent.value())) {
+    std::cerr << "Didn't find parent directory" << std::endl;
+    return Result<Resolution, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
+  }
+  
+  // Build final path and 
+  std::error_code ec;
+  std::filesystem::path target = parent.value() / fileName;
+  
+  auto st = std::filesystem::symlink_status(target, ec);
+
+  if (ec)
+    return Result<Resolution, FileResolutionError>::Err(FileResolutionError::NOT_FOUND);
+  bool exists = !ec && st.type() != std::filesystem::file_type::not_found; //Not necessary to do && (we already know !ec)
+  if (exists) {
+    if (std::filesystem::is_symlink(st)) {
+      std::cerr << "is_symlink" << std::endl;
+      return Result<Resolution, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
+    }
+    if (std::filesystem::is_directory(st))
+      return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::DIRECTORY, target});
+  }
+  
+  return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::FILE, target});
+}
+
+// Helper that generates a name
+std::string generateName() {
+  static unsigned long counter = 0;
+  return "upload_" + std::to_string(std::time(nullptr)) + "_" + std::to_string(counter++);
+}
+
+
+Result<Resolution, FileResolutionError> FileResolver::ResolveTargetUpload(const RequestContext& ctx) {
+
+  // // Same as the original resolve; decode and build the segments
+  // HttpRequest request = ctx.getHttpRequest();
+  // std::string_view raw = request.getURI();
+
+  // auto decodedUri = percentDecode(raw);
+
+  // if (!decodedUri)
+  //   return Result<Resolution, FileResolutionError>::Err(
+  //         FileResolutionError::BAD_REQUEST);
+
+  // auto segments = normalizeSegments(decodedUri.value());
+
+  // if (!segments) {
+  //   std::cout << "Invalid URI segments: " << to_string(segments.error()) << std::endl;
+  //   return Result<Resolution, FileResolutionError>::Err(
+  //     FileResolutionError::FORBIDDEN);
+  // }
+  
+  // ----- NEW ---- always generate a name
+  std::filesystem::path parent;
+  if (ctx.getLocationConfig())
+    parent = ctx.getLocationConfig()->getUploadStore();
+  else
+    parent = ctx.getServerConfig()->getUploadStore();
+  std::error_code ec;
+  std::filesystem::path store = std::filesystem::canonical(parent, ec);
+  if (ec || !std::filesystem::is_directory(parent, ec))
+    return Result<Resolution, FileResolutionError>::Err(FileResolutionError::SERVER_ERROR);  // config problem → 500
+
+  // Check if generated name collides, and retry if so
+  for (int attempt = 0; attempt < 5; ++attempt) {
+    std::filesystem::path target = store / generateName();
+    if (!std::filesystem::exists(std::filesystem::symlink_status(target, ec)))
+      return Result<Resolution, FileResolutionError>::Ok(Resolution{Resolution::FILE, target});
+  }
+  return Result<Resolution, FileResolutionError>::Err(FileResolutionError::SERVER_ERROR);
+
+  
+  //----- OLD------
+  //Get the file name for the upload
+  // std::string fileName(segments.value().back());
+  // std::cout << "Target file name : " << fileName << std::endl;
+
+  // std::error_code ec;
+  // std::filesystem::path parent;
+  // if (ctx.getLocationConfig())
+  //   parent = ctx.getLocationConfig()->getUploadStore();
+  // else
+  //   parent = ctx.getServerConfig()->getUploadStore();
+  // std::filesystem::path target = parent / fileName;
+  // auto st = std::filesystem::symlink_status(target, ec);
+  // bool exists = !ec && st.type() != std::filesystem::file_type::not_found;
+  // if (exists) {
+  //   if (std::filesystem::is_symlink(st)) {
+  //     std::cerr << "is_symlink" << std::endl;
+  //     return Result<Resolution, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
+  //   }
+  //   if (std::filesystem::is_directory(st))
+  //     return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::DIRECTORY, target});
+  // }
+  
+  // return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::FILE, target});
+
+}

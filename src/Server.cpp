@@ -106,11 +106,19 @@ void Server::receiveRequest(Client& client) {
 		** The response should then be built on a new string (?) to then be sent to the client
 		* 
 		**/
-	if (parser.getParserState() == HttpParserState::COMPLETE) {
+
+	// TO DO: what happens if the state of the parser is ERROR;
+	// and if the request never arrives complete?
+	if (parser.getParserState() == HttpParserState::COMPLETE ||
+			parser.getParserState() == HttpParserState::ERROR) {
 		client.setClientState(ClientState::RequestFinished);
 
 		// this loop should only happen AFTER the full request has come in
-		buildResponse(client);																// check if build response gave an error
+		if (parser.getParserState() == HttpParserState::ERROR) {
+			buildParserErrorResponse(client);
+		}
+		else
+			buildResponse(client);																// check if build response gave an error
 
 
 		for (unsigned long i = 1; i < m_connectedFds.size(); i++) {					// loop that goes through every member of the pollfd struct 
@@ -176,6 +184,22 @@ void Server::buildResponse(Client& client) {
 	RequestProcessor processor;
 	HttpResponse response = processor.process(ctx);
 
+	client.setHttpResponse(response);
+	client.writerSetup(response);
+
+	std::cout << client.getHttpResponse() << std::endl;
+
+}
+
+/* Builds a context without request, and directly return the error response */
+void Server::buildParserErrorResponse(Client& client){
+
+	Router router;
+	RequestContext ctx = router.createErrorContext(m_config, static_cast<int>(client.getServerConfigIndex()));
+	RequestProcessor processor;
+	HttpResponse response = processor.buildErrorResponse(client.getParser().getErrorStatus(), ctx);
+
+	response.addHeader("Connection", "close");
 	client.setHttpResponse(response);
 	client.writerSetup(response);
 

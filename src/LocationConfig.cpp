@@ -9,7 +9,7 @@ void LocationConfig::setDefaultValues() {
 	m_maxBodySize = -1;
 	m_index.clear();
 	m_errorPages.clear();
-	m_upload_store = "www/uploads";
+	m_upload_store = "data/www/uploads";
 	m_return.first = 0;
 	m_return.second.clear();
 }
