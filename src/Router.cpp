@@ -8,9 +8,7 @@ and then does max prefix matching to find the relevant location
 NOTE: Instead of passing the global config and the index, why not pass the relevant server config right away
 if it's unique... (?!)
 */
-RequestContext Router::createContext(const HttpRequest& request, const GlobalConfig& config, int serverConfigIndex){
-  
-  const ServerConfig& serverConfig = config.getServerConfigs()[serverConfigIndex];
+RequestContext Router::createContext(const HttpRequest& request, const ServerConfig& serverConfig){  
   auto uri = request.getURI();
   RequestContext ctx;
   ctx.setServerConfig(&serverConfig);
@@ -18,7 +16,6 @@ RequestContext Router::createContext(const HttpRequest& request, const GlobalCon
   ctx.setLocationConfig(matchLocation(serverConfig.getLocationConfigs(), uri));
 
   return ctx;
-
 }
 
 /* Checks whether the prefix is actually a "complete" prefix
