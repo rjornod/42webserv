@@ -37,9 +37,9 @@ class Listener : public IoEndpoint {
 				if (ev.isError || ev.isWrite) {
 					return EndpointResult::ERROR;
 				}
-				sockaddr_in clientAddress;		// struct holding IPv4 info about the client
-				socklen_t clientAddressLen;	// containts the length of the client socket
 				while (true) {
+					sockaddr_in clientAddress;		// struct holding IPv4 info about the client
+					socklen_t clientAddressLen = sizeof(clientAddress);	// containts the length of the client socket
 					int clientFd = accept(m_fd, reinterpret_cast<sockaddr *>(&clientAddress), &clientAddressLen);
 					if (clientFd < 0) {
 						if (errno == EAGAIN || errno == EWOULDBLOCK)						// when there are no more clients to accept() it returns -1 with these errnos. they are not real errors so we break to keep checking for clients without failure
