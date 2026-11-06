@@ -41,7 +41,6 @@ class HttpResponse {
     void makeStatusLine();
     void updateStatus(int status) {setStatusCode(status); makeStatusLine();}
     void addHeader(std::string name, std::string value);
-
 };
 
 std::ostream &operator<<(std::ostream &out, const HttpResponse &response);

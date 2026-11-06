@@ -14,3 +14,16 @@ void Client::buildResponse() {
 
 	std::cout << getHttpResponse() << std::endl;
 }
+
+void Client::buildParserErrorResponse() {
+	Router router;
+	RequestContext ctx = router.createErrorContext(m_serverConfig);
+	RequestProcessor processor;
+	HttpResponse response = processor.buildErrorResponse(getParser().getErrorStatus(), ctx);
+
+	response.addHeader("Connection", "close");
+	setHttpResponse(response);
+	writerSetup(response);
+
+	std::cout << getHttpResponse() << std::endl;
+}

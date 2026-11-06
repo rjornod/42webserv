@@ -17,8 +17,7 @@ class HttpRequest {
     HttpVersion m_version; 
     std::unordered_map<std::string, std::string> m_headers;
     std::string m_body;
-    
-    
+    int m_bodySize;
 
   public: 
 
@@ -28,11 +27,13 @@ class HttpRequest {
     const HttpVersion& getVersion() const {return m_version;}
     std::string getBody() const {return m_body;}
     std::unordered_map<std::string, std::string> getHeaders() const {return m_headers;}
+    int getBodySize() {return m_bodySize;}
     void setMethod(HttpMethod method) {m_method = method;}
     void setURI(std::string_view rawPath) {m_rawPath = rawPath;}
     void setVersion(HttpVersion version) {m_version = version;}
     void setHeaders(std::unordered_map<std::string, std::string> headers) {m_headers = headers;}
     void setBody(std::string body) {m_body = body;}
+    void setBodySize(long size) {m_bodySize = size;}
     void clearBody() {m_body = "";}
 
 };

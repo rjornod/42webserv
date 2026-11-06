@@ -90,7 +90,7 @@ class Client : public IoEndpoint {
 
 		bool responseReady() const {return m_writer != nullptr;}
 
-		bool writerFinished() const {return m_writer->getState() == WriterState::DONE;}
+		bool writerFinished() const {return !m_writer || m_writer->getState() == WriterState::DONE;}
 
 		// bool writerError(const WriteResult& result) const {return result == WriteResult::ERROR;}
 
@@ -116,7 +116,8 @@ class Client : public IoEndpoint {
 
 		void receiveRequest() {
 			HttpParser&	parser = getParser();
-			if (parser.getParserState() == HttpParserState::COMPLETE) {
+			if (parser.getParserState() == HttpParserState::COMPLETE ||
+					parser.getParserState() == HttpParserState::ERROR) {
 				return; // ignore after the first request
 				// TODO: expand it for the CGI case
 			}
@@ -141,11 +142,15 @@ class Client : public IoEndpoint {
 				** The response should then be built on a new string (?) to then be sent to the client
 				* 
 			**/
-			if (parser.getParserState() == HttpParserState::COMPLETE) {
+			if (parser.getParserState() == HttpParserState::COMPLETE ||
+					parser.getParserState() == HttpParserState::ERROR) {
 				setClientState(ClientState::RequestFinished);
 
 				// this loop should only happen AFTER the full request has come in
-				buildResponse();																// check if build response gave an error
+				if (parser.getParserState() == HttpParserState::COMPLETE)
+					buildResponse();																// check if build response gave an error
+				else
+					buildParserErrorResponse();
 			}
 			std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  m_fd << RESET << "-------------------" << std::endl;
 			// std::cout << "-------------------" << MAGENTA << "connection through index: " << getServerConfigIndex() << " of the global config " << RESET << "-------------------" << std::endl;
@@ -167,6 +172,7 @@ class Client : public IoEndpoint {
 		}
 
 		void buildResponse();
+		void buildParserErrorResponse();
 
 		void sendResponse() {
 			if (!responseReady()){
