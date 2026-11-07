@@ -11,7 +11,7 @@
 int main(int argc, char **argv) {
 
   std::string request =
-    "DELETE /uploads/test.txt HTTP/1.1\r\n"
+    "POST /uploads/test.txt HTTP/1.1\r\n"
     "Host: example.com\r\n"
     "User-Agent: test\r\n"
     "Content-Length: 5\r\n"

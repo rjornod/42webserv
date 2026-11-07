@@ -14,7 +14,7 @@ enum class WriterState {
 };
 
 enum class WriteResult {
-  WOULD_BLOCK,
+  IN_PROGRESS,
   COMPLETE,
   ERROR
 };
@@ -57,7 +57,7 @@ class ResponseWriter {
 constexpr const char* to_string(WriteResult result)
 {
     switch (result) {
-        case WriteResult::WOULD_BLOCK:    return "WOULD_BLOCK";
+        case WriteResult::IN_PROGRESS:    return "IN_PROGRESS";
         case WriteResult::COMPLETE:   return "COMPLETE";
         case WriteResult::ERROR: return "ERROR";
     }

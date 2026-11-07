@@ -240,7 +240,7 @@ def delete_missing_file_is_404():
 @test
 def upload_exact_manual_request():
     raw = (
-        "POST /uploads/test.txt HTTP/1.1\r\n"
+        "POST /uploads/test1.txt HTTP/1.1\r\n"
         "Host: example.com\r\n"
         "User-Agent: test\r\n"
         "Content-Length: 5\r\n"
@@ -255,7 +255,7 @@ def upload_exact_manual_request():
 @test
 def post_upload_then_delete():
     raw = (
-        "POST /uploads/test.txt HTTP/1.1\r\n"
+        "POST /uploads/tes2.txt HTTP/1.1\r\n"
         "Host: example.com\r\n"
         "User-Agent: test\r\n"
         "Content-Length: 5\r\n"

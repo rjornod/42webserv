@@ -63,24 +63,34 @@ WriteResult ResponseWriter::writeTo(int socketFd) {
 }
 
 WriteResult ResponseWriter::writeBuffer(int socketFd, const char* data, size_t len, size_t& bytesSent) {
-  while (bytesSent < len) {
+  // while (bytesSent < len) {
 
-    //MSG_NOSIGNAL suppresses the SIGPIPE signal that is received if the other end has closed the signal,
-    // then it just returns a -1 and set errno to EPIPE, which we treat as any other error
-    ssize_t bytesWritten = send(socketFd, data + bytesSent, len - bytesSent, MSG_NOSIGNAL);
+  //   //MSG_NOSIGNAL suppresses the SIGPIPE signal that is received if the other end has closed the signal,
+  //   // then it just returns a -1 and set errno to EPIPE, which we treat as any other error
+  //   ssize_t bytesWritten = send(socketFd, data + bytesSent, len - bytesSent, MSG_NOSIGNAL);
 
-    if (bytesWritten > 0)
-      bytesSent += static_cast<size_t>(bytesWritten);
-    else if (bytesWritten == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) // Not sure if this is allowed (errno)
-      return WriteResult::WOULD_BLOCK;
-    else if (bytesWritten == -1 && errno == EINTR) {
-      continue; //Attempts to write again
-    }
-    else
-      return WriteResult::ERROR;
-  }
+  //   if (bytesWritten > 0)
+  //     bytesSent += static_cast<size_t>(bytesWritten);
+  //   else if (bytesWritten == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) // Not sure if this is allowed (errno)
+  //     return WriteResult::WOULD_BLOCK;
+  //   else if (bytesWritten == -1 && errno == EINTR) {
+  //     continue; //Attempts to write again
+  //   }
+  //   else
+  //     return WriteResult::ERROR;
+  // }
 
-  return WriteResult::COMPLETE;
+  // return WriteResult::COMPLETE;
+
+  if (bytesSent >= len)
+    return WriteResult::COMPLETE;
+
+  ssize_t n = send(socketFd, data + bytesSent, len - bytesSent, MSG_NOSIGNAL);
+  if (n > 0)
+    bytesSent += static_cast<size_t>(n);
+  //if n <= 0; the reason is unknown, try again on the next POLLOUT, handle outside
+
+  return bytesSent == len ? WriteResult::COMPLETE : WriteResult::IN_PROGRESS;
 
 }
 
