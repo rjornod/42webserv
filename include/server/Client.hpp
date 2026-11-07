@@ -2,6 +2,8 @@
 
 #include <iostream>
 #include "ClientState.hpp"
+#include "IoEndpoint.hpp"
+#include "ServerConfig.hpp"
 #define SEND 1
 #define RECEIVE 2
 #include "Colors.hpp"
@@ -14,9 +16,8 @@
 #define CLOSED 9
 
 
-class Client {
+class Client : public IoEndpoint {
 	private:
-		int 				m_clientFd;
 		std::string m_clientIp;
 		int					m_localPort;
 		std::string	m_receiveBuffer;
@@ -27,34 +28,30 @@ class Client {
 		ClientState	m_clientState;
 		time_t			m_lastActivity;							// stores the time since the client requested something
 		bool				m_shouldDisconnect;					// marks a client for disconnection
-		size_t			m_serverConfigIndex;
+		const ServerConfig &m_serverConfig;
 		HttpParser 	m_parser;
 		HttpResponse m_response;
 		std::unique_ptr<ResponseWriter> m_writer; //A pointer that will be null until the response is ready
 
 	public:
-		Client(int clientFd, const std::string& clientIp, int localPort, size_t ServerConfigIndex) {
-			m_clientFd = clientFd;
+		Client(int clientFd, const std::string& clientIp, int localPort, const ServerConfig &serverConfig) : IoEndpoint(clientFd), m_serverConfig(serverConfig) {
 			m_clientIp = clientIp;
 			m_localPort = localPort;
-			m_serverConfigIndex = ServerConfigIndex;
 			m_keepAlive = true;
 			m_clientState = ClientState::ReadingRequest;
 			m_bytesSent = 0;
 			m_lastActivity = time(nullptr);
 			m_shouldDisconnect = false;
-			std::cout << "Client Object created\nClientFd: " << m_clientFd 
+			std::cout << "Client Object created\nClientFd: " << m_fd 
 								<< "\nClient Ip: " << m_clientIp << std::endl;
 
 		}
-		~Client(){std::cout << "Client Object with fd [" << m_clientFd << "] destroyed" 
+		~Client(){std::cout << "Client Object with fd [" << m_fd << "] destroyed" 
 												<< std::endl;
 		}
 		/* getters and setters */
-		// std::unique_ptr<ResponseWriter> getWriter()											const {return m_writer;}		
 		HttpParser&					getParser()																				{return m_parser;}
 		HttpResponse&				getHttpResponse()																	{return m_response;}
-		int									getClientFd() 																		{return m_clientFd;}
 		const std::string& 	getClientIp() 																		{return m_clientIp;}
 		int 								getLocalPort()																		{return m_localPort;}
 		std::string& 				getClientReceiveBuffer() 													{return m_receiveBuffer;}
@@ -64,9 +61,7 @@ class Client {
 		size_t							getBytesLeftToSend()															{return m_bytesLeftToSend;}
 		ClientState					getClientState() 																	{return m_clientState;}
 		time_t							getLastActivity()																	{return m_lastActivity;}
-		size_t							getServerConfigIndex()														{return m_serverConfigIndex;}
 		bool								getShouldDisconnect()															{return m_shouldDisconnect;}
-		void								setClientFd(int clientFd) 												{m_clientFd = clientFd;} 
 		void								setClientIp(std::string clientIp) 								{m_clientIp = clientIp;}
 		void								setLocalPort(int localPort)												{m_localPort = localPort;}
 		void								setClientReceiveBuffer(std::string clientBuffer)	{m_receiveBuffer = clientBuffer;}
@@ -99,15 +94,14 @@ class Client {
 
 		// bool writerError(const WriteResult& result) const {return result == WriteResult::ERROR;}
 
-		void writeToSocket() {m_writer->writeTo(m_clientFd);}
-
+		void writeToSocket() {m_writer->writeTo(m_fd);}
 
 		void resetWriter() {m_writer = nullptr;}
 
 		void clearParser() {m_parser.clearParser();}
 
 		std::string printState() {
-			std::cout << "Client fd: " << m_clientFd << " - ";
+			std::cout << "Client fd: " << m_fd << " - ";
 			if (m_clientState == ClientState::ReadingRequest)
 				return "ReadingRequest";
 			else if (m_clientState == ClientState::RequestFinished)
@@ -119,4 +113,99 @@ class Client {
 			else
 				return "error";
 		};
+
+		void receiveRequest() {
+			HttpParser&	parser = getParser();
+			if (parser.getParserState() == HttpParserState::COMPLETE ||
+					parser.getParserState() == HttpParserState::ERROR) {
+				return; // ignore after the first request
+				// TODO: expand it for the CGI case
+			}
+			ssize_t	bytes;
+			char		buffer[4096];
+			// TO DO: check for errors in recv (-1 and 0) and remove client on error
+
+			bytes = recv(m_fd, buffer, sizeof(buffer), 0);
+			if (bytes > 0) {
+				parser.parse(buffer);
+					
+				setLastActivity();
+				setClientState(ClientState::ReadingRequest);
+			}
+
+			/**
+				** The buffer should keep being appended to until the request is complete.
+				** I guess the HTTP parsing would go in here.
+				** Once the requested is confirmed to be complete, it should mark the socket for POLLOUT
+				* which means we are telling the kernel that we want to be notified as soon as the socket
+				* is ready to receive data
+				** The response should then be built on a new string (?) to then be sent to the client
+				* 
+			**/
+			if (parser.getParserState() == HttpParserState::COMPLETE ||
+					parser.getParserState() == HttpParserState::ERROR) {
+				setClientState(ClientState::RequestFinished);
+
+				// this loop should only happen AFTER the full request has come in
+				if (parser.getParserState() == HttpParserState::COMPLETE)
+					buildResponse();																// check if build response gave an error
+				else
+					buildParserErrorResponse();
+			}
+			std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  m_fd << RESET << "-------------------" << std::endl;
+			// std::cout << "-------------------" << MAGENTA << "connection through index: " << getServerConfigIndex() << " of the global config " << RESET << "-------------------" << std::endl;
+			std::cout << getParser().getRequest() << std::endl;
+			std::cout << getClientReceiveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;	
+					
+					
+			if (bytes == 0) {
+				time_t timestamp;
+				time(&timestamp);
+				std::cout << getClientIp() << RED << " disconnected at:\n" << RESET << ctime(&timestamp) <<  std::endl;
+				setShouldDisconnect(true);
+			}
+
+			if (bytes < 0) {
+				// if -1 is returned just disconnect the client
+				setShouldDisconnect(true);
+			}
+		}
+
+		void buildResponse();
+		void buildParserErrorResponse();
+
+		void sendResponse() {
+			if (!responseReady()){
+				return;
+			}
+			writeToSocket();
+			if (writerFinished()) {
+				clearParser();
+				// client.setShouldDisconnect(true);// TODO KEEP-ALIVE/ keep connection?!
+			}
+
+		}
+
+		EndpointResult processEvent(IoEvent ev) noexcept override {
+			try {
+				if (ev.isError) {
+					return EndpointResult::ERROR;
+				}
+				if (ev.isRead) {
+					receiveRequest();
+				}
+				if (ev.isWrite) {
+					sendResponse();
+				}
+				if (getShouldDisconnect()) {
+					return EndpointResult::ERROR;
+				}
+			} catch (std::exception &ex) {
+				return EndpointResult::ERROR;
+			}
+			if (m_spawned.empty()) {
+				return EndpointResult::EMPTY;
+			}
+			return EndpointResult::SPAWNED;
+		}
 };
