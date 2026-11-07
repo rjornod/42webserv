@@ -9,10 +9,13 @@ void Client::buildResponse() {
 	RequestProcessor processor;
 	HttpResponse response = processor.process(ctx);
 
-	setHttpResponse(response);
-	writerSetup(response);
+	std::cout << response << std::endl;
 
-	std::cout << getHttpResponse() << std::endl;
+	if (response.isCgi()) {
+		// TODO connect to Cgi Runner
+	} else {
+		writerSetup(std::move(response));
+	}
 }
 
 void Client::buildParserErrorResponse() {
@@ -22,8 +25,7 @@ void Client::buildParserErrorResponse() {
 	HttpResponse response = processor.buildErrorResponse(getParser().getErrorStatus(), ctx);
 
 	response.addHeader("Connection", "close");
-	setHttpResponse(response);
-	writerSetup(response);
 
-	std::cout << getHttpResponse() << std::endl;
+	std::cout << response << std::endl;
+	writerSetup(std::move(response));
 }

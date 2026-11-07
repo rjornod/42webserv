@@ -1,6 +1,8 @@
 #include "LocationConfig.hpp"
 #include "ConfigParseException.hpp"
 
+#include "Colors.hpp"
+
 void LocationConfig::setDefaultValues() {
 	m_root = "";
 	m_autoIndex = -1;

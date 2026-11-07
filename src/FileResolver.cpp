@@ -358,7 +358,7 @@ Result<Resolution, FileResolutionError> FileResolver::resolveForWrite(const Requ
 
   if (ec)
     return Result<Resolution, FileResolutionError>::Err(FileResolutionError::NOT_FOUND);
-  bool exists = !ec && st.type() != std::filesystem::file_type::not_found; //Not necessary to do && (we already know !ec)
+  bool exists = st.type() != std::filesystem::file_type::not_found;
   if (exists) {
     if (std::filesystem::is_symlink(st)) {
       std::cerr << "is_symlink" << std::endl;
