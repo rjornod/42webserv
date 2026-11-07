@@ -377,45 +377,84 @@ std::string generateName() {
   return "upload_" + std::to_string(std::time(nullptr)) + "_" + std::to_string(counter++);
 }
 
+static bool isValidFileName(const std::string& n) {
+  if (n.empty() || n == "." || n == ".." || n.size() > 255) return false;
+  for (unsigned char c : n)
+    if (c == '/' || c == '\\' || c < 0x20 || c == 0x7F) return false;
+  return true;
+}
 
 Result<Resolution, FileResolutionError> FileResolver::ResolveTargetUpload(const RequestContext& ctx) {
 
-  // // Same as the original resolve; decode and build the segments
-  // HttpRequest request = ctx.getHttpRequest();
-  // std::string_view raw = request.getURI();
+  // Decode and normalize URI
+  HttpRequest request = ctx.getHttpRequest();
+  std::string_view raw = request.getURI();
 
-  // auto decodedUri = percentDecode(raw);
+  auto decodedUri = percentDecode(raw);
 
-  // if (!decodedUri)
-  //   return Result<Resolution, FileResolutionError>::Err(
-  //         FileResolutionError::BAD_REQUEST);
+  if (!decodedUri)
+    return Result<Resolution, FileResolutionError>::Err(
+          FileResolutionError::BAD_REQUEST);
 
-  // auto segments = normalizeSegments(decodedUri.value());
+  auto segments = normalizeSegments(decodedUri.value());
 
-  // if (!segments) {
-  //   std::cout << "Invalid URI segments: " << to_string(segments.error()) << std::endl;
-  //   return Result<Resolution, FileResolutionError>::Err(
-  //     FileResolutionError::FORBIDDEN);
-  // }
-  
-  // ----- NEW ---- always generate a name
-  std::filesystem::path parent;
-  if (ctx.getLocationConfig())
-    parent = ctx.getLocationConfig()->getUploadStore();
-  else
-    parent = ctx.getServerConfig()->getUploadStore();
+  if (!segments) {
+    std::cout << "Invalid URI segments: " << to_string(segments.error()) << std::endl;
+    return Result<Resolution, FileResolutionError>::Err(
+      FileResolutionError::FORBIDDEN);
+  }
+
+  //Store directory -- trusting the config, an error here is the server('s config) fault
+  std::filesystem::path parent = ctx.getLocationConfig() ?
+    ctx.getLocationConfig()->getUploadStore() :
+    ctx.getServerConfig()->getUploadStore();
+
   std::error_code ec;
   std::filesystem::path store = std::filesystem::canonical(parent, ec);
-  if (ec || !std::filesystem::is_directory(parent, ec))
-    return Result<Resolution, FileResolutionError>::Err(FileResolutionError::SERVER_ERROR);  // config problem → 500
-
-  // Check if generated name collides, and retry if so
-  for (int attempt = 0; attempt < 5; ++attempt) {
-    std::filesystem::path target = store / generateName();
-    if (!std::filesystem::exists(std::filesystem::symlink_status(target, ec)))
-      return Result<Resolution, FileResolutionError>::Ok(Resolution{Resolution::FILE, target});
+  if (ec || !std::filesystem::is_directory(parent, ec)){
+    std::cerr << "Error canonicalizing the parent " << parent << std::endl;
+    return Result<Resolution, FileResolutionError>::Err(FileResolutionError::SERVER_ERROR);
   }
-  return Result<Resolution, FileResolutionError>::Err(FileResolutionError::SERVER_ERROR);
+
+  // Extract URI's remainder after the location prefix
+  std::string locationPath = ctx.getLocationConfig() ? ctx.getLocationConfig()->getPath() : "/";
+  auto locationSegments = normalizeSegments(locationPath);
+  size_t prefixCount = locationSegments ? locationSegments.value().size() : 0;
+
+  bool trailingSlash = !decodedUri.value().empty() && decodedUri.value().back() == '/';
+  size_t remainder = segments.value().size() > prefixCount ? segments.value().size() - prefixCount : 0;
+
+  //If no file name in the URI, generate one
+  if (trailingSlash || remainder == 0) {
+    // Check if generated name collides, and retry if so
+    for (int attempt = 0; attempt < 5; ++attempt) {
+      std::filesystem::path target = store / generateName();
+      if (!std::filesystem::exists(std::filesystem::symlink_status(target, ec)))
+        return Result<Resolution, FileResolutionError>::Ok(Resolution{Resolution::FILE, target});
+    }
+    return Result<Resolution, FileResolutionError>::Err(FileResolutionError::SERVER_ERROR);
+  }
+
+  // If nested path (e.g. /upload/x/y/a.txt), reject to keep the store flat
+  if (remainder > 1){
+    std::cerr << "Nested path for upload" << std::endl;
+    return Result<Resolution, FileResolutionError>::Err(FileResolutionError::BAD_REQUEST);
+  }
+
+  // Exactly one name chosen by the client
+  std::string fileName(segments.value().back());
+  std::cout << "Target file name : " << fileName << std::endl;
+
+  std::string filename(segments.value().back());
+  if (!isValidFileName(fileName))
+    return Result<Resolution, FileResolutionError>::Err(FileResolutionError::BAD_REQUEST);
+
+  std::filesystem::path target = store / fileName;
+  auto st = std::filesystem::symlink_status(target, ec);
+  if (!ec && st.type() != std::filesystem::file_type::not_found)
+    return Result<Resolution, FileResolutionError>::Err(FileResolutionError::NOT_FOUND);   // exists (file, dir or symlink): never overwrite or follow
+
+  return Result<Resolution, FileResolutionError>::Ok(Resolution{Resolution::FILE, target});
 
   
   //----- OLD------

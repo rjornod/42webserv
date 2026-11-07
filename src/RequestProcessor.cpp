@@ -72,7 +72,7 @@ HttpResponse RequestProcessor::handlePost(RequestContext& ctx) {
 
   const HttpRequest& req = ctx.getHttpRequest();
 
-  if (!postHeadersPresent(req))
+  if (!postHeadersPresent(req)) // TO DO do we really need to require Content-Type header?
     return buildErrorResponse(411, ctx);
   if (!checkContentLength(ctx))
     return buildErrorResponse(413, ctx);
@@ -133,6 +133,7 @@ HttpResponse RequestProcessor::handleRawUpload(RequestContext& ctx) {
   if (!target)
     return buildErrorResponse(statusFromError(target.error()), ctx);
   
+  std::cout << "Target: " << target.value().path << std::endl;
   // // If the file exists we refuse to overwrite (POLICY)
   // Not checking anymore because we always generate a name; and we generate
   // until the file name doesn't exist

@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
 	// }
 
   Router router;
-  RequestContext ctx = router.createContext(parser.getRequest(), globalConfig, 0);
+  RequestContext ctx = router.createContext(parser.getRequest(), globalConfig.getServerConfigs()[0]);
 
   if (ctx.getLocationConfig()) {
     std::cout << "Request context is: " << std::endl;
