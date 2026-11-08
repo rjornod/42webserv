@@ -31,6 +31,9 @@ class Client : public IoEndpoint {
 		const ServerConfig &m_serverConfig;
 		HttpParser 	m_parser;
 		std::unique_ptr<ResponseWriter> m_writer; //A pointer that will be null until the response is ready
+		std::shared_ptr<CgiRunner> m_cgiRunner;
+
+		void startCgi(std::unique_ptr<CgiRunner> cgiRunner);
 
 	public:
 		Client(int clientFd, const std::string& clientIp, int localPort, const ServerConfig &serverConfig) : IoEndpoint(clientFd), m_serverConfig(serverConfig) {
@@ -170,6 +173,10 @@ class Client : public IoEndpoint {
 		void buildParserErrorResponse();
 
 		void sendResponse() {
+			if (m_cgiRunner && m_cgiRunner->isDone()) {
+				writerSetup(m_cgiRunner->getResponse());
+				m_cgiRunner.reset();
+			}
 			if (!responseReady()){
 				return;
 			}

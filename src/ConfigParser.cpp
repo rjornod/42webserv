@@ -666,7 +666,7 @@ void ConfigParser::checkCgiExtension(std::string extension) {
 	i++;
 	// this would then check if the extension matches our handled ones. if theres a lot I could make a dictionary to check them all
 	// for now only accepts php as a placeholder
-	if (extension.substr(i) != "php")							
+	if (extension.substr(i) != "php" && extension.substr(i) != "py")							
 		throw ConfigParseException("Extension of cgi_handler not recognized");
 }
 

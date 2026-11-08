@@ -54,7 +54,7 @@ HttpResponse RequestProcessor::handleGet(RequestContext &ctx) {
     return buildAutoIndexResponse(ctx);
   if (ctx.getLocationConfig()->getCgiHandler().contains(res.path.extension())) {
     return HttpResponse(std::make_unique<CgiRunner>(
-        ctx.getLocationConfig()->getCgiHandler().at(res.path.extension())));
+        ctx.getLocationConfig()->getCgiHandler().at(res.path.extension()), ctx));
   }
   return staticHandler(ctx);
 }
@@ -78,7 +78,7 @@ HttpResponse RequestProcessor::handleDelete(RequestContext &ctx) {
   ctx.setFilePath(res.path);
   if (ctx.getLocationConfig()->getCgiHandler().contains(res.path.extension())) {
     return HttpResponse(std::make_unique<CgiRunner>(
-        ctx.getLocationConfig()->getCgiHandler().at(res.path.extension())));
+        ctx.getLocationConfig()->getCgiHandler().at(res.path.extension()), ctx));
   }
   return deleteHandler(ctx);
 }
