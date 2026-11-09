@@ -34,7 +34,7 @@ class ServerConfig {
 		void	setUploadStore(const std::string& path)													{ m_upload_store = path; }
 		void	setAutoIndex(int isOn)																					{ m_autoIndex = isOn; }
 		void	setAllowedMethod(const std::string& method)											{ m_allowedMethods.emplace_back(method); }
-		void	setCgiHandler(const std::string& ext, const std::string& path)	{ m_cgiHandlers.try_emplace(ext, path); }
+		bool 	setCgiHandler(const std::string& ext, const std::string& path)	{ return m_cgiHandlers.emplace(ext, path).second; }
 		void	createLocationConfig()																					{ m_locationConfigs.emplace_back();}
 		void 	clearDefaultMethods()																						{ m_allowedMethods.clear(); }
 		void 	setDefaultValues();
@@ -58,4 +58,6 @@ class ServerConfig {
 		const std::unordered_map<std::string, std::string>& getCgiHandler() const 	{ return m_cgiHandlers; }
 		const std::vector<LocationConfig>&	getLocationConfigs() const 							{ return m_locationConfigs; }
 		std::vector<LocationConfig>&				getLocationConfigs() 										{ return m_locationConfigs; }
+		bool 																isCgi(const std::string &ext);
+		std::string 												getCgiBin(const std::string &ext);
 	};

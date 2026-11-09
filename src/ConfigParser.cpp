@@ -555,10 +555,14 @@ void ConfigParser::handleCGI(int scope) {
 			)
 		throw ConfigParseException("cgi_handler directive is malformed");
 	checkCgiExtension(currentToken().value);
-	if (scope == GLOBAL)
-		currentServer().setCgiHandler(currentToken().value, currentTokenPlus(1).value);
-	else if (scope == LOCAL)
-		currentLocation().setCgiHandler(currentToken().value, currentTokenPlus(1).value);
+	if (scope == GLOBAL) {
+		if (!currentServer().setCgiHandler(currentToken().value, currentTokenPlus(1).value))
+			throw ConfigParseException("Duplicate CGI handler for extension " + currentToken().value + " on server port:" + std::to_string(currentServer().getPort()));
+	}
+	else if (scope == LOCAL) {
+		if (!currentLocation().setCgiHandler(currentToken().value, currentTokenPlus(1).value))
+			throw ConfigParseException("Duplicate CGI handler for extension " + currentToken().value + " at location " + currentLocation().getPath());
+	}
 	incTokenIndex(1);
 	checkEndOfDirective("cgi_handler");
 }
@@ -659,14 +663,13 @@ void ConfigParser::handleDirective() {
  */
 void ConfigParser::checkCgiExtension(std::string extension) {
 	unsigned long i = 0;
-	if (extension.size() < 2 || extension.size() > 4)
-		throw ConfigParseException("Extension argument of cgi_handler is not a proper extension");
-	if (i < extension.size() && extension[i] != '.')
+	if (extension.size() < 2 || extension[i] != '.')
 		throw ConfigParseException("Extension argument of cgi_handler must start with a dot '.'");
 	i++;
 	// this would then check if the extension matches our handled ones. if theres a lot I could make a dictionary to check them all
 	// for now only accepts php as a placeholder
-	if (extension.substr(i) != "php")							
+	const std::string extensionName = extension.substr(i);
+	if (cgiExtensions.find(extensionName) == cgiExtensions.end())							
 		throw ConfigParseException("Extension of cgi_handler not recognized");
 }
 

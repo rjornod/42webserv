@@ -28,7 +28,7 @@ class LocationConfig {
 		void	setErrorPages(int error, const std::string& path)								{ m_errorPages.emplace(error, path); }
 		void	setUploadStore(const std::string& path)													{ m_upload_store = path; }
 		void	setAllowedMethod(const std::string& method)											{ m_allowedMethods.emplace_back(method); }
-		void 	setCgiHandler(const std::string& ext, const std::string& path)	{ m_cgiHandlers.try_emplace(ext, path); }
+		bool 	setCgiHandler(const std::string& ext, const std::string& path)	{ return m_cgiHandlers.emplace(ext, path).second; }
 		void	setReturn(int code, const std::string& path)										{ m_return.first = code; m_return.second = path; }
 		void	setPath(const std::string& path)																{ m_path = path; }
 		void 	clearDefaultMethods()																						{ m_allowedMethods.clear(); }
@@ -44,7 +44,7 @@ class LocationConfig {
 		const std::pair<int, std::string>& 	getReturn() const											{ return m_return; }
 		const	std::unordered_map<std::string, std::string>& getCgiHandler() const	{ return m_cgiHandlers; }
 		
-			const std::string& 								getPath()												{ return m_path; }
+		const std::string& 									getPath()												{ return m_path; }
 		int 																getAutoIndex() 									{ return m_autoIndex; } 
 		const std::string& 									getRoot() 											{ return m_root; }
 		int 																getMaxBodySize()								{ return m_maxBodySize; }
@@ -54,6 +54,8 @@ class LocationConfig {
 		const std::string& 									getUploadStore() 								{ return m_upload_store; }
 		const std::pair<int, std::string>& 	getReturn()											{ return m_return; }
 		const	std::unordered_map<std::string, std::string>& getCgiHandler()	{ return m_cgiHandlers; }
-		void	printValues() const;
+		bool 																isCgi(const std::string &ext);
+		std::string 												getCgiBin(const std::string &ext);
+		void																printValues() const;
 
 };
