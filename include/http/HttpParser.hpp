@@ -10,6 +10,15 @@
 #include "IHttpParser.hpp"
 #include "HttpParserState.hpp"
 #include "HttpVersion.hpp"
+#include "ChunkState.hpp"
+
+enum class EncodingType {
+  CONTENT_LENGTH,
+  TRANSFER_ENCODING,
+  BAD_TRANSFER_ENCODING,
+  NONE,
+  BOTH
+};
 
 class HttpParser : public IHttpParser {
 
@@ -45,6 +54,7 @@ class HttpParser : public IHttpParser {
     bool parseHeaders();
     bool parseBody();
     void determineBodyLength();
+    EncodingType determineBodyEncoding();
     void reportErrors();
     void fail(int status);
 
@@ -57,3 +67,15 @@ class HttpParser : public IHttpParser {
     //DEBUG
     void printHeaders();
 };
+
+constexpr const char* to_string(EncodingType type)
+{
+    switch (type) {
+        case EncodingType::CONTENT_LENGTH:    return "CONTENT_LENGTH";
+        case EncodingType::TRANSFER_ENCODING:    return "TRANSFER_ENCODING";
+        case EncodingType::BAD_TRANSFER_ENCODING:    return "BAD_TRANSFER_ENCODING";
+        case EncodingType::BOTH:    return "BOTH_ENCODINGS";
+        case EncodingType::NONE:    return "NO_ENCODING_SPECIFIED";
+    }
+    return "ERROR";
+}

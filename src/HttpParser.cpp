@@ -18,6 +18,7 @@ void HttpParser::fail(int status) {
 void HttpParser::parse(std::string_view chunk) {
 
   m_buffer += chunk;
+  EncodingType encType;
 
   switch (getParserState()) {
     case HttpParserState::REQUEST_LINE:
@@ -33,18 +34,25 @@ void HttpParser::parse(std::string_view chunk) {
         reportErrors();
         return;
       }
-      determineBodyLength();
-      if (m_expectedBodyLen == 0) {
-        m_request.setBody("");
-        m_request.setBodySize(m_expectedBodyLen);
-        m_state = HttpParserState::COMPLETE;
+      
+      encType = determineBodyEncoding();
+      if (encType == EncodingType::BOTH || encType == EncodingType::BAD_TRANSFER_ENCODING)
         return;
+      if (encType == EncodingType::CONTENT_LENGTH) {
+        determineBodyLength();
+        if (m_expectedBodyLen == 0) {
+          m_request.setBody("");
+          m_request.setBodySize(m_expectedBodyLen);
+          m_state = HttpParserState::COMPLETE;
+          return;
+        }
+        if (m_expectedBodyLen < 0) {
+          reportErrors();
+          return;
+        }
+        m_state = HttpParserState::BODY;
       }
-      if (m_expectedBodyLen < 0) {
-        reportErrors();
-        return;
-      }
-      m_state = HttpParserState::BODY;
+
       [[fallthrough]];
     
     case HttpParserState::BODY:
@@ -215,6 +223,33 @@ void HttpParser::determineBodyLength() {
     return;
   }
   
+}
+
+EncodingType HttpParser::determineBodyEncoding() {
+  auto itContentLen = m_headers.find("content-length");
+  auto itTransfEnc = m_headers.find("transfer-encoding");
+
+  // Both are present
+  if (itContentLen != m_headers.end() && itTransfEnc != m_headers.end()) {
+    std::cerr << "Request specifies Content-Length and Transfer-Encoding" << std::endl;
+    fail(400);
+    return EncodingType::BOTH;
+  }
+
+  // Transfer encoding other than chunked
+  if (itTransfEnc != m_headers.end()){
+    if (itTransfEnc->second != "chunked") {
+      std::cerr << "Unknown Transfer-Encoding" << std::endl;
+      fail(501);
+      return EncodingType::BAD_TRANSFER_ENCODING;
+    }
+    return EncodingType::TRANSFER_ENCODING;
+  }
+
+  if (itContentLen != m_headers.end()) 
+    return EncodingType::CONTENT_LENGTH;
+  
+  return EncodingType::NONE;
 }
 
 bool HttpParser::parseBody() {

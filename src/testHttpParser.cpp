@@ -40,7 +40,6 @@ int main(int argc, char **argv) {
     exit(0);
   }
   
-
   GlobalConfig globalConfig;
   ConfigParser config(argv[1], globalConfig);
 	if (!config.processConfig()) {
@@ -54,19 +53,27 @@ int main(int argc, char **argv) {
 	// }
 
   Router router;
-  RequestContext ctx = router.createContext(parser.getRequest(), globalConfig.getServerConfigs()[0]);
-
-  if (ctx.getLocationConfig()) {
-    std::cout << "Request context is: " << std::endl;
-    ctx.getLocationConfig()->printValues();
-  }
-  else {
-    std::cout << "Request context is global: " << std::endl;
-    ctx.getServerConfig()->printValues();
-  }
-
+  HttpResponse response;
   RequestProcessor processor;
-  HttpResponse response = processor.process(ctx);
+
+  if (parser.getParserState() == HttpParserState::ERROR) {
+    RequestContext ctx = router.createErrorContext(globalConfig.getServerConfigs()[0]);
+    response = processor.buildErrorResponse(parser.getErrorStatus(), ctx); 
+  }
+
+  else {
+    RequestContext ctx = router.createContext(parser.getRequest(), globalConfig.getServerConfigs()[0]);
+
+    if (ctx.getLocationConfig()) {
+      std::cout << "Request context is: " << std::endl;
+      ctx.getLocationConfig()->printValues();
+    }
+    else {
+      std::cout << "Request context is global: " << std::endl;
+      ctx.getServerConfig()->printValues();
+    }
+    response = processor.process(ctx);
+  }
 
   ResponseWriter writer = ResponseWriter(response);
   int sv[2];
