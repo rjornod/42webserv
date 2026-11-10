@@ -5,7 +5,8 @@ enum class ChunkState {
   DATA,
   DATA_CRLF,
   TRAILERS,
-  DONE
+  DONE,
+  ERROR
 };
 
 constexpr const char* to_string(ChunkState state)
@@ -16,6 +17,7 @@ constexpr const char* to_string(ChunkState state)
         case ChunkState::DATA_CRLF:   return "DATA_CRLF";
         case ChunkState::TRAILERS:    return "TRAILERS";
         case ChunkState::DONE:    return "DONE";
+        case ChunkState::ERROR:    return "ERROR";
     }
     return "ERROR";
 }

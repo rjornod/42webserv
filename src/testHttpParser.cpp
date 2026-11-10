@@ -11,13 +11,17 @@
 int main(int argc, char **argv) {
 
   std::string request =
-    "POST /uploads/test.txt HTTP/1.1\r\n"
+    "POST /hi.txt HTTP/1.1\r\n"
     "Host: example.com\r\n"
     "User-Agent: test\r\n"
-    "Content-Length: 5\r\n"
+    // "Content-Length: 5\r\n"
+    "Transfer-Encoding: chunked\r\n"
     "Content-Type: text/plain\r\n"
     "\r\n"
-    "hello";
+    "5\r\n"
+    "hello\r\n"
+    "0\r\n"
+    "\r\n";
 
   if (argc != 2) {
     std::cout << "Usage ./webserv <path/to/configfile>" << std::endl;

@@ -56,3 +56,9 @@ jobs:
 
       - name: Run Google Tests on Router
         run: ./router_gtests --gtest_color=yes
+
+      - name: Build Google Tests on Chunk Decoder
+        run: make tests_chunk_decoder
+
+      - name: Run Google Tests on Chunk Decoder
+        run: ./chunk_decoder_gtests --gtest_color=yes

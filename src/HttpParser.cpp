@@ -1,6 +1,7 @@
 #include "HttpParser.hpp"
 #include "HttpMethod.hpp"
 #include "Colors.hpp"
+#include "ChunkDecoder.hpp"
 
 void HttpParser::reportErrors() {
   if (m_state == HttpParserState::ERROR)
@@ -38,7 +39,8 @@ void HttpParser::parse(std::string_view chunk) {
       encType = determineBodyEncoding();
       if (encType == EncodingType::BOTH || encType == EncodingType::BAD_TRANSFER_ENCODING)
         return;
-      if (encType == EncodingType::CONTENT_LENGTH) {
+      //TO DO: Is it correct to put EncodingType::None here?
+      if (encType == EncodingType::CONTENT_LENGTH || encType == EncodingType::NONE) {
         determineBodyLength();
         if (m_expectedBodyLen == 0) {
           m_request.setBody("");
@@ -51,6 +53,15 @@ void HttpParser::parse(std::string_view chunk) {
           return;
         }
         m_state = HttpParserState::BODY;
+      }
+      if (encType == EncodingType::TRANSFER_ENCODING) {
+        //TO DO: See what to give ad maxBodysize (instead of int max)
+        m_chunkDecoder.reset(INT32_MAX);
+        m_state = HttpParserState::CHUNKED_BODY;
+        if (!parseChunkedBody()) {
+          reportErrors();
+          return;
+        }
       }
 
       [[fallthrough]];
@@ -250,6 +261,24 @@ EncodingType HttpParser::determineBodyEncoding() {
     return EncodingType::CONTENT_LENGTH;
   
   return EncodingType::NONE;
+}
+
+bool HttpParser::parseChunkedBody() {
+  switch (m_chunkDecoder.feed(m_buffer)) {
+    case ChunkDecoder::Status::NEED_MORE:
+      return false;
+    case ChunkDecoder::Status::ERROR:
+      fail(m_chunkDecoder.getErrorStatus());
+      return false;
+    case ChunkDecoder::Status::DONE: {
+      std::string body = m_chunkDecoder.takeBody();
+      m_request.setBodySize(body.size());
+      m_request.setBody(std::move(body));
+      m_state = HttpParserState::COMPLETE;
+      return true;
+    }
+  }
+  return false;
 }
 
 bool HttpParser::parseBody() {

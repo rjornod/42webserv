@@ -10,7 +10,7 @@
 #include "IHttpParser.hpp"
 #include "HttpParserState.hpp"
 #include "HttpVersion.hpp"
-#include "ChunkState.hpp"
+#include "ChunkDecoder.hpp"
 
 enum class EncodingType {
   CONTENT_LENGTH,
@@ -32,6 +32,7 @@ class HttpParser : public IHttpParser {
     HttpRequest m_request;
     std::string m_errorMessage;
     int m_errorStatus;
+    ChunkDecoder m_chunkDecoder;
 
   public:
 
@@ -53,6 +54,7 @@ class HttpParser : public IHttpParser {
     bool parseRequestLine();
     bool parseHeaders();
     bool parseBody();
+    bool parseChunkedBody();
     void determineBodyLength();
     EncodingType determineBodyEncoding();
     void reportErrors();
