@@ -56,7 +56,7 @@ void HttpParser::parse(std::string_view chunk) {
       }
       if (encType == EncodingType::TRANSFER_ENCODING) {
         //TO DO: See what to give ad maxBodysize (instead of int max)
-        m_chunkDecoder.reset(INT32_MAX);
+        m_chunkDecoder.reset(2147483647);
         m_state = HttpParserState::CHUNKED_BODY;
         if (!parseChunkedBody()) {
           reportErrors();
