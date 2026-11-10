@@ -61,4 +61,4 @@ jobs:
         run: make tests_chunk_decoder
 
       - name: Run Google Tests on Chunk Decoder
-        run: ./chunk_decoder_gtests --gtest_color=yes
+        run: ./chunkDecoder_gtests --gtest_color=yes
