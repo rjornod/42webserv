@@ -12,7 +12,9 @@ void Client::buildResponse() {
 	setHttpResponse(response);
 	writerSetup(response);
 
+	std::cout << YELLOW << "-------------------"  << " RESPONSE "   << "-------------------" << RESET << std::endl;
 	std::cout << getHttpResponse() << std::endl;
+	std::cout << YELLOW << "------------------"<< " END OF RESPONSE " << "--------------------" << RESET << std::endl;
 }
 
 void Client::buildParserErrorResponse() {
@@ -25,5 +27,8 @@ void Client::buildParserErrorResponse() {
 	setHttpResponse(response);
 	writerSetup(response);
 
+	std::cout << YELLOW << "-------------------"  << " RESPONSE "   << "-------------------" << RESET << std::endl;
 	std::cout << getHttpResponse() << std::endl;
+	std::cout << YELLOW << "------------------"<< " END OF RESPONSE " << "--------------------" << RESET << std::endl;
+
 }

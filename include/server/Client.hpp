@@ -147,17 +147,21 @@ class Client : public IoEndpoint {
 					parser.getParserState() == HttpParserState::ERROR) {
 				setClientState(ClientState::RequestFinished);
 
+				std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  m_fd << RESET << "-------------------" << std::endl;
+				// std::cout << "-------------------" << MAGENTA << "connection through index: " << getServerConfigIndex() << " of the global config " << RESET << "-------------------" << std::endl;
+				std::cout << getParser().getRequest() << std::endl;
+				std::cout << getClientReceiveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;	
+					
+
 				// this loop should only happen AFTER the full request has come in
-				if (parser.getParserState() == HttpParserState::COMPLETE)
-					buildResponse();																// check if build response gave an error
+				if (parser.getParserState() == HttpParserState::COMPLETE) {
+					buildResponse();					// check if build response gave an error
+					
+				}															
 				else 
 					buildParserErrorResponse();
 			}
-			std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  m_fd << RESET << "-------------------" << std::endl;
-			// std::cout << "-------------------" << MAGENTA << "connection through index: " << getServerConfigIndex() << " of the global config " << RESET << "-------------------" << std::endl;
-			std::cout << getParser().getRequest() << std::endl;
-			std::cout << getClientReceiveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;	
-					
+			
 					
 			if (bytes == 0) {
 				time_t timestamp;
