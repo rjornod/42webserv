@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
     "User-Agent: test\r\n"
     // "Content-Length: 5\r\n"
     "Transfer-Encoding: chunked\r\n"
-    "Content-Type: text/plain\r\n"
+    "Content-Type: text/html; charset=utf-8\r\n"
     "\r\n"
     "5\r\n"
     "hello\r\n"
@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
 
   HttpParser parser;
 
-  parser.parse(request);
+  parser.parse(request, 10000000);
 
   std::cout << "Parser state : " << to_string(parser.getParserState()) << std::endl;
 

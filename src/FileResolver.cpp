@@ -453,7 +453,7 @@ Result<Resolution, FileResolutionError> FileResolver::ResolveTargetUpload(const 
   auto st = std::filesystem::symlink_status(target, ec);
   if (!ec && st.type() != std::filesystem::file_type::not_found)
     //The file already exists... Bad Request for now, should probably return 409 conflict
-    return Result<Resolution, FileResolutionError>::Err(FileResolutionError::BAD_REQUEST);   // exists (file, dir or symlink): never overwrite or follow
+    return Result<Resolution, FileResolutionError>::Err(FileResolutionError::DUPLICATE);   // exists (file, dir or symlink): never overwrite or follow
 
   return Result<Resolution, FileResolutionError>::Ok(Resolution{Resolution::FILE, target});
 
