@@ -69,7 +69,7 @@ class HttpParserTest : public ::testing::Test {
 
 TEST_F(HttpParserTest, ParsesSimplestRequest) {
 
-    parser.parse(requestHelloWorld);
+    parser.parse(requestHelloWorld, 2147483647);
     HttpRequest request = parser.getRequest();
 
     EXPECT_EQ(request.getMethod(), HttpMethod::GET);
@@ -80,7 +80,7 @@ TEST_F(HttpParserTest, ParsesSimplestRequest) {
 
 TEST_F(HttpParserTest, ParsesGetRequestLine) {
 
-    parser.parse(validGetRequest);
+    parser.parse(validGetRequest, 2147483647);
     HttpRequest req = parser.getRequest();
 
     EXPECT_EQ(req.getMethod(), HttpMethod::GET);
@@ -91,7 +91,7 @@ TEST_F(HttpParserTest, ParsesGetRequestLine) {
 TEST_F(HttpParserTest, ParsesChunkedRequestLine) {
     HttpParser parserChunked;
 
-    parser.parse(validGetRequest);
+    parser.parse(validGetRequest, 2147483647);
 
     std::string chunk1 = "GET";
     std::string chunk2 = " /index.html ";
@@ -101,10 +101,10 @@ TEST_F(HttpParserTest, ParsesChunkedRequestLine) {
         "User-Agent: Test\r\n"
         "\r\n";
 
-    parserChunked.parse(chunk1);
-    parserChunked.parse(chunk2);
-    parserChunked.parse(chunk3);
-    parserChunked.parse(rest);
+    parserChunked.parse(chunk1, 2147483647);
+    parserChunked.parse(chunk2, 2147483647);
+    parserChunked.parse(chunk3, 2147483647);
+    parserChunked.parse(rest, 2147483647);
     
     EXPECT_EQ(parser.getRequest().getMethod(),
         parserChunked.getRequest().getMethod());
@@ -118,7 +118,7 @@ TEST_F(HttpParserTest, ParsesChunkedRequestLine) {
 
 TEST_F(HttpParserTest, ParsesHeaders) {
 
-    parser.parse(validGetRequest);
+    parser.parse(validGetRequest, 2147483647);
 
     EXPECT_EQ((int)(parser.getRequest().getHeaders().size()), 2);
     EXPECT_EQ(parser.getRequest().getHeaders()["host"], "localhost");
@@ -128,17 +128,17 @@ TEST_F(HttpParserTest, ParsesHeaders) {
 TEST_F(HttpParserTest, ParsesChunkedHeaders) {
     HttpParser parserChunked;
 
-    parser.parse(validGetRequest);
+    parser.parse(validGetRequest, 2147483647);
     
     std::string chunk1 = "GET /index.html HTTP/1.1\r\n";
     std::string chunk2 = "Host: l";
     std::string chunk3 = "ocalhost\r\nUser-Agent: ";
     std::string chunk4 = "Test\r\n\r\n";
 
-    parserChunked.parse(chunk1);
-    parserChunked.parse(chunk2);
-    parserChunked.parse(chunk3);
-    parserChunked.parse(chunk4);
+    parserChunked.parse(chunk1, 2147483647);
+    parserChunked.parse(chunk2, 2147483647);
+    parserChunked.parse(chunk3, 2147483647);
+    parserChunked.parse(chunk4, 2147483647);
 
     std::unordered_map<std::string, std::string> headers = 
         parser.getRequest().getHeaders();
@@ -153,7 +153,7 @@ TEST_F(HttpParserTest, ParsesChunkedHeaders) {
 
 TEST_F(HttpParserTest, ParsesBody) {
 
-    parser.parse(requestWithContentLength);
+    parser.parse(requestWithContentLength, 2147483647);
 
     EXPECT_EQ((int)(parser.getRequest().getBody().length()),
         stoi(parser.getRequest().getHeaders()["content-length"]));
@@ -162,7 +162,7 @@ TEST_F(HttpParserTest, ParsesBody) {
 TEST_F(HttpParserTest, ParsesChunkedBody) {
     HttpParser parserChunked;
 
-    parser.parse(requestWithContentLength);
+    parser.parse(requestWithContentLength, 2147483647);
     std::string chunk1 = "POST / HTTP/1.1\r\n"
             "Host: developer.mozilla.org\r\n"
             "User-Agent: curl/8.6.0\r\n"
@@ -173,10 +173,10 @@ TEST_F(HttpParserTest, ParsesChunkedBody) {
     std::string chunk3 = "\"id\": ";
     std::string chunk4 = "\"42\"}";
 
-    parserChunked.parse(chunk1);
-    parserChunked.parse(chunk2);
-    parserChunked.parse(chunk3);
-    parserChunked.parse(chunk4);
+    parserChunked.parse(chunk1, 2147483647);
+    parserChunked.parse(chunk2, 2147483647);
+    parserChunked.parse(chunk3, 2147483647);
+    parserChunked.parse(chunk4, 2147483647);
 
     EXPECT_EQ(parser.getRequest().getBody(), parserChunked.getRequest().getBody());
 }
@@ -189,11 +189,11 @@ TEST_F(HttpParserTest, ParsesRequestReceivedInChunks) {
     std::string reqLine1 =
         " HTTP/1.1\r\n";
     
-    parser.parse(reqLine0);
+    parser.parse(reqLine0, 2147483647);
 
     EXPECT_EQ(parser.getParserState(), HttpParserState::REQUEST_LINE);
 
-    parser.parse(reqLine1);
+    parser.parse(reqLine1, 2147483647);
 
     EXPECT_EQ(parser.getRequest().getMethod(), HttpMethod::GET);
     EXPECT_EQ(parser.getRequest().getURI(), "/index.html");
@@ -210,13 +210,13 @@ TEST_F(HttpParserTest, ParsesRequestReceivedInChunks) {
     std::string end = 
         "\r\n";
     
-    parser.parse(headers0);
-    parser.parse(headers1);
+    parser.parse(headers0, 2147483647);
+    parser.parse(headers1, 2147483647);
 
     EXPECT_EQ((int)(parser.getRequest().getHeaders().size()), 0);
     EXPECT_EQ(parser.getParserState(), HttpParserState::HEADERS);
 
-    parser.parse(end);
+    parser.parse(end, 2147483647);
 
     EXPECT_EQ((int)(parser.getRequest().getHeaders().size()), 2);
     EXPECT_EQ(parser.getParserState(), HttpParserState::COMPLETE);
@@ -230,7 +230,7 @@ TEST_F(HttpParserTest, ParsesRequestReceivedInChunks) {
 //Invalid Request Line -- Invalid Method
 TEST_F(HttpParserTest, InvalidMethod) {
     
-    parser.parse(invalidMethod);
+    parser.parse(invalidMethod, 2147483647);
     
     EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
 }
@@ -238,7 +238,7 @@ TEST_F(HttpParserTest, InvalidMethod) {
 //Invalid Request Line -- Missing parts
 TEST_F(HttpParserTest, MissingHTTPVersion) {
 
-    parser.parse(missingVersion);
+    parser.parse(missingVersion, 2147483647);
 
     EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
 }
@@ -246,30 +246,30 @@ TEST_F(HttpParserTest, MissingHTTPVersion) {
 //Invalid Request Line -- Invalid Version
 TEST_F(HttpParserTest, InvalidHttpVersion) {
 
-    parser.parse("GET / HKKP/1.1\r\n");
+    parser.parse("GET / HKKP/1.1\r\n", 2147483647);
     EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
     
     parser.clearParser();
-    parser.parse("GET / HTTP1.1\r\n");
+    parser.parse("GET / HTTP1.1\r\n", 2147483647);
     EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
 
     parser.clearParser();
-    parser.parse("GET / HTTP/x.1\r\n");
+    parser.parse("GET / HTTP/x.1\r\n", 2147483647);
     EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
 
     parser.clearParser();
-    parser.parse("GET / HTTP/f1.1\r\n");
+    parser.parse("GET / HTTP/f1.1\r\n", 2147483647);
     EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
 
     parser.clearParser();
-    parser.parse("GET / HTTP/1.\r\n");
+    parser.parse("GET / HTTP/1.\r\n", 2147483647);
     EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
 }
 
 // Malformed headers -- missing colon
 TEST_F(HttpParserTest, MalformedHeadersMissingColon) {
 
-    parser.parse(headerMissingColon);
+    parser.parse(headerMissingColon, 2147483647);
 
     EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
 }
@@ -277,7 +277,7 @@ TEST_F(HttpParserTest, MalformedHeadersMissingColon) {
 
 TEST_F(HttpParserTest, InvalidContentLength) {
 
-    parser.parse(invalidContentLen);
+    parser.parse(invalidContentLen, 2147483647);
     EXPECT_EQ(parser.getParserState(), HttpParserState::ERROR);
 }
 
@@ -285,7 +285,7 @@ TEST_F(HttpParserTest, InvalidContentLength) {
 
 TEST_F(HttpParserTest, EmptyRequest) {
 
-    parser.parse("");
+    parser.parse("", 2147483647);
     EXPECT_EQ(parser.getParserState(), HttpParserState::REQUEST_LINE);
 }
 
@@ -296,7 +296,7 @@ TEST_F(HttpParserTest, MissingBlankLine) {
         "Host: example.com\r\n"
         "User-Agent: test";
 
-    parser.parse(request);
+    parser.parse(request, 2147483647);
     EXPECT_EQ(parser.getParserState(), HttpParserState::HEADERS);
 }
 
@@ -313,7 +313,7 @@ TEST_F(HttpParserTest, BodyShorterThanContentLen) {
             "\r\n"
             "{\"id\": \"42\"}";
 
-    parser.parse(request);
+    parser.parse(request, 2147483647);
 
     EXPECT_EQ(parser.getParserState(), HttpParserState::BODY);
 
