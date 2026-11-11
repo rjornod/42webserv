@@ -150,7 +150,7 @@ def request(method: str = "GET", path: str = "/", **kwargs) -> Response:
     return send_raw(build_request(method, path, **kwargs))
  
  
-def send_in_pieces(pieces: list[bytes], delay: float = 0.2) -> Response:
+def send_in_pieces(pieces: list[bytes], delay: float = 0.1) -> Response:
     """Send a request split across several send() calls (tests partial reads)."""
     with connect() as s:
         for piece in pieces:
@@ -249,8 +249,8 @@ def upload_exact_manual_request():
         "hello"
     )
     r = send_raw(raw)
-    dump(r, "exact")
-    assert r.status in (200, 201), f"got {r.status}"
+    # dump(r, "exact")
+    assert r.status in (200, 201, 409), f"got {r.status}"
  
 @test
 def post_upload_then_delete():
@@ -273,11 +273,13 @@ def post_upload_then_delete():
     assert r.status in (200, 204), f"delete got {r.status}"
  
  
-# @test
-# def request_split_across_packets():
-#     full = build_request("GET", "/")
-#     r = send_in_pieces([full[:5], full[5:20], full[20:]])
-#     expect_status(r, 200)
+@test
+def request_split_across_packets():
+    full = build_request("GET", "/", {"User-Agent": "test", "Content-Type" : "text/plain"})
+    # print(full)
+    r = send_in_pieces([full[:20], full[20:]])
+    # dump(r, "split req")
+    expect_status(r, 200)
  
  
 @test

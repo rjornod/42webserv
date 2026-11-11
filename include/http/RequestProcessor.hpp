@@ -8,6 +8,19 @@
 #include <fstream>
 #include <string>
 
+// TO DO: Re design or put this somewhere else (STRUCT?)
+class MultipartPart {
+  public: 
+    std::string_view name;
+    std::optional<std::string_view> fileName;
+    std::string_view contentType = "text/plain";
+    std::string_view data;
+};
+
+enum class MultipartError {
+  NO_BOUNDARY
+};
+
 enum class MimeTypeError {
   EXTENSION_NOT_FOUND
 };
@@ -43,6 +56,9 @@ class RequestProcessor {
     HttpResponse handleDelete(RequestContext& ctx);
     HttpResponse handlePost(RequestContext& ctx);
     HttpResponse handleRawUpload(RequestContext& ctx);
+
+    Result<std::vector<MultipartPart>, MultipartError> parseMultipart(std::string_view body,
+                                                                  std::string_view boundary);
 
     bool parseContentType(const HttpRequest& req, std::unordered_map<std::string, std::string>& params, std::string& type);
     bool checkSupportedMedia(std::string type);

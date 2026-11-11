@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <sstream>
 
-
 static int statusFromError(FileResolutionError e) {
   switch (e) {
     case FileResolutionError::BAD_REQUEST: return 400;
@@ -86,14 +85,29 @@ HttpResponse RequestProcessor::handlePost(RequestContext& ctx) {
   if (!checkSupportedMedia(type))
     return buildErrorResponse(415, ctx);
   
-  if (type == "multipart/form-data")
+  if (type == "multipart/form-data") {
+    auto it = params.find("boundary");
+    if (it == params.end())
+      return buildErrorResponse(400, ctx);
+    std::string boundary = it->second;
+    std::cout << "BOUNDARY: " << boundary << std::endl;
+    parseMultipart(req.getBody(), boundary);
     return buildErrorResponse(500, ctx); // For now... TO DO: handle multipart
-
+  }
   return handleRawUpload(ctx);
 
 
   return HttpResponse();
 }
+
+Result<std::vector<MultipartPart>, MultipartError> RequestProcessor::parseMultipart(
+  std::string_view body,std::string_view boundary) {
+    std::cout << RED << "BOUNDARY: " << boundary << RESET << std::endl;
+    (void)body;
+
+    return Result<std::vector<MultipartPart>, MultipartError>::Err(MultipartError::NO_BOUNDARY);
+
+  }
 
 //TO DO: return a FileSystem error instead of an int in case of error
 int writeFileAtomically(const std::filesystem::path& target, const std::string& data) {
