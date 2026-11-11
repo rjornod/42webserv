@@ -127,7 +127,8 @@ class Client : public IoEndpoint {
 
 			bytes = recv(m_fd, buffer, sizeof(buffer), 0);
 			if (bytes > 0) {
-				parser.parse(buffer);
+				//TODO: check if it;s okay to parse with server config max body size
+				parser.parse(buffer, m_serverConfig.getClientMaxBody());
 					
 				setLastActivity();
 				setClientState(ClientState::ReadingRequest);

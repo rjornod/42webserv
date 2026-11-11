@@ -16,7 +16,7 @@ void HttpParser::fail(int status) {
   m_errorStatus = status;
 }
 
-void HttpParser::parse(std::string_view chunk) {
+void HttpParser::parse(std::string_view chunk, int maxBodySize) {
 
   m_buffer += chunk;
   EncodingType encType;
@@ -56,7 +56,7 @@ void HttpParser::parse(std::string_view chunk) {
       }
       if (encType == EncodingType::TRANSFER_ENCODING) {
         //TO DO: See what to give ad maxBodysize (instead of int max)
-        m_chunkDecoder.reset(2147483647);
+        m_chunkDecoder.reset(maxBodySize);
         m_state = HttpParserState::CHUNKED_BODY;
         if (!parseChunkedBody()) {
           reportErrors();

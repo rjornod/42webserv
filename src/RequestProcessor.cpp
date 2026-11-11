@@ -162,9 +162,9 @@ HttpResponse RequestProcessor::handleRawUpload(RequestContext& ctx) {
 bool RequestProcessor::checkSupportedMedia(std::string type) {
 
   std::unordered_set<std::string> supportedMedia = {"text/html", "text/css",
-    "image/gif", "application/javascript",
+    "image/gif", "application/javascript", "image/jpg", "image/png",
     "text/plain", "application/json", "application/pdf",
-    "multipart/form-data"};
+    "multipart/form-data", "application/x-www-form-urlencoded"};
 
   return supportedMedia.contains(type);
 

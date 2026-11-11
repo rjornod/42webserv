@@ -50,7 +50,7 @@ class HttpParser : public IHttpParser {
     int getErrorStatus() const {return m_errorStatus;}
     void setParserState(HttpParserState state) {m_state = state;}
 
-    void parse(std::string_view chunk);
+    void parse(std::string_view chunk, int maxBodySize);
     bool parseRequestLine();
     bool parseHeaders();
     bool parseBody();
