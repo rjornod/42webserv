@@ -129,7 +129,7 @@ class Client : public IoEndpoint {
 			if (bytes > 0) {
 				//TODO: check if it;s okay to parse with server config max body size
 				parser.parse(buffer, m_serverConfig.getClientMaxBody());
-					
+				// std::cout << "End parser call: BUFFER: [" << parser.getBuffer() << "]" << std::endl;
 				setLastActivity();
 				setClientState(ClientState::ReadingRequest);
 			}

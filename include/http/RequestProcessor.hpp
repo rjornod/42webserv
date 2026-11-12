@@ -3,23 +3,11 @@
 #include "HttpResponse.hpp"
 #include "Result.hpp"
 #include "FileResolver.hpp"
+#include "MultipartPart.hpp"
 #include <optional>
 #include <unordered_set>
 #include <fstream>
 #include <string>
-
-// TO DO: Re design or put this somewhere else (STRUCT?)
-class MultipartPart {
-  public: 
-    std::string_view name;
-    std::optional<std::string_view> fileName;
-    std::string_view contentType = "text/plain";
-    std::string_view data;
-};
-
-enum class MultipartError {
-  NO_BOUNDARY
-};
 
 enum class MimeTypeError {
   EXTENSION_NOT_FOUND
@@ -56,11 +44,16 @@ class RequestProcessor {
     HttpResponse handleDelete(RequestContext& ctx);
     HttpResponse handlePost(RequestContext& ctx);
     HttpResponse handleRawUpload(RequestContext& ctx);
+    HttpResponse handleMultipart(RequestContext& ctx, std::vector<MultipartPart>& parts);
+
+    Result<std::filesystem::path, FileResolutionError> resolveForMultipart(RequestContext& ctx, std::string_view fileName);
 
     Result<std::vector<MultipartPart>, MultipartError> parseMultipart(std::string_view body,
                                                                   std::string_view boundary);
-
+    Result<MultipartPart, MultipartError> parsePartHeaders(std::string_view headers);
+    bool parseContentDisposition(std::string_view value, MultipartPart& part);
     bool parseContentType(const HttpRequest& req, std::unordered_map<std::string, std::string>& params, std::string& type);
     bool checkSupportedMedia(std::string type);
 
+    int writeFileAtomically(const std::filesystem::path& target, const std::string& data);
 };

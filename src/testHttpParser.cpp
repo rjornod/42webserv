@@ -17,11 +17,18 @@ int main(int argc, char **argv) {
     "TP/1.1\r\n"
     "Host: example.com\r\n"
     "User-Agent: test\r\n"
-    "Content-Length: 5\r\n"
+    "Content-Length: 184\r\n"
     // "Transfer-Encoding: chunked\r\n"
-    "Content-Type: multipart/form-data; boundary=ExampleBoundaryString\r\n"
+    "Content-Type: multipart/form-data; boundary=XYZ\r\n"
     "\r\n"
-    "hello";
+    "--XYZ\r\n"
+    "Content-Disposition: form-data; name=\"file\"; filename=\"a.txt\"\r\n"
+    "Content-Type: text/plain\r\n"
+    "\r\n"
+    "line1\r\nline2\r\n--XYZ\r\n"
+    "Content-Disposition: form-data; name=\"desc\"\r\n"
+    "\r\n"
+    "my file\r\n--XYZ--\r\n";
 
   if (argc != 2) {
     std::cout << "Usage ./webserv <path/to/configfile>" << std::endl;

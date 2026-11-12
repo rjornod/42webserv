@@ -18,13 +18,16 @@ void HttpParser::fail(int status) {
 
 void HttpParser::parse(std::string_view chunk, int maxBodySize) {
 
+  std::cout << "Parser called -- status: " << to_string(m_state) << std::endl;
   m_buffer += chunk;
+  std::cout << "Buffer: [" << m_buffer << "]" << std::endl;
   EncodingType encType;
 
   switch (getParserState()) {
     case HttpParserState::REQUEST_LINE:
       if (!parseRequestLine()) {
         reportErrors();
+        std::cout << "Buffer: [" << m_buffer << "]" << std::endl;
         return;
       }
       m_state = HttpParserState::HEADERS;
@@ -335,6 +338,7 @@ HttpVersion HttpParser::validateHttpVersion(std::string_view versionStr) {
 
 void HttpParser::clearParser() {
   *this = HttpParser{};
+
 }
 
 // ------------ DEBUG -------------------

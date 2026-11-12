@@ -91,26 +91,245 @@ HttpResponse RequestProcessor::handlePost(RequestContext& ctx) {
       return buildErrorResponse(400, ctx);
     std::string boundary = it->second;
     std::cout << "BOUNDARY: " << boundary << std::endl;
-    parseMultipart(req.getBody(), boundary);
-    return buildErrorResponse(500, ctx); // For now... TO DO: handle multipart
+    const std::string body = req.getBody();
+    Result<std::vector<MultipartPart>, MultipartError> parts = parseMultipart(body, boundary);
+    if (!parts) {
+      std::cout << RED << "Error on multipart parsing: " << to_string(parts.error()) << RESET << std::endl;
+      return buildErrorResponse(400, ctx);
+    }
+    std::vector<MultipartPart> partsVec = parts.value();
+    for (auto vec : partsVec) {
+      std::cout << BLUE << to_string(vec) << RESET << std::endl;
+    }
+    return handleMultipart(ctx, partsVec);
   }
   return handleRawUpload(ctx);
 
-
-  return HttpResponse();
 }
 
-Result<std::vector<MultipartPart>, MultipartError> RequestProcessor::parseMultipart(
-  std::string_view body,std::string_view boundary) {
-    std::cout << RED << "BOUNDARY: " << boundary << RESET << std::endl;
-    (void)body;
+// Returns either the filepath or the error
+Result<std::filesystem::path, FileResolutionError> RequestProcessor::resolveForMultipart(RequestContext& ctx, std::string_view fileName) {
 
-    return Result<std::vector<MultipartPart>, MultipartError>::Err(MultipartError::NO_BOUNDARY);
+  FileResolver fr;
+  return fr.resolveForMultiPart(ctx, std::string(fileName));
 
+}
+
+HttpResponse RequestProcessor::handleMultipart(RequestContext& ctx, std::vector<MultipartPart>& parts) {
+
+  std::vector<std::filesystem::path> files;
+  std::vector<std::string> names;
+  
+  for (auto part : parts) {
+    // std::cout << BLUE << part << RESET << std::endl;
+    if (part.fileName.has_value()) {
+      auto path = resolveForMultipart(ctx, std::string(part.fileName.value()));
+      if (!path) {
+        // TO DO: cleanup!!
+        std::cout << RED << "error on resolve for multipart" << RESET << std::endl;
+        std::cout << "Name: " << part.fileName.value() << std::endl;
+        std::cout << "Error: " << to_string(path.error()) << std::endl;
+        return buildErrorResponse(statusFromError(path.error()), ctx);
+      }
+      //Collecting the names for building the response
+      names.emplace_back(part.fileName.value());
+      //Collecting the filepaths for cleanup
+      files.emplace_back(path.value());
+      int err = writeFileAtomically(path.value(), std::string(part.data));
+      if (err != 0) {
+        std::cout << "Some error occured in writeFileAtomically" << std::endl;
+        //TO DO: cleanup!!
+        return buildErrorResponse(500, ctx);
+      }
+    }
   }
+  return buildErrorResponse(505, ctx);
+}
+
+Result<std::vector<MultipartPart>, MultipartError> RequestProcessor::parseMultipart(std::string_view body,std::string_view boundary) {
+  
+  std::cout << RED << "BOUNDARY: " << boundary << RESET << std::endl;
+  constexpr size_t MAX_PARTS = 100;
+  constexpr size_t MAX_PART_HEADER_BYTES = 8192;
+
+  if (boundary.empty() || boundary.size() > 70)
+    return Result<std::vector<MultipartPart>, MultipartError>::Err(MultipartError::INVALID_BOUNDARY);  
+    
+  std::string delim = "--" + std::string(boundary);
+  std::string sep = "\r\n" + std::string(delim);
+  
+  // Body starts with delim
+  if (!body.starts_with(delim))
+    return Result<std::vector<MultipartPart>, MultipartError>::Err(MultipartError::MISSING_OPENING_DELIMITER);
+    
+  std::vector<MultipartPart> parts;
+  size_t pos = delim.size(); //Start after the delimiter
+
+  while (true) {
+    std::string_view rest = body.substr(pos);
+
+    // Read what follows the delimiter
+    if (rest.starts_with("--"))
+      break; // It was the closing delimiter, can ignore the rest
+    if (!rest.starts_with("\r\n"))
+      return Result<std::vector<MultipartPart>, MultipartError>::Err(MultipartError::MALFORMED_DELIMITER);
+    pos += 2;
+    if (parts.size() >= MAX_PARTS)
+      return Result<std::vector<MultipartPart>, MultipartError>::Err(MultipartError::TOO_MANY_PARTS);
+
+    // Part headers (might be none)
+    std::string_view headers;
+    size_t dataStart;
+    if (body.substr(pos).starts_with("\r\n")) //No headers, data coming
+      dataStart = pos + 2;
+    else {
+      size_t headersEnd = body.find("\r\n\r\n", pos);
+      if (headersEnd == std::string_view::npos)
+        return Result<std::vector<MultipartPart>, MultipartError>::Err(MultipartError::UNTERMINATED_PART_HEADERS);
+      if (headersEnd - pos > MAX_PART_HEADER_BYTES)
+        return Result<std::vector<MultipartPart>, MultipartError>::Err(MultipartError::PART_HEADERS_TOO_LARGE);
+      headers = body.substr(pos, headersEnd - pos);
+      dataStart = headersEnd + 4;
+    }
+
+    //Get the data; everything up to the next separator
+    size_t next = body.find(sep, dataStart);
+    if (next == std::string_view::npos)
+      return Result<std::vector<MultipartPart>, MultipartError>::Err(MultipartError::MISSING_CLOSING_DELIMITER);
+    std::string_view data = body.substr(dataStart, next - dataStart);
+
+    // Interpret the headers
+    auto partTmp = parsePartHeaders(headers);
+    if (!partTmp)
+      return Result<std::vector<MultipartPart>, MultipartError>::Err(partTmp.error());
+    MultipartPart part = partTmp.value(); 
+    part.data = data;
+    parts.push_back(std::move(part));
+
+    //Update pos after the separator
+    pos = next + sep.size();
+  }
+  return Result<std::vector<MultipartPart>, MultipartError>::Ok(std::move(parts));
+
+}
+
+static std::string toLower(std::string_view word) {
+
+  std::string str = std::string(word);
+  std::for_each(str.begin(), str.end(), [](char &c) {c = tolower(c);});
+  return std::string(str);
+}
+
+static std::string_view trim(std::string_view s) {
+  while (!s.empty() && (s.front() == ' ' || s.front() == '\t')) s.remove_prefix(1);
+  while (!s.empty() && (s.back()  == ' ' || s.back()  == '\t')) s.remove_suffix(1);
+  return s;
+}
+
+// Returns false if malformed.
+bool RequestProcessor::parseContentDisposition(std::string_view value, MultipartPart& part) {
+  value = trim(value);
+
+  // Disposition type: everything before the first ';'
+  size_t pos = value.find(';');
+  if (toLower(trim(value.substr(0, pos))) != "form-data")
+    return false;
+  if (pos == std::string_view::npos)
+    return true;                       // plain "form-data": the caller notices that name is missing
+
+  //Parameters: ; key=value   or   ; key="value"
+  while (pos < value.size()) {         // here value[pos] == ';'
+    ++pos;
+    while (pos < value.size() && (value[pos] == ' ' || value[pos] == '\t')) ++pos;
+    if (pos >= value.size()) break;    // trailing ';' is tolerated
+
+    size_t eq = value.find('=', pos);
+    if (eq == std::string_view::npos)
+      return false;
+    std::string key = toLower(trim(value.substr(pos, eq - pos)));
+    pos = eq + 1;
+
+    std::string val;
+    if (pos < value.size() && value[pos] == '"') {         // quoted: ';' inside is just text
+      ++pos;
+      bool closed = false;
+      while (pos < value.size()) {
+        char c = value[pos++];
+        if (c == '\\' && pos < value.size())
+          val.push_back(value[pos++]);                     // \" or \\ → the escaped character
+        else if (c == '"') {
+          closed = true;
+          break;
+        }
+        else val.push_back(c);
+      }
+      if (!closed)
+        return false;                                      // unterminated quote
+    } 
+    else {                                               // unquoted token: up to the next ';'
+      size_t end = value.find(';', pos);
+      if (end == std::string_view::npos) end = value.size();
+      val = std::string(trim(value.substr(pos, end - pos)));
+      pos = end;
+    }
+
+    if (key == "name")
+      part.name = std::move(val);
+    else if (key == "filename")
+      part.fileName = std::move(val);
+    // other parameters are ignored (including "filename*", which browsers don't use here)
+
+    // After a value only whitespace and then ';' (or the end) may follow
+    while (pos < value.size() && (value[pos] == ' ' || value[pos] == '\t')) ++pos;
+    if (pos < value.size() && value[pos] != ';')
+      return false;
+  }
+  return true;
+}
+
+
+// We only care to find the headers Content-Type and Content-Disposition
+Result<MultipartPart, MultipartError> RequestProcessor::parsePartHeaders(std::string_view headers) {
+
+  MultipartPart part;
+  size_t pos = 0;
+  bool sawDisposition = false;
+
+  while (pos < headers.size()) {
+    //Identify the next header
+    size_t end = headers.find("\r\n", pos);
+    if (end == std::string_view::npos)
+      end = headers.size(); //Last line: no trailing CRLF
+    std::string_view header = headers.substr(pos, end - pos);
+    pos = end + 2;
+    
+    size_t colon = header.find(':');
+    if (colon == std::string_view::npos)
+      return Result<MultipartPart, MultipartError>::Err(MultipartError::MALFORMED_PART_HEADER);
+    std::string name = toLower(trim(header.substr(0, colon)));
+    std::string_view value = trim(header.substr(colon + 1));
+
+    if (name == "content-disposition") {
+      sawDisposition = true;
+      if (!parseContentDisposition(value, part))
+        return Result<MultipartPart, MultipartError>::Err(MultipartError::INVALID_CONTENT_DISPOSITION);
+    }
+    else if (name == "content-type")
+      part.contentType = std::string(value);
+    // Ignore any other header
+  }
+  if (!sawDisposition)
+    return Result<MultipartPart, MultipartError>::Err(MultipartError::MISSING_CONTENT_DISPOSITION);
+  if (part.name.empty())
+    return Result<MultipartPart, MultipartError>::Err(MultipartError::MISSING_FIELD_NAME);
+
+  return Result<MultipartPart, MultipartError>::Ok(std::move(part));
+}
+
+
 
 //TO DO: return a FileSystem error instead of an int in case of error
-int writeFileAtomically(const std::filesystem::path& target, const std::string& data) {
+int RequestProcessor::writeFileAtomically(const std::filesystem::path& target, const std::string& data) {
 
   // Temp file in the SAME directory, so rename() stays on one filesystem (atomic)
   std::filesystem::path tmp = target.parent_path() / (".tmp_" + target.filename().string() + "_"); // TO DO: add + uniqueSuffix()
@@ -142,12 +361,12 @@ HttpResponse RequestProcessor::handleRawUpload(RequestContext& ctx) {
   const HttpRequest req = ctx.getHttpRequest();
 
   FileResolver fileResolver;
-  auto target = fileResolver.ResolveTargetUpload(ctx);
+  auto target = fileResolver.resolveTargetUpload(ctx);
   // auto target = fileResolver.resolveForWrite(ctx);
   if (!target)
     return buildErrorResponse(statusFromError(target.error()), ctx);
   
-  std::cout << "Target: " << target.value().path << std::endl;
+  // std::cout << "Target: " << target.value().path << std::endl;
   // // If the file exists we refuse to overwrite (POLICY)
   // Not checking anymore because we always generate a name; and we generate
   // until the file name doesn't exist

@@ -384,7 +384,7 @@ static bool isValidFileName(const std::string& n) {
   return true;
 }
 
-Result<Resolution, FileResolutionError> FileResolver::ResolveTargetUpload(const RequestContext& ctx) {
+Result<Resolution, FileResolutionError> FileResolver::resolveTargetUpload(const RequestContext& ctx) {
 
   // Decode and normalize URI
   HttpRequest request = ctx.getHttpRequest();
@@ -445,7 +445,7 @@ Result<Resolution, FileResolutionError> FileResolver::ResolveTargetUpload(const 
   std::string fileName(segments.value().back());
   std::cout << "Target file name : " << fileName << std::endl;
 
-  std::string filename(segments.value().back());
+  // std::string filename(segments.value().back());
   if (!isValidFileName(fileName))
     return Result<Resolution, FileResolutionError>::Err(FileResolutionError::BAD_REQUEST);
 
@@ -456,31 +456,53 @@ Result<Resolution, FileResolutionError> FileResolver::ResolveTargetUpload(const 
     return Result<Resolution, FileResolutionError>::Err(FileResolutionError::DUPLICATE);   // exists (file, dir or symlink): never overwrite or follow
 
   return Result<Resolution, FileResolutionError>::Ok(Resolution{Resolution::FILE, target});
+}
 
-  
-  //----- OLD------
-  //Get the file name for the upload
-  // std::string fileName(segments.value().back());
-  // std::cout << "Target file name : " << fileName << std::endl;
+Result<std::filesystem::path, FileResolutionError> FileResolver::resolveForMultiPart(const RequestContext& ctx, std::string name) {
+ 
+  // Decode and normalize URI
+  HttpRequest request = ctx.getHttpRequest();
+  std::string_view raw = request.getURI();
 
-  // std::error_code ec;
-  // std::filesystem::path parent;
-  // if (ctx.getLocationConfig())
-  //   parent = ctx.getLocationConfig()->getUploadStore();
-  // else
-  //   parent = ctx.getServerConfig()->getUploadStore();
-  // std::filesystem::path target = parent / fileName;
-  // auto st = std::filesystem::symlink_status(target, ec);
-  // bool exists = !ec && st.type() != std::filesystem::file_type::not_found;
-  // if (exists) {
-  //   if (std::filesystem::is_symlink(st)) {
-  //     std::cerr << "is_symlink" << std::endl;
-  //     return Result<Resolution, FileResolutionError>::Err(FileResolutionError::FORBIDDEN);
-  //   }
-  //   if (std::filesystem::is_directory(st))
-  //     return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::DIRECTORY, target});
-  // }
-  
-  // return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::FILE, target});
+  auto decodedUri = percentDecode(raw);
+
+  if (!decodedUri)
+    return Result<std::filesystem::path, FileResolutionError>::Err(
+          FileResolutionError::BAD_REQUEST);
+
+  auto segments = normalizeSegments(decodedUri.value());
+
+  if (!segments) {
+    std::cout << "Invalid URI segments: " << to_string(segments.error()) << std::endl;
+    return Result<std::filesystem::path, FileResolutionError>::Err(
+      FileResolutionError::FORBIDDEN);
+  }
+
+  //Store directory -- trusting the config, an error here is the server('s config) fault
+  std::filesystem::path parent = ctx.getLocationConfig() ?
+    ctx.getLocationConfig()->getUploadStore() :
+    ctx.getServerConfig()->getUploadStore();
+
+  std::error_code ec;
+  std::filesystem::path store = std::filesystem::canonical(parent, ec);
+  if (ec || !std::filesystem::is_directory(parent, ec)){
+    std::cerr << "Error canonicalizing the parent " << parent << std::endl;
+    return Result<std::filesystem::path, FileResolutionError>::Err(FileResolutionError::SERVER_ERROR);
+  }
+
+  //Check that the name works
+  if (!isValidFileName(name)){
+    std::cout << "Invalid file name" << std::endl;
+    return Result<std::filesystem::path, FileResolutionError>::Err(FileResolutionError::BAD_REQUEST);
+  }
+
+  std::filesystem::path target = store / name;
+  auto st = std::filesystem::symlink_status(target, ec);
+  if (!ec && st.type() != std::filesystem::file_type::not_found)
+    //The file already exists... Bad Request for now, should probably return 409 conflict
+    return Result<std::filesystem::path, FileResolutionError>::Err(FileResolutionError::DUPLICATE);   // exists (file, dir or symlink): never overwrite or follow
+
+  return Result<std::filesystem::path, FileResolutionError>::Ok(target);
+
 
 }
