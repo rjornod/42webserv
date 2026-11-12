@@ -10,6 +10,15 @@
 #include "IHttpParser.hpp"
 #include "HttpParserState.hpp"
 #include "HttpVersion.hpp"
+#include "ChunkDecoder.hpp"
+
+enum class EncodingType {
+  CONTENT_LENGTH,
+  TRANSFER_ENCODING,
+  BAD_TRANSFER_ENCODING,
+  NONE,
+  BOTH
+};
 
 class HttpParser : public IHttpParser {
 
@@ -23,6 +32,7 @@ class HttpParser : public IHttpParser {
     HttpRequest m_request;
     std::string m_errorMessage;
     int m_errorStatus;
+    ChunkDecoder m_chunkDecoder;
 
   public:
 
@@ -40,11 +50,13 @@ class HttpParser : public IHttpParser {
     int getErrorStatus() const {return m_errorStatus;}
     void setParserState(HttpParserState state) {m_state = state;}
 
-    void parse(std::string_view chunk);
+    void parse(std::string_view chunk, int maxBodySize);
     bool parseRequestLine();
     bool parseHeaders();
     bool parseBody();
+    bool parseChunkedBody();
     void determineBodyLength();
+    EncodingType determineBodyEncoding();
     void reportErrors();
     void fail(int status);
 
@@ -57,3 +69,15 @@ class HttpParser : public IHttpParser {
     //DEBUG
     void printHeaders();
 };
+
+constexpr const char* to_string(EncodingType type)
+{
+    switch (type) {
+        case EncodingType::CONTENT_LENGTH:    return "CONTENT_LENGTH";
+        case EncodingType::TRANSFER_ENCODING:    return "TRANSFER_ENCODING";
+        case EncodingType::BAD_TRANSFER_ENCODING:    return "BAD_TRANSFER_ENCODING";
+        case EncodingType::BOTH:    return "BOTH_ENCODINGS";
+        case EncodingType::NONE:    return "NO_ENCODING_SPECIFIED";
+    }
+    return "ERROR";
+}

@@ -11,11 +11,15 @@
 int main(int argc, char **argv) {
 
   std::string request =
-    "DELETE /uploads/test.txt HTTP/1.1\r\n"
+    "POST /hi.txt HT";
+    
+  std::string req2 =
+    "TP/1.1\r\n"
     "Host: example.com\r\n"
     "User-Agent: test\r\n"
     "Content-Length: 5\r\n"
-    "Content-Type: text/plain\r\n"
+    // "Transfer-Encoding: chunked\r\n"
+    "Content-Type: multipart/form-data; boundary=ExampleBoundaryString\r\n"
     "\r\n"
     "hello";
 
@@ -26,13 +30,13 @@ int main(int argc, char **argv) {
 
   HttpParser parser;
 
-  parser.parse(request);
+  parser.parse(request, 10000000);
 
+  parser.parse(req2, 1000000);
   std::cout << "Parser state : " << to_string(parser.getParserState()) << std::endl;
 
   std::cout << "------------------------- Request: ------------------" << std::endl << parser.getRequest() << std::endl;
   std::cout << "-----------------------------------------------------" << std::endl;
-
   (void)argc;
   if (parser.getParserState() != HttpParserState::COMPLETE &&
       parser.getParserState() != HttpParserState::ERROR) {
@@ -40,7 +44,6 @@ int main(int argc, char **argv) {
     exit(0);
   }
   
-
   GlobalConfig globalConfig;
   ConfigParser config(argv[1], globalConfig);
 	if (!config.processConfig()) {
@@ -54,19 +57,27 @@ int main(int argc, char **argv) {
 	// }
 
   Router router;
-  RequestContext ctx = router.createContext(parser.getRequest(), globalConfig, 0);
-
-  if (ctx.getLocationConfig()) {
-    std::cout << "Request context is: " << std::endl;
-    ctx.getLocationConfig()->printValues();
-  }
-  else {
-    std::cout << "Request context is global: " << std::endl;
-    ctx.getServerConfig()->printValues();
-  }
-
+  HttpResponse response;
   RequestProcessor processor;
-  HttpResponse response = processor.process(ctx);
+
+  if (parser.getParserState() == HttpParserState::ERROR) {
+    RequestContext ctx = router.createErrorContext(globalConfig.getServerConfigs()[0]);
+    response = processor.buildErrorResponse(parser.getErrorStatus(), ctx); 
+  }
+
+  else {
+    RequestContext ctx = router.createContext(parser.getRequest(), globalConfig.getServerConfigs()[0]);
+
+    if (ctx.getLocationConfig()) {
+      std::cout << "Request context is: " << std::endl;
+      ctx.getLocationConfig()->printValues();
+    }
+    else {
+      std::cout << "Request context is global: " << std::endl;
+      ctx.getServerConfig()->printValues();
+    }
+    response = processor.process(ctx);
+  }
 
   ResponseWriter writer = ResponseWriter(response);
   int sv[2];

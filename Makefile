@@ -5,7 +5,7 @@ INCL = -Iinclude -Iinclude/config -Iinclude/server -Iinclude/utils -Iinclude/htt
 SRC_DIR = ./src
 OBJ_DIR = ./obj
 SRC_CORE = Server.cpp  ConfigParser.cpp TokenType.cpp LocationConfig.cpp ServerConfig.cpp \
-	HttpParser.cpp HttpRequest.cpp HttpResponse.cpp Router.cpp RequestProcessor.cpp \
+	HttpParser.cpp ChunkDecoder.cpp HttpRequest.cpp HttpResponse.cpp Router.cpp RequestProcessor.cpp \
 	FileResolver.cpp ResponseWriter.cpp Polling.cpp IoEndpoint.cpp Client.cpp
 OBJ_CORE = $(SRC_CORE:%.cpp=$(OBJ_DIR)/%.o)
 
@@ -19,15 +19,18 @@ HTTP_P_TEST = http_gtests
 CONFIG_P_TEST = config_gtests
 ROUTER_TEST = router_gtests
 FILE_RESOLVER_TEST = fileResolver_gtests
+CHUNK_DECODER_TEST = chunkDecoder_gtests
 SRC_TEST_DIR = ./tests
 SRC_CONFIG_P_TEST = ConfigParserTest.cpp
 SRC_HTTP_P_TEST = HttpParserTest.cpp
 SRC_ROUTER_TEST = RouterTest.cpp
 SRC_FILE_RESOLVER_TEST = FileResolverTest.cpp
+SRC_CHUNK_DECODER_TEST = ChunkDecoderTest.cpp
 OBJ_CONFIG_P_TEST = $(SRC_CONFIG_P_TEST:%.cpp=$(GTEST_OBJ_DIR)/%.o)
 OBJ_HTTP_P_TEST = $(SRC_HTTP_P_TEST:%.cpp=$(GTEST_OBJ_DIR)/%.o)
 OBJ_ROUTER_TEST = $(SRC_ROUTER_TEST:%.cpp=$(GTEST_OBJ_DIR)/%.o)
 OBJ_FILE_RESOLVER_TEST = $(SRC_FILE_RESOLVER_TEST:%.cpp=$(GTEST_OBJ_DIR)/%.o)
+OBJ_CHUNK_DECODER_TEST = $(SRC_CHUNK_DECODER_TEST:%.cpp=$(GTEST_OBJ_DIR)/%.o)
 
 P_TEST = httpParserTest
 
@@ -69,11 +72,13 @@ tests_router: $(GTEST_DIR) $(ROUTER_TEST)
 
 tests_file_resolver: $(GTEST_DIR) $(FILE_RESOLVER_TEST)
 
+tests_chunk_decoder: $(GTEST_DIR) $(CHUNK_DECODER_TEST)
+
 $(GTEST_DIR):
 	@ echo "Clonning GTest repo ..."
 	@git clone --depth 1 $(GTEST_REPO) $(GTEST_DIR)
 
-$(ALL_TEST): $(CONFIG_P_TEST) $(HTTP_P_TEST) $(ROUTER_TEST)
+$(ALL_TEST): $(CONFIG_P_TEST) $(HTTP_P_TEST) $(ROUTER_TEST) $(FILE_RESOLVER_TEST) $(CHUNK_DECODER_TEST)
 	@ echo "Tests made successfully"
 
 $(CONFIG_P_TEST): $(OBJ_CONFIG_P_TEST) $(OBJ_CORE) $(GTEST_OBJ_DIR)/gtest-all.o $(GTEST_OBJ_DIR)/gtest-main.o
@@ -112,6 +117,15 @@ $(FILE_RESOLVER_TEST): $(OBJ_FILE_RESOLVER_TEST) $(OBJ_CORE) $(GTEST_OBJ_DIR)/gt
 	-o $(FILE_RESOLVER_TEST) 
 	@ echo "${GREEN}$(FILE_RESOLVER_TEST)${RESET} made successfully"
 
+$(CHUNK_DECODER_TEST): $(OBJ_CHUNK_DECODER_TEST) $(OBJ_CORE) $(GTEST_OBJ_DIR)/gtest-all.o $(GTEST_OBJ_DIR)/gtest-main.o
+	@$(CXX) $(CXXFLAGS) $(CPPFLAGS) \
+	$(OBJ_CHUNK_DECODER_TEST) $(OBJ_CORE) \
+	$(GTEST_OBJ_DIR)/gtest-all.o \
+	$(GTEST_OBJ_DIR)/gtest-main.o \
+	-pthread \
+	-o $(CHUNK_DECODER_TEST) 
+	@ echo "${GREEN}$(CHUNK_DECODER_TEST)${RESET} made successfully"
+
 $(GTEST_OBJ_DIR)/gtest-main.o: $(GTEST_DIR)
 	@mkdir -p $(GTEST_OBJ_DIR)
 	@$(CXX) $(CXXFLAGS) $(CPPFLAGS) \
@@ -148,6 +162,7 @@ fclean: clean
 	rm -f $(HTTP_P_TEST)
 	rm -f $(ROUTER_TEST)
 	rm -f $(FILE_RESOLVER_TEST)
+	rm -f $(CHUNK_DECODER_TEST)
 
 re: fclean all
 
