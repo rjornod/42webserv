@@ -117,33 +117,52 @@ Result<std::filesystem::path, FileResolutionError> RequestProcessor::resolveForM
 
 HttpResponse RequestProcessor::handleMultipart(RequestContext& ctx, std::vector<MultipartPart>& parts) {
 
-  std::vector<std::filesystem::path> files;
-  std::vector<std::string> names;
+  std::vector<std::filesystem::path> written;
+  std::string body;
+
+  auto cleanup = [&written]() {
+    std::error_code ec;
+    for (const auto& p : written)
+      std::filesystem::remove(p, ec);
+  };
   
-  for (auto part : parts) {
+  for (const auto& part : parts) {
     // std::cout << BLUE << part << RESET << std::endl;
-    if (part.fileName.has_value()) {
-      auto path = resolveForMultipart(ctx, std::string(part.fileName.value()));
-      if (!path) {
-        // TO DO: cleanup!!
-        std::cout << RED << "error on resolve for multipart" << RESET << std::endl;
-        std::cout << "Name: " << part.fileName.value() << std::endl;
-        std::cout << "Error: " << to_string(path.error()) << std::endl;
-        return buildErrorResponse(statusFromError(path.error()), ctx);
-      }
-      //Collecting the names for building the response
-      names.emplace_back(part.fileName.value());
-      //Collecting the filepaths for cleanup
-      files.emplace_back(path.value());
-      int err = writeFileAtomically(path.value(), std::string(part.data));
-      if (err != 0) {
-        std::cout << "Some error occured in writeFileAtomically" << std::endl;
-        //TO DO: cleanup!!
-        return buildErrorResponse(500, ctx);
-      }
+    if (!part.fileName.has_value() || part.fileName->empty())
+      continue;
+ 
+
+    //TO DO: validate name, if it's not valid, generate one
+    auto path = resolveForMultipart(ctx, std::string(part.fileName.value()));
+    if (!path) {
+      cleanup();
+      std::cout << RED << "error on resolve for multipart" << RESET << std::endl;
+      std::cout << "Name: " << part.fileName.value() << std::endl;
+      std::cout << "Error: " << to_string(path.error()) << std::endl;
+      return buildErrorResponse(statusFromError(path.error()), ctx);
     }
+    
+    int err = writeFileAtomically(path.value(), std::string(part.data));
+    if (err != 0) {
+      std::cout << "Some error occured in writeFileAtomically" << std::endl;
+      cleanup();
+      return buildErrorResponse(500, ctx);
+    }
+    written.push_back(path.value());
+    body += "Created: " + path.value().filename().string() + "\n";
   }
-  return buildErrorResponse(505, ctx);
+
+  if (written.empty())
+    return buildErrorResponse(400, ctx); // Valid multipart but nothing to write
+  
+  HttpResponse response;
+  response.setStatusCode(201);
+  response.makeStatusLine();
+  response.addHeader("Content-Type", "text/plain; charset=utf-8");
+  response.addHeader("Content-Length", std::to_string(body.size()));
+  response.setBodySource(body);
+  
+  return response;
 }
 
 Result<std::vector<MultipartPart>, MultipartError> RequestProcessor::parseMultipart(std::string_view body,std::string_view boundary) {

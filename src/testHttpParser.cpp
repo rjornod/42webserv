@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
     "POST /hi.txt HTTP/1.1\r\n"
     "Host: example.com\r\n"
     "User-Agent: test\r\n"
-    "Content-Length: 184\r\n"
+    "Content-Length: 201\r\n"
     // "Transfer-Encoding: chunked\r\n"
     "Content-Type: multipart/form-data; boundary=XYZ\r\n"
     "\r\n"
@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
     "Content-Type: text/plain\r\n"
     "\r\n"
     "line1\r\nline2\r\n--XYZ\r\n"
-    "Content-Disposition: form-data; name=\"desc\"\r\n"
+    "Content-Disposition: form-data; name=\"desc\"; filename=\"b.txt\"\r\n"
     "\r\n"
     "my file\r\n--XYZ--\r\n";
     
