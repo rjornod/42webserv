@@ -1,6 +1,7 @@
 #pragma once
 
 #include "HttpResponse.hpp"
+#include "ClientTimeoutManager.hpp"
 #include <fstream>
 #include <array>
 #include <unistd.h>
@@ -36,10 +37,11 @@ class ResponseWriter {
     std::array<char, 65536> m_chunkBuffer{}; //holds the current 64 KB of data from the file
     size_t m_chunkFilled = 0; // Where the data ends in chunkBuffer
     size_t m_chunkSent = 0; //How many bytes (out of the chunkFilled) have been sent to the socket
+    ClientTimeoutManager &m_toManager;
 
   public:
 
-    explicit ResponseWriter(HttpResponse response);
+    ResponseWriter(HttpResponse response, ClientTimeoutManager &toManager);
     ~ResponseWriter() {};
     
     // Called by the poll() loop whenever the socket is writable

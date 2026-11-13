@@ -72,4 +72,8 @@ class Listener : public IoEndpoint {
 			}
 			return EndpointResult::SPAWNED;
 		}
+
+		bool validate() override {
+			return true; // no concern with server fringe cases
+		}
 };
