@@ -27,3 +27,7 @@ void Client::buildParserErrorResponse() {
 
 	std::cout << getHttpResponse() << std::endl;
 }
+
+bool Client::validate() {
+	return !m_toManager.isTimedOut();
+}

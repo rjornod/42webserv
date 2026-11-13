@@ -4,6 +4,7 @@
 #include "ClientState.hpp"
 #include "IoEndpoint.hpp"
 #include "ServerConfig.hpp"
+#include "ClientTimeoutManager.hpp"
 #define SEND 1
 #define RECEIVE 2
 #include "Colors.hpp"
@@ -16,6 +17,11 @@
 #define CLOSED 9
 
 
+static ClientTimeoutManager getFromConfig(const ServerConfig &serverConfig) {
+	(void)serverConfig; // TODO actually add timeouts with default values to ServerConfig
+	return ClientTimeoutManager(60000, 60000, 75000, 60000, 5000); // in milliseconds
+}
+
 class Client : public IoEndpoint {
 	private:
 		std::string m_clientIp;
@@ -26,22 +32,22 @@ class Client : public IoEndpoint {
 		size_t			m_bytesSent;
 		size_t			m_bytesLeftToSend;
 		ClientState	m_clientState;
-		time_t			m_lastActivity;							// stores the time since the client requested something
 		bool				m_shouldDisconnect;					// marks a client for disconnection
 		const ServerConfig &m_serverConfig;
 		HttpParser 	m_parser;
 		HttpResponse m_response;
 		std::unique_ptr<ResponseWriter> m_writer; //A pointer that will be null until the response is ready
+		ClientTimeoutManager m_toManager;
 
 	public:
-		Client(int clientFd, const std::string& clientIp, int localPort, const ServerConfig &serverConfig) : IoEndpoint(clientFd), m_serverConfig(serverConfig) {
+		Client(int clientFd, const std::string& clientIp, int localPort, const ServerConfig &serverConfig) : IoEndpoint(clientFd), m_serverConfig(serverConfig), m_toManager(getFromConfig(serverConfig)) {
 			m_clientIp = clientIp;
 			m_localPort = localPort;
 			m_keepAlive = true;
 			m_clientState = ClientState::ReadingRequest;
 			m_bytesSent = 0;
-			m_lastActivity = time(nullptr);
 			m_shouldDisconnect = false;
+			m_toManager.startRequest();
 			std::cout << "Client Object created\nClientFd: " << m_fd 
 								<< "\nClient Ip: " << m_clientIp << std::endl;
 
@@ -60,7 +66,6 @@ class Client : public IoEndpoint {
 		size_t							getBytesSent()																		{return m_bytesSent;}
 		size_t							getBytesLeftToSend()															{return m_bytesLeftToSend;}
 		ClientState					getClientState() 																	{return m_clientState;}
-		time_t							getLastActivity()																	{return m_lastActivity;}
 		bool								getShouldDisconnect()															{return m_shouldDisconnect;}
 		void								setClientIp(std::string clientIp) 								{m_clientIp = clientIp;}
 		void								setLocalPort(int localPort)												{m_localPort = localPort;}
@@ -70,7 +75,6 @@ class Client : public IoEndpoint {
 		void								setBytesSent(size_t bytes)												{m_bytesSent = bytes;}
 		void								setBytesLeftToSend(size_t bytes)									{m_bytesLeftToSend = bytes;}
 		void								setClientState(ClientState state)									{m_clientState = state;}
-		void 								setLastActivity()																	{m_lastActivity = time(nullptr);}
 		void								setShouldDisconnect(bool shouldDisconnect) 				{m_shouldDisconnect = shouldDisconnect;}
 		void 								setHttpResponse(HttpResponse response)						{m_response = response;}
 		
@@ -85,7 +89,7 @@ class Client : public IoEndpoint {
     }
 
 		void writerSetup(HttpResponse response) {
-			m_writer = std::make_unique<ResponseWriter>(std::move(response));
+			m_writer = std::make_unique<ResponseWriter>(std::move(response), m_toManager);
 		}
 
 		bool responseReady() const {return m_writer != nullptr;}
@@ -127,10 +131,9 @@ class Client : public IoEndpoint {
 
 			bytes = recv(m_fd, buffer, sizeof(buffer), 0);
 			if (bytes > 0) {
+				m_toManager.readData();
 				//TODO: check if it;s okay to parse with server config max body size
 				parser.parse(buffer, m_serverConfig.getClientMaxBody());
-					
-				setLastActivity();
 				setClientState(ClientState::ReadingRequest);
 			}
 
@@ -143,9 +146,13 @@ class Client : public IoEndpoint {
 				** The response should then be built on a new string (?) to then be sent to the client
 				* 
 			**/
+			if (parser.getParserState() == HttpParserState::BODY) {
+				m_toManager.startBody();
+			}
 			if (parser.getParserState() == HttpParserState::COMPLETE ||
 					parser.getParserState() == HttpParserState::ERROR) {
 				setClientState(ClientState::RequestFinished);
+				m_toManager.startResponse(); // TODO integrate with CGI
 
 				// this loop should only happen AFTER the full request has come in
 				if (parser.getParserState() == HttpParserState::COMPLETE)
@@ -209,4 +216,6 @@ class Client : public IoEndpoint {
 			}
 			return EndpointResult::SPAWNED;
 		}
+
+		bool validate() override;
 };

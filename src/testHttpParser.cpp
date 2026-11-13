@@ -79,7 +79,8 @@ int main(int argc, char **argv) {
     response = processor.process(ctx);
   }
 
-  ResponseWriter writer = ResponseWriter(response);
+  ClientTimeoutManager testToManager = ClientTimeoutManager(0, 0, 0, 0, 0);
+  ResponseWriter writer = ResponseWriter(response, testToManager);
   int sv[2];
   socketpair(AF_UNIX, SOCK_STREAM, 0, sv);
   // sv[0] and sv[1] are now connected to each other, like a socket connection
