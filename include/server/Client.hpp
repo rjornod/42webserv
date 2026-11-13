@@ -128,7 +128,7 @@ class Client : public IoEndpoint {
 			bytes = recv(m_fd, buffer, sizeof(buffer), 0);
 			if (bytes > 0) {
 				//TODO: check if it;s okay to parse with server config max body size
-				parser.parse(buffer, m_serverConfig.getClientMaxBody());
+				parser.parse(std::string_view(buffer, static_cast<size_t>(bytes)), m_serverConfig.getClientMaxBody());
 				// std::cout << "End parser call: BUFFER: [" << parser.getBuffer() << "]" << std::endl;
 				setLastActivity();
 				setClientState(ClientState::ReadingRequest);
@@ -158,8 +158,10 @@ class Client : public IoEndpoint {
 					buildResponse();					// check if build response gave an error
 					
 				}															
-				else 
+				else {
 					buildParserErrorResponse();
+					setShouldDisconnect(true); 
+				}
 			}
 			
 					

@@ -148,7 +148,6 @@ HttpResponse RequestProcessor::handleMultipart(RequestContext& ctx, std::vector<
 
 Result<std::vector<MultipartPart>, MultipartError> RequestProcessor::parseMultipart(std::string_view body,std::string_view boundary) {
   
-  std::cout << RED << "BOUNDARY: " << boundary << RESET << std::endl;
   constexpr size_t MAX_PARTS = 100;
   constexpr size_t MAX_PART_HEADER_BYTES = 8192;
 
