@@ -7,7 +7,6 @@
 #include <unordered_map>
 #include <iostream>
 #include "HttpRequest.hpp"
-#include "IHttpParser.hpp"
 #include "HttpParserState.hpp"
 #include "HttpVersion.hpp"
 #include "ChunkDecoder.hpp"
@@ -20,7 +19,7 @@ enum class EncodingType {
   BOTH
 };
 
-class HttpParser : public IHttpParser {
+class HttpParser {
 
   private:
 
