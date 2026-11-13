@@ -14,6 +14,19 @@ void LocationConfig::setDefaultValues() {
 	m_return.second.clear();
 }
 
+// checks if this extension is configured for cgi
+bool LocationConfig::isCgi(const std::string &ext) {
+	return m_cgiHandlers.find(ext) != m_cgiHandlers.end();
+}
+
+// find the interpreter that should execute this extension
+std::string LocationConfig::getCgiBin(const std::string& ext) {
+	auto it = m_cgiHandlers.find(ext);
+	if (it == m_cgiHandlers.end())
+		return "";
+	return it->second;
+}
+
 // DEBUG FUNCTIONS
 void LocationConfig::printValues() const {
 	std::cout << YELLOW << "\n__________ LOCATION DETAILS ___________\n"
@@ -48,5 +61,12 @@ void LocationConfig::printValues() const {
 	else
 		for (const auto& pair : m_errorPages)
 			std::cout << pair.first << " : " << pair.second << " ";
+	std::cout << std::endl;
+	std::cout << YELLOW << "CGI HANDLERS: " << RESET;
+	if (m_cgiHandlers.empty())
+		std::cout << "(not set)";
+	else
+		for (const auto& [extension, interpreter] : m_cgiHandlers)
+			std::cout << extension << " -> " << interpreter << " ";
 	std::cout << std::endl;
 }

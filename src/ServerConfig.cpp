@@ -16,6 +16,19 @@ void ServerConfig::setDefaultValues() {
 	m_upload_store = "www/uploads";
 }
 
+// checks if this extension is configured for cgi
+bool ServerConfig::isCgi(const std::string &ext) {
+	return m_cgiHandlers.find(ext) != m_cgiHandlers.end();
+}
+
+// find the interpreter that should execute this extension
+std::string ServerConfig::getCgiBin(const std::string& ext) {
+	auto it = m_cgiHandlers.find(ext);
+	if (it == m_cgiHandlers.end())
+		return "";
+	return it->second;
+}
+
 void ServerConfig::seenDirective(std::string directive) {
 	m_seendirectives.emplace(directive);
 }
