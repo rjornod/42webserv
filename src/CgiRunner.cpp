@@ -4,12 +4,51 @@
 #include <cstring>
 
 #include <unistd.h>
+#include <signal.h>
+#include <sys/wait.h>
 
 #include "HttpResponse.hpp"
 
+static std::vector<char*> prepareEnv(RequestContext &ctx) {
+	std::vector<char*> env;
+	switch (ctx.getHttpRequest().getMethod())
+	{
+	case HttpMethod::GET:
+		env.push_back(strdup("REQUEST_METHOD=GET"));
+		break;
+	case HttpMethod::POST:
+		env.push_back(strdup("REQUEST_METHOD=POST"));
+		break;
+	case HttpMethod::DELETE:
+		env.push_back(strdup("REQUEST_METHOD=DELETE"));
+		break;
+	default:
+		// unreachable
+		break;
+	}
+	auto headers = ctx.getHttpRequest().getHeaders();
+	if (headers.find("content-type") != headers.end()) {
+		env.push_back(strdup(("CONTENT_TYPE=" + headers.find("content-type")->second).c_str()));
+		env.push_back(strdup(("CONTENT_LENGTH=" + std::to_string(ctx.getHttpRequest().getBodySize())).c_str()));
+	}
+	env.push_back(strdup("QUERY_STRING="));
+	env.push_back(strdup("SERVER_PROTOCOL=HTTP/1.0"));
+	env.push_back(strdup(("SCRIPT_NAME=" + ctx.getFilePath().string()).c_str()));
+	env.push_back(strdup(("UPLOAD_DIR=" + ctx.getLocationConfig()->getUploadStore()).c_str()));
+	env.push_back(nullptr);
+	return env;
+}
+
+void CgiRunner::forceKill() {
+	m_done = true;
+	m_isError = true;
+	if (waitpid(m_pid, nullptr, WNOHANG) == 0) {
+		kill(m_pid, SIGQUIT);
+	}
+}
+
 // need all the context
-CgiRunner::CgiRunner(std::string path, RequestContext &ctx) : m_done(false) {
-	// TODO prepare env
+CgiRunner::CgiRunner(std::string path, RequestContext &ctx) : m_input(ctx.getHttpRequest().getBody()), m_written(0), m_done(false), m_isError(false) {
 	int	inFildes[2];
 	int	outFildes[2];
 	int	errFildes[2];
@@ -65,13 +104,11 @@ CgiRunner::CgiRunner(std::string path, RequestContext &ctx) : m_done(false) {
 			exit(1);
 		}
 		std::vector<char*> argv;
-		std::vector<char*> env(1);
+		std::vector<char*> env = prepareEnv(ctx);
 		argv.push_back(strdup(path.c_str()));
 		argv.push_back(strdup(ctx.getFilePath().c_str()));
 		argv.push_back(nullptr);
 		execve(path.c_str(), argv.data(), env.data());
-		free(argv[0]);
-		free(argv[1]);
 		exit(1);
 	}
 	close(inFildes[0]);
@@ -79,32 +116,77 @@ CgiRunner::CgiRunner(std::string path, RequestContext &ctx) : m_done(false) {
 	close(errFildes[1]);
 }
 
+CgiRunner::~CgiRunner() {
+	if (waitpid(m_pid, nullptr, WNOHANG) == 0) {
+		kill(m_pid, SIGQUIT);
+	}
+}
+
 int CgiRunner::getInFd() const { return m_inFd; }
 int CgiRunner::getOutFd() const { return m_outFd; }
 int CgiRunner::getErrFd() const { return m_errFd; }
 
-void CgiRunner::doNextIn() {
-	// TODO write body into pipe in
+bool CgiRunner::doNextIn() {
+	if (m_written >= m_input.length()) {
+		return true;
+	}
+	ssize_t bytesWritten = write(m_inFd, m_input.c_str() + m_written, m_input.length() - m_written);
+	if (bytesWritten <= 0) {
+		forceKill();
+		return true;
+	}
+	m_written += bytesWritten;
+	return false;
 }
 
 void CgiRunner::doNextOut() {
 	char buf[4096];
 	ssize_t bytesRead = read(m_outFd, buf, 4096);
 	if (bytesRead < 0) {
-		// TODO process error
+		forceKill();
+		return;
 	}
-	m_body = std::string(buf, bytesRead);
-	m_done = true;
+	if (bytesRead == 0) {
+		m_done = true;
+		return;
+	}
+	m_body += std::string(buf, bytesRead);
 }
 
 void CgiRunner::doNextErr() {
-	// TODO
+	char buf[4096];
+	ssize_t bytesRead = read(m_errFd, buf, 4096);
+	if (bytesRead < 0) {
+		forceKill();
+		return;
+	}
+	m_body = std::string(buf, bytesRead);
+	m_isError = true;
+	m_done = true;
+}
+
+void CgiRunner::handleHangup() {
+	int exitStatus;
+	if (waitpid(m_pid, &exitStatus, WNOHANG) == 0) {
+		return;
+	}
+	if (!(WIFEXITED(exitStatus))) {
+		return;
+	}
+	m_isError = (WEXITSTATUS(exitStatus)) != 0;
+	m_done = true;
 }
 
 bool CgiRunner::isDone() const { return m_done; }
 
 HttpResponse CgiRunner::getResponse() {
+	if (!m_done) {
+		throw std::runtime_error("requesting incomplete response");
+	}
 	HttpResponse response;
+	if (m_isError) {
+		response.setStatusCode(500);
+	}
 	response.makeStatusLine();
 	response.addHeader("Content-Length", std::to_string(m_body.size()));
 	response.addHeader("Content-Type", "text/plain");

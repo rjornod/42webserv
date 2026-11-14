@@ -19,15 +19,19 @@ class PipeEnd : public IoEndpoint {
 				if (m_cgiRunner->isDone()) {
 					return EndpointResult::ERROR; // just to end things
 				}
-				// TODO add hangup for pipes only
 				if (ev.isError) {
-					return EndpointResult::ERROR;
+					m_cgiRunner->handleHangup();
+				}
+				if (m_cgiRunner->isDone()) {
+					return EndpointResult::ERROR; // just to end things
 				}
 				if (ev.isWrite) { // write means we do pipe input
 					if (m_type == PipeType::IN) {
-						m_cgiRunner->doNextIn();
+						if (m_cgiRunner->doNextIn()) {
+							return EndpointResult::ERROR;
+						}
 					} else {
-						// TODO kill cgi runner
+						m_cgiRunner->forceKill();
 						return EndpointResult::ERROR;
 					}
 				}
@@ -37,11 +41,11 @@ class PipeEnd : public IoEndpoint {
 					} else if (m_type == PipeType::ERR) {
 						m_cgiRunner->doNextErr();
 					} else {
-						// TODO kill cgi runner
+						m_cgiRunner->forceKill();
 						return EndpointResult::ERROR;
 					}
 				}
-				if (false) { // TODO check for validity
+				if (m_cgiRunner->isDone()) {
 					return EndpointResult::ERROR;
 				}
 			} catch (std::exception &ex) {
