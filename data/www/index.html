@@ -1,47 +1,52 @@
-<html style="background-color: #002139; background-image: url('img/bg.gif');">
+
+<html>
 	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>WEB SERV TEST LAB</title>
 		<link rel="preconnect" href="https://fonts.googleapis.com">
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 		<link href="https://fonts.googleapis.com/css2?family=Comic+Neue:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+		<link rel="stylesheet" href="/style.css">
+		<link rel="stylesheet" href="/error-pages.css">
 	</head>
-	<style>
-		.comic-neue-bold {
-			font-family: "Comic Neue", cursive;
-			font-weight: 700;
-			font-style: normal;
-		}
-		.comic-neue-light-italic {
-			font-family: "Comic Neue", cursive;
-			font-weight: 300;
-			font-style: italic;
-		}
-	</style>
-	<body style="text-align: center; vertical-align:center;">
-		<div style=" display: table; margin: 0 auto; height: 100%; width: 1300px; ">
-			<div style="height: 100px; width: 100%; display: flex; align-items: center; justify-content: center;">
-				<img src="img/computa.gif">
-				<h1 style="color: orange; text-align: center; margin: 0 10px;" class="comic-neue-bold">
-					HELLO WORLD
-				</h1>
-				<img src="img/computa.gif">
-			</div>
-			<p style="color:white; font-size:larger;" class="comic-neue-light-italic">Welcome to the best webpage on the web</p>
-			<div>
-				<div>
-					<li>
-						<ol>test</ol>
-						<ol>test</ol>
-						<ol>test</ol>
-						<ol>test</ol>
-					</li>
+	<body>
+		<main class="home-shell">
+			<div class="home-window">
+				<div class="home-titlebar">
+					<span>WEBSERV.EXE</span>
+					<span>[ X ]</span>
 				</div>
-				<div>
-					<img src="https://media1.tenor.com/m/p6TBMwVHK7sAAAAd/internet.gif">
+				<header class="home-hero">
+					<img src="/img/computa.gif" alt="Animated computer">
+					<div>
+						<p class="home-kicker">WELCOME TO</p>
+						<h1>HELLO WORLD</h1>
+					</div>
+					<img src="/img/computa.gif" alt="Animated computer">
+				</header>
+				<p class="home-intro">THE BEST WEBPAGE ON THE WEB // EST. SOMEWHERE IN THE 90S</p>
+				<div class="home-grid">
+					<nav class="home-panel" aria-label="Webserv test lab">
+						<p class="home-panel-title">WEB SERV TEST LAB</p>
+						<ul class="links">
+							<li><a class="test-link" href="/redirect">REDIRECTION</a></li>
+							<li><a class="test-link" href="/upload.html">UPLOAD</a></li>
+							<li><a class="test-link" href="/cgi-bin/">CGI BIN</a></li>
+							<li><a class="test-link" href="/error_pages/404.html">404 ERROR PAGE</a></li>
+						</ul>
+					</nav>
+					<section class="home-stage">
+						<img src="https://media1.tenor.com/m/p6TBMwVHK7sAAAAd/internet.gif" alt="Animated internet graphic">
+						<p>YOU ARE NOW SURFING THE INFORMATION SUPERHIGHWAY</p>
+					</section>
+					<aside class="home-panel">
+						<p class="home-panel-title">SYSTEM STATUS</p>
+						<p class="home-status">[ ONLINE ]<br>SERVER: WEBSERV<br>MODE: RETRO<br>CONNECTION: RADICAL</p>
+					</aside>
 				</div>
-				<a href="secret.html" style="text-decoration: none;"><h1 style="color:aqua">SECRET</h1></a>
-			 	<p style="color:aqua">
-			 	</p>
-			</div>
+				<p class="home-footer">best viewed with a browser // please do not unplug the modem</p>
 		</div>
+		</main>
 	</body>
 </html>

@@ -17,7 +17,9 @@ void Client::buildResponse() {
 	RequestProcessor processor;
 	HttpResponse response = processor.process(ctx);
 
+	std::cout << YELLOW << "-------------------"  << " RESPONSE "   << "-------------------" << RESET << std::endl;
 	std::cout << response << std::endl;
+	std::cout << YELLOW << "------------------"<< " END OF RESPONSE " << "--------------------" << RESET << std::endl;
 
 	if (response.isCgi()) {
 		startCgi(response.getCgiRunner());
