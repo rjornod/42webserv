@@ -80,6 +80,21 @@ HttpResponse RequestProcessor::handleDelete(RequestContext &ctx) {
   return deleteHandler(ctx);
 }
 
+std::unique_ptr<CgiRunner> RequestProcessor::tryCgiForPost(RequestContext &ctx) {
+  Resolution res;
+  HttpResponse err;
+
+  if (!resolvePath(ctx, res, err))
+    return nullptr; // it will be handled later
+  if (res.kind == Resolution::DIRECTORY)
+    return nullptr; // later
+  if (ctx.getLocationConfig()->getCgiHandler().contains(res.path.extension())) {
+    return std::make_unique<CgiRunner>(
+        ctx.getLocationConfig()->getCgiHandler().at(res.path.extension()), ctx);
+  }
+  return nullptr;
+}
+
 HttpResponse RequestProcessor::handlePost(RequestContext &ctx) {
 
   const HttpRequest &req = ctx.getHttpRequest();
@@ -106,9 +121,10 @@ HttpResponse RequestProcessor::handlePost(RequestContext &ctx) {
     parseMultipart(req.getBody(), boundary);
     return buildErrorResponse(500, ctx); // For now... TO DO: handle multipart
   }
+  if (auto cgiRunner = tryCgiForPost(ctx)) {
+	return HttpResponse(std::move(cgiRunner));
+  }
   return handleRawUpload(ctx);
-
-  return HttpResponse();
 }
 
 Result<std::vector<MultipartPart>, MultipartError> RequestProcessor::parseMultipart(
