@@ -18,16 +18,16 @@ void HttpParser::fail(int status) {
 
 void HttpParser::parse(std::string_view chunk, int maxBodySize) {
 
-  std::cout << "Parser called -- status: " << to_string(m_state) << std::endl;
+  // std::cout << "Parser called -- status: " << to_string(m_state) << std::endl;
   m_buffer += chunk;
-  std::cout << "Buffer: [" << m_buffer << "]" << std::endl;
+  // std::cout << "Buffer: [" << m_buffer << "]" << std::endl;
   EncodingType encType;
 
   switch (getParserState()) {
     case HttpParserState::REQUEST_LINE:
       if (!parseRequestLine()) {
         reportErrors();
-        std::cout << "Buffer: [" << m_buffer << "]" << std::endl;
+        // std::cout << "Buffer: [" << m_buffer << "]" << std::endl;
         return;
       }
       m_state = HttpParserState::HEADERS;
@@ -78,14 +78,15 @@ void HttpParser::parse(std::string_view chunk, int maxBodySize) {
       m_state = HttpParserState::COMPLETE;
       [[fallthrough]];
 
-    case HttpParserState::COMPLETE:
-      break;
 
     case HttpParserState::CHUNKED_BODY:
       if (!parseChunkedBody()) {
           reportErrors();
           return;
       }
+    
+    case HttpParserState::COMPLETE:
+      break;
 
     //Not sure if it will ever fall here (reportErrors is triggered on errors)
     case HttpParserState::ERROR:
