@@ -98,9 +98,9 @@ HttpResponse RequestProcessor::handlePost(RequestContext& ctx) {
       return buildErrorResponse(400, ctx);
     }
     std::vector<MultipartPart> partsVec = parts.value();
-    for (auto vec : partsVec) {
-      std::cout << BLUE << to_string(vec) << RESET << std::endl;
-    }
+    // for (auto vec : partsVec) {
+    //   std::cout << BLUE << to_string(vec) << RESET << std::endl;
+    // }
     return handleMultipart(ctx, partsVec);
   }
   return handleRawUpload(ctx);
