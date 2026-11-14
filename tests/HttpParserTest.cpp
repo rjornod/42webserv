@@ -116,6 +116,50 @@ TEST_F(HttpParserTest, ParsesChunkedRequestLine) {
         parserChunked.getRequest().getHeaders());
 }
 
+TEST_F(HttpParserTest, ParsesChunkEncodedRequestInParts) {
+
+    std::string r0 = 
+        "POST /hi.txt HTTP/1.1\r\n"
+        "Host:";
+
+
+    std::string r1 = 
+        " example.com\r\n"
+        "User-Agent";
+        
+    std::string r2 = 
+        ": test\r\n"
+        "Content-Type: text/plain\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "\r\n";
+        
+    std::string r3 =
+        "5\r\n"
+        "hello\r\n"
+        "0\r\n"
+        "\r\n";
+
+    std::string rAll = 
+        "POST /hi.txt HTTP/1.1\r\n"
+        "Host: example.com\r\n"
+        "User-Agent: test\r\n"
+        "Content-Type: text/plain\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "\r\n"
+        "5\r\n"
+        "hello\r\n"
+        "0\r\n"
+        "\r\n";
+
+    parser.parse(r0, 2147483647);
+    parser.parse(r1, 2147483647);
+    parser.parse(r2, 2147483647);
+    parser.parse(r3, 2147483647);
+
+    // parser.parse(rAll, 2147483647);
+    EXPECT_EQ(parser.getRequest().getBody(), "hello");
+}
+
 TEST_F(HttpParserTest, ParsesHeaders) {
 
     parser.parse(validGetRequest, 2147483647);

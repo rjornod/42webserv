@@ -128,8 +128,8 @@ class Client : public IoEndpoint {
 			bytes = recv(m_fd, buffer, sizeof(buffer), 0);
 			if (bytes > 0) {
 				//TODO: check if it;s okay to parse with server config max body size
-				parser.parse(buffer, m_serverConfig.getClientMaxBody());
-					
+				parser.parse(std::string_view(buffer, static_cast<size_t>(bytes)), m_serverConfig.getClientMaxBody());
+				// std::cout << "End parser call: BUFFER: [" << parser.getBuffer() << "]" << std::endl;
 				setLastActivity();
 				setClientState(ClientState::ReadingRequest);
 			}
@@ -147,17 +147,23 @@ class Client : public IoEndpoint {
 					parser.getParserState() == HttpParserState::ERROR) {
 				setClientState(ClientState::RequestFinished);
 
-				// this loop should only happen AFTER the full request has come in
-				if (parser.getParserState() == HttpParserState::COMPLETE)
-					buildResponse();																// check if build response gave an error
-				else 
-					buildParserErrorResponse();
-			}
-			std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  m_fd << RESET << "-------------------" << std::endl;
-			// std::cout << "-------------------" << MAGENTA << "connection through index: " << getServerConfigIndex() << " of the global config " << RESET << "-------------------" << std::endl;
-			std::cout << getParser().getRequest() << std::endl;
-			std::cout << getClientReceiveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;	
+				std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  m_fd << RESET << "-------------------" << std::endl;
+				// std::cout << "-------------------" << MAGENTA << "connection through index: " << getServerConfigIndex() << " of the global config " << RESET << "-------------------" << std::endl;
+				std::cout << getParser().getRequest() << std::endl;
+				std::cout << getClientReceiveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;	
 					
+
+				// this loop should only happen AFTER the full request has come in
+				if (parser.getParserState() == HttpParserState::COMPLETE) {
+					buildResponse();					// check if build response gave an error
+					
+				}															
+				else {
+					buildParserErrorResponse();
+					setShouldDisconnect(true); 
+				}
+			}
+			
 					
 			if (bytes == 0) {
 				time_t timestamp;

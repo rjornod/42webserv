@@ -277,7 +277,7 @@ def post_upload_then_delete():
 def request_split_across_packets():
     full = build_request("GET", "/", {"User-Agent": "test", "Content-Type" : "text/plain"})
     # print(full)
-    r = send_in_pieces([full[:20], full[20:]])
+    r = send_in_pieces([full[:10], full[10:20], full[20:]])
     # dump(r, "split req")
     expect_status(r, 200)
  
