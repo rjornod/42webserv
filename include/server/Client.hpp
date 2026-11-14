@@ -29,6 +29,7 @@ class Client : public IoEndpoint {
 		std::string	m_receiveBuffer;
 		std::string	m_sendBuffer;
 		bool				m_keepAlive;
+		bool m_closeConnection;
 		size_t			m_bytesSent;
 		size_t			m_bytesLeftToSend;
 		ClientState	m_clientState;
@@ -45,6 +46,7 @@ class Client : public IoEndpoint {
 		Client(int clientFd, const std::string& clientIp, int localPort, const ServerConfig &serverConfig) : IoEndpoint(clientFd), m_serverConfig(serverConfig), m_toManager(getFromConfig(serverConfig)) {
 			m_clientIp = clientIp;
 			m_localPort = localPort;
+			m_closeConnection = false;
 			m_keepAlive = true;
 			m_clientState = ClientState::ReadingRequest;
 			m_bytesSent = 0;
@@ -201,7 +203,8 @@ class Client : public IoEndpoint {
 			}
 			writeToSocket();
 			if (writerFinished()) {
-				clearParser();
+				if (m_keepAlive && !m_closeConnection)
+					clearParser();
 				// client.setShouldDisconnect(true);// TODO KEEP-ALIVE/ keep connection?!
 			}
 

@@ -107,6 +107,16 @@ int Server::serverCore() {
 				}
 			}
 		}
+		std::vector<int> invalidFds;
+		for (auto &[fd, ep] : m_endpoints) {
+			if (!ep->validate()) {
+				std::cout << "Invalid fd " << fd << std::endl;
+				invalidFds.push_back(fd);
+			}
+		}
+		for (auto fd : invalidFds) {
+			eraseClient(fd);
+		}
 	}
 	return 0;
 }

@@ -34,6 +34,7 @@ void Client::buildParserErrorResponse() {
 	RequestProcessor processor;
 	HttpResponse response = processor.buildErrorResponse(getParser().getErrorStatus(), ctx);
 
+	m_closeConnection = true;
 	response.addHeader("Connection", "close");
 
 	std::cout << response << std::endl;
@@ -41,5 +42,27 @@ void Client::buildParserErrorResponse() {
 }
 
 bool Client::validate() {
-	return !m_toManager.isTimedOut();
+	if (!m_toManager.isTimedOut()) {
+		m_closeConnection = true;
+		return true;
+	}
+	auto st = m_parser.getParserState();
+	if (st == HttpParserState::REQUEST_LINE || st == HttpParserState::HEADERS ||
+		st == HttpParserState::BODY || st == HttpParserState::CHUNKED_BODY) {
+		m_parser.setParserState(HttpParserState::ERROR);
+
+		HttpResponse response(408);
+		response.makeStatusLine();
+		response.addHeader("Content-Length", "7");
+		response.addHeader("Content-Type", "text/plain");
+		response.setBodySource(std::string("Timeout"));
+	
+		std::cout << YELLOW << "-------------------"  << " RESPONSE "   << "-------------------" << RESET << std::endl;
+		std::cout << response << std::endl;
+		std::cout << YELLOW << "------------------"<< " END OF RESPONSE " << "--------------------" << RESET << std::endl;
+		writerSetup(std::move(response));
+		m_closeConnection = true;
+		return true;
+	}
+	return false;
 }
