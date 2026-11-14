@@ -30,8 +30,10 @@ class Client : public IoEndpoint {
 		bool				m_shouldDisconnect;					// marks a client for disconnection
 		const ServerConfig &m_serverConfig;
 		HttpParser 	m_parser;
-		HttpResponse m_response;
 		std::unique_ptr<ResponseWriter> m_writer; //A pointer that will be null until the response is ready
+		std::shared_ptr<CgiRunner> m_cgiRunner;
+
+		void startCgi(std::unique_ptr<CgiRunner> cgiRunner);
 
 	public:
 		Client(int clientFd, const std::string& clientIp, int localPort, const ServerConfig &serverConfig) : IoEndpoint(clientFd), m_serverConfig(serverConfig) {
@@ -50,9 +52,7 @@ class Client : public IoEndpoint {
 												<< std::endl;
 		}
 		/* getters and setters */
-		HttpParser&					getParser()																				{return m_parser;}
-		HttpResponse&				getHttpResponse()																	{return m_response;}
-		const std::string& 	getClientIp() 																		{return m_clientIp;}
+		HttpParser&					getParser()																				{return m_parser;}		const std::string& 	getClientIp() 																		{return m_clientIp;}
 		int 								getLocalPort()																		{return m_localPort;}
 		std::string& 				getClientReceiveBuffer() 													{return m_receiveBuffer;}
 		std::string& 				getClientSendBuffer() 														{return m_sendBuffer;}
@@ -71,9 +71,7 @@ class Client : public IoEndpoint {
 		void								setBytesLeftToSend(size_t bytes)									{m_bytesLeftToSend = bytes;}
 		void								setClientState(ClientState state)									{m_clientState = state;}
 		void 								setLastActivity()																	{m_lastActivity = time(nullptr);}
-		void								setShouldDisconnect(bool shouldDisconnect) 				{m_shouldDisconnect = shouldDisconnect;}
-		void 								setHttpResponse(HttpResponse response)						{m_response = response;}
-		
+		void								setShouldDisconnect(bool shouldDisconnect) 				{m_shouldDisconnect = shouldDisconnect;}		
 		/* other member functions*/
 		void	appendToBuffer(std::string data, size_t len, int operation) {
 			if (operation == RECEIVE) {
@@ -84,7 +82,7 @@ class Client : public IoEndpoint {
 			}
     }
 
-		void writerSetup(HttpResponse response) {
+		void writerSetup(HttpResponse &&response) {
 			m_writer = std::make_unique<ResponseWriter>(std::move(response));
 		}
 
@@ -182,6 +180,10 @@ class Client : public IoEndpoint {
 		void buildParserErrorResponse();
 
 		void sendResponse() {
+			if (m_cgiRunner && m_cgiRunner->isDone()) {
+				writerSetup(m_cgiRunner->getResponse());
+				m_cgiRunner.reset();
+			}
 			if (!responseReady()){
 				return;
 			}

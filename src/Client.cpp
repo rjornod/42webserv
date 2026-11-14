@@ -2,6 +2,14 @@
 
 #include "Router.hpp"
 #include "RequestProcessor.hpp"
+#include "PipeEnd.hpp"
+
+void Client::startCgi(std::unique_ptr<CgiRunner> cgiRunner) {
+	m_cgiRunner = std::shared_ptr<CgiRunner>(cgiRunner.release());
+	spawn(std::make_unique<PipeEnd>(m_cgiRunner->getInFd(), PipeEnd::PipeType::IN, m_cgiRunner));
+	spawn(std::make_unique<PipeEnd>(m_cgiRunner->getOutFd(), PipeEnd::PipeType::OUT, m_cgiRunner));
+	spawn(std::make_unique<PipeEnd>(m_cgiRunner->getErrFd(), PipeEnd::PipeType::ERR, m_cgiRunner));
+}
 
 void Client::buildResponse() {
 	Router router;
@@ -9,12 +17,15 @@ void Client::buildResponse() {
 	RequestProcessor processor;
 	HttpResponse response = processor.process(ctx);
 
-	setHttpResponse(response);
-	writerSetup(response);
-
 	std::cout << YELLOW << "-------------------"  << " RESPONSE "   << "-------------------" << RESET << std::endl;
-	std::cout << getHttpResponse() << std::endl;
+	std::cout << response << std::endl;
 	std::cout << YELLOW << "------------------"<< " END OF RESPONSE " << "--------------------" << RESET << std::endl;
+
+	if (response.isCgi()) {
+		startCgi(response.getCgiRunner());
+	} else {
+		writerSetup(std::move(response));
+	}
 }
 
 void Client::buildParserErrorResponse() {
@@ -24,11 +35,7 @@ void Client::buildParserErrorResponse() {
 	HttpResponse response = processor.buildErrorResponse(getParser().getErrorStatus(), ctx);
 
 	response.addHeader("Connection", "close");
-	setHttpResponse(response);
-	writerSetup(response);
 
-	std::cout << YELLOW << "-------------------"  << " RESPONSE "   << "-------------------" << RESET << std::endl;
-	std::cout << getHttpResponse() << std::endl;
-	std::cout << YELLOW << "------------------"<< " END OF RESPONSE " << "--------------------" << RESET << std::endl;
-
+	std::cout << response << std::endl;
+	writerSetup(std::move(response));
 }
