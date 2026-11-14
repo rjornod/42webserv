@@ -4,15 +4,12 @@
 
 static int statusFromError(FileResolutionError e) {
   switch (e) {
-  case FileResolutionError::BAD_REQUEST:
-    return 400;
-  case FileResolutionError::FORBIDDEN:
-    return 403;
-  case FileResolutionError::NOT_FOUND:
-    return 404;
-  case FileResolutionError::SERVER_ERROR:
-  default:
-    return 500;
+    case FileResolutionError::BAD_REQUEST: return 400;
+    case FileResolutionError::FORBIDDEN:   return 403;
+    case FileResolutionError::NOT_FOUND:   return 404;
+    case FileResolutionError::DUPLICATE:  return 409;
+    case FileResolutionError::SERVER_ERROR:
+    default:                               return 500;
   }
 }
 
@@ -95,23 +92,36 @@ HttpResponse RequestProcessor::handlePost(RequestContext &ctx) {
   std::unordered_map<std::string, std::string> params;
   std::string type;
 
-  // TO DO parse the params
-  if (!parseContentType(req, params, type))
+  if (!parseContentType(req, params, type)) 
     return buildErrorResponse(400, ctx);
   if (!checkSupportedMedia(type))
     return buildErrorResponse(415, ctx);
-
-  if (type == "multipart/form-data")
+  
+  if (type == "multipart/form-data") {
+    auto it = params.find("boundary");
+    if (it == params.end())
+      return buildErrorResponse(400, ctx);
+    std::string boundary = it->second;
+    std::cout << "BOUNDARY: " << boundary << std::endl;
+    parseMultipart(req.getBody(), boundary);
     return buildErrorResponse(500, ctx); // For now... TO DO: handle multipart
-
+  }
   return handleRawUpload(ctx);
 
   return HttpResponse();
 }
 
-// TO DO: return a FileSystem error instead of an int in case of error
-int writeFileAtomically(const std::filesystem::path &target,
-                        const std::string &data) {
+Result<std::vector<MultipartPart>, MultipartError> RequestProcessor::parseMultipart(
+  std::string_view body,std::string_view boundary) {
+    std::cout << RED << "BOUNDARY: " << boundary << RESET << std::endl;
+    (void)body;
+
+    return Result<std::vector<MultipartPart>, MultipartError>::Err(MultipartError::NO_BOUNDARY);
+
+  }
+
+//TO DO: return a FileSystem error instead of an int in case of error
+int writeFileAtomically(const std::filesystem::path& target, const std::string& data) {
 
   // Temp file in the SAME directory, so rename() stays on one filesystem
   // (atomic)
@@ -150,7 +160,8 @@ HttpResponse RequestProcessor::handleRawUpload(RequestContext &ctx) {
   // auto target = fileResolver.resolveForWrite(ctx);
   if (!target)
     return buildErrorResponse(statusFromError(target.error()), ctx);
-
+  
+  std::cout << "Target: " << target.value().path << std::endl;
   // // If the file exists we refuse to overwrite (POLICY)
   // Not checking anymore because we always generate a name; and we generate
   // until the file name doesn't exist
@@ -178,11 +189,10 @@ HttpResponse RequestProcessor::handleRawUpload(RequestContext &ctx) {
 
 bool RequestProcessor::checkSupportedMedia(std::string type) {
 
-  std::unordered_set<std::string> supportedMedia = {
-      "text/html",       "text/css",
-      "image/gif",       "application/javascript",
-      "text/plain",      "application/json",
-      "application/pdf", "multipart/form-data"};
+  std::unordered_set<std::string> supportedMedia = {"text/html", "text/css",
+    "image/gif", "application/javascript", "image/jpg", "image/png",
+    "text/plain", "application/json", "application/pdf",
+    "multipart/form-data", "application/x-www-form-urlencoded"};
 
   return supportedMedia.contains(type);
 }
@@ -200,14 +210,29 @@ bool RequestProcessor::parseContentType(
   auto contentTypeHeader = it->second;
 
   size_t colon = contentTypeHeader.find(';');
-  if (colon == std::string::npos)
+  if (colon == std::string::npos) {
     type = contentTypeHeader;
+    return true;
+  }
   else
     type = contentTypeHeader.substr(0, colon);
-  std::for_each(type.begin(), type.end(), [](char &c) { c = tolower(c); });
+  std::for_each(type.begin(), type.end(), [](char& c) {c = tolower(c);});
+ 
+  //TO DO trim from white space
+  
+  //TO DO parse parameters --- assumes now there is a SINGLE parameter
+  std::string paramsStr = contentTypeHeader.substr(colon + 1);
 
-  // TO DO trim from white space
-  (void)params;
+  while (paramsStr[0] == ' ')
+    paramsStr.erase(0, 1);
+
+  size_t eq = paramsStr.find("=");
+  if (eq == std::string::npos)
+    return false;
+  std::string paramName = paramsStr.substr(0, eq);
+  std::string paramVal = paramsStr.substr(eq + 1);
+
+  params.try_emplace(paramName, paramVal);
   return true;
 }
 
@@ -238,19 +263,26 @@ bool RequestProcessor::checkContentLength(const RequestContext &ctx) {
     maxBodySize = ctx.getLocationConfig()->getMaxBodySize();
   else
     maxBodySize = ctx.getServerConfig()->getClientMaxBody();
+  
+  //TODO: instead of this, check the actual body size against the maxBodySize
+  // std::unordered_map<std::string, std::string> headers = ctx.getHttpRequest().getHeaders();
+  // auto contentLen = headers.find("content-length");
 
-  std::unordered_map<std::string, std::string> headers =
-      ctx.getHttpRequest().getHeaders();
-  auto contentLen = headers.find("content-length");
+  // if (contentLen == headers.end())
+  //   return true;
+  // try {
+  //   int len = std::stoi(contentLen->second);
+  //   return len <= maxBodySize;
+  // }
+  // catch (const std::out_of_range& oor) {
+  //   return false;
+  // }
+  // END TODO
 
-  if (contentLen == headers.end())
-    return true;
-  try {
-    int len = std::stoi(contentLen->second);
-    return len <= maxBodySize;
-  } catch (const std::out_of_range &oor) {
-    return false;
-  }
+  std::string body = ctx.getHttpRequest().getBody();
+  return static_cast<int>(body.size()) <= maxBodySize;
+
+
 }
 
 bool RequestProcessor::postHeadersPresent(const HttpRequest &req) {

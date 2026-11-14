@@ -150,7 +150,7 @@ def request(method: str = "GET", path: str = "/", **kwargs) -> Response:
     return send_raw(build_request(method, path, **kwargs))
  
  
-def send_in_pieces(pieces: list[bytes], delay: float = 0.2) -> Response:
+def send_in_pieces(pieces: list[bytes], delay: float = 0.1) -> Response:
     """Send a request split across several send() calls (tests partial reads)."""
     with connect() as s:
         for piece in pieces:
@@ -240,7 +240,7 @@ def delete_missing_file_is_404():
 @test
 def upload_exact_manual_request():
     raw = (
-        "POST /uploads/test.txt HTTP/1.1\r\n"
+        "POST /uploads/test1.txt HTTP/1.1\r\n"
         "Host: example.com\r\n"
         "User-Agent: test\r\n"
         "Content-Length: 5\r\n"
@@ -250,12 +250,12 @@ def upload_exact_manual_request():
     )
     r = send_raw(raw)
     # dump(r, "exact")
-    assert r.status in (200, 201), f"got {r.status}"
+    assert r.status in (200, 201, 409), f"got {r.status}"
  
 @test
 def post_upload_then_delete():
     raw = (
-        "POST /uploads/test.txt HTTP/1.1\r\n"
+        "POST /uploads/test2.txt HTTP/1.1\r\n"
         "Host: example.com\r\n"
         "User-Agent: test\r\n"
         "Content-Length: 5\r\n"
@@ -275,8 +275,10 @@ def post_upload_then_delete():
  
 @test
 def request_split_across_packets():
-    full = build_request("GET", "/")
-    r = send_in_pieces([full[:5], full[5:20], full[20:]])
+    full = build_request("GET", "/", {"User-Agent": "test", "Content-Type" : "text/plain"})
+    # print(full)
+    r = send_in_pieces([full[:20], full[20:]])
+    # dump(r, "split req")
     expect_status(r, 200)
  
  

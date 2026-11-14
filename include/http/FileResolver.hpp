@@ -19,6 +19,7 @@ enum class FileResolutionError {
   BAD_REQUEST,    // From UriDecodeError -- client sent garbage
   FORBIDDEN,      // Path escaped root
   NOT_FOUND,
+  DUPLICATE,
 //   IS_DIRECTORY_NO_INDEX_FILE, //It's a directory and no index file was found
   SERVER_ERROR
 };
@@ -70,6 +71,7 @@ constexpr const char* to_string(FileResolutionError error)
         case FileResolutionError::BAD_REQUEST: return "BAD_REQUEST";
         case FileResolutionError::FORBIDDEN: return "FORBIDDEN";
         case FileResolutionError::NOT_FOUND: return "NOT_FOUND";
+        case FileResolutionError::DUPLICATE: return "DUPLICATE";
         // case FileResolutionError::IS_DIRECTORY_NO_INDEX_FILE: return "IS_DIRECTORY_NO_INDEX_FILE";
         case FileResolutionError::SERVER_ERROR: return "SERVER_ERROR";
     }
