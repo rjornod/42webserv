@@ -11,17 +11,33 @@
 int main(int argc, char **argv) {
 
   std::string request =
-    "POST /hi.txt HT";
-    
-  std::string req2 =
-    "TP/1.1\r\n"
+    "POST /hi.txt HTTP/1.1\r\n"
     "Host: example.com\r\n"
     "User-Agent: test\r\n"
-    "Content-Length: 5\r\n"
+    "Content-Length: 201\r\n"
     // "Transfer-Encoding: chunked\r\n"
-    "Content-Type: multipart/form-data; boundary=ExampleBoundaryString\r\n"
+    "Content-Type: multipart/form-data; boundary=XYZ\r\n"
     "\r\n"
-    "hello";
+    "--XYZ\r\n"
+    "Content-Disposition: form-data; name=\"file\"; filename=\"a.txt\"\r\n"
+    "Content-Type: text/plain\r\n"
+    "\r\n"
+    "line1\r\nline2\r\n--XYZ\r\n"
+    "Content-Disposition: form-data; name=\"desc\"; filename=\"b.txt\"\r\n"
+    "\r\n"
+    "my file\r\n--XYZ--\r\n";
+    
+  std::string chunked = 
+        "POST /hi.txt HTTP/1.1\r\n"
+        "Host: example.com\r\n"
+        "User-Agent: test\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "Content-Type: text/plain\r\n"
+        "\r\n"
+        "5\r\n"
+        "hello\r\n"
+        "0\r\n"
+        "\r\n";
 
   if (argc != 2) {
     std::cout << "Usage ./webserv <path/to/configfile>" << std::endl;
@@ -30,9 +46,9 @@ int main(int argc, char **argv) {
 
   HttpParser parser;
 
-  parser.parse(request, 10000000);
+  parser.parse(chunked, 10000000);
 
-  parser.parse(req2, 1000000);
+  // parser.parse(req2, 1000000);
   std::cout << "Parser state : " << to_string(parser.getParserState()) << std::endl;
 
   std::cout << "------------------------- Request: ------------------" << std::endl << parser.getRequest() << std::endl;

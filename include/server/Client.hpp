@@ -35,9 +35,11 @@ class Client : public IoEndpoint {
 		bool				m_shouldDisconnect;					// marks a client for disconnection
 		const ServerConfig &m_serverConfig;
 		HttpParser 	m_parser;
-		HttpResponse m_response;
 		std::unique_ptr<ResponseWriter> m_writer; //A pointer that will be null until the response is ready
 		ClientTimeoutManager m_toManager;
+		std::shared_ptr<CgiRunner> m_cgiRunner;
+
+		void startCgi(std::unique_ptr<CgiRunner> cgiRunner);
 
 	public:
 		Client(int clientFd, const std::string& clientIp, int localPort, const ServerConfig &serverConfig) : IoEndpoint(clientFd), m_serverConfig(serverConfig), m_toManager(getFromConfig(serverConfig)) {
@@ -52,13 +54,14 @@ class Client : public IoEndpoint {
 								<< "\nClient Ip: " << m_clientIp << std::endl;
 
 		}
-		~Client(){std::cout << "Client Object with fd [" << m_fd << "] destroyed" 
-												<< std::endl;
+		~Client(){
+			std::cout << "Client Object with fd [" << m_fd << "] destroyed" << std::endl;
+			if (m_cgiRunner) {
+				m_cgiRunner->forceKill();
+			}
 		}
 		/* getters and setters */
-		HttpParser&					getParser()																				{return m_parser;}
-		HttpResponse&				getHttpResponse()																	{return m_response;}
-		const std::string& 	getClientIp() 																		{return m_clientIp;}
+		HttpParser&					getParser()																				{return m_parser;}		const std::string& 	getClientIp() 																		{return m_clientIp;}
 		int 								getLocalPort()																		{return m_localPort;}
 		std::string& 				getClientReceiveBuffer() 													{return m_receiveBuffer;}
 		std::string& 				getClientSendBuffer() 														{return m_sendBuffer;}
@@ -76,7 +79,6 @@ class Client : public IoEndpoint {
 		void								setBytesLeftToSend(size_t bytes)									{m_bytesLeftToSend = bytes;}
 		void								setClientState(ClientState state)									{m_clientState = state;}
 		void								setShouldDisconnect(bool shouldDisconnect) 				{m_shouldDisconnect = shouldDisconnect;}
-		void 								setHttpResponse(HttpResponse response)						{m_response = response;}
 		
 		/* other member functions*/
 		void	appendToBuffer(std::string data, size_t len, int operation) {
@@ -88,7 +90,7 @@ class Client : public IoEndpoint {
 			}
     }
 
-		void writerSetup(HttpResponse response) {
+		void writerSetup(HttpResponse &&response) {
 			m_writer = std::make_unique<ResponseWriter>(std::move(response), m_toManager);
 		}
 
@@ -133,7 +135,8 @@ class Client : public IoEndpoint {
 			if (bytes > 0) {
 				m_toManager.readData();
 				//TODO: check if it;s okay to parse with server config max body size
-				parser.parse(buffer, m_serverConfig.getClientMaxBody());
+				parser.parse(std::string_view(buffer, static_cast<size_t>(bytes)), m_serverConfig.getClientMaxBody());
+				// std::cout << "End parser call: BUFFER: [" << parser.getBuffer() << "]" << std::endl;
 				setClientState(ClientState::ReadingRequest);
 			}
 
@@ -154,17 +157,23 @@ class Client : public IoEndpoint {
 				setClientState(ClientState::RequestFinished);
 				m_toManager.startResponse(); // TODO integrate with CGI
 
-				// this loop should only happen AFTER the full request has come in
-				if (parser.getParserState() == HttpParserState::COMPLETE)
-					buildResponse();																// check if build response gave an error
-				else 
-					buildParserErrorResponse();
-			}
-			std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  m_fd << RESET << "-------------------" << std::endl;
-			// std::cout << "-------------------" << MAGENTA << "connection through index: " << getServerConfigIndex() << " of the global config " << RESET << "-------------------" << std::endl;
-			std::cout << getParser().getRequest() << std::endl;
-			std::cout << getClientReceiveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;	
+				std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  m_fd << RESET << "-------------------" << std::endl;
+				// std::cout << "-------------------" << MAGENTA << "connection through index: " << getServerConfigIndex() << " of the global config " << RESET << "-------------------" << std::endl;
+				std::cout << getParser().getRequest() << std::endl;
+				std::cout << getClientReceiveBuffer() << MAGENTA << "------------------"<< " END OF REQUEST " << "--------------------" << RESET << std::endl;	
 					
+
+				// this loop should only happen AFTER the full request has come in
+				if (parser.getParserState() == HttpParserState::COMPLETE) {
+					buildResponse();					// check if build response gave an error
+					
+				}															
+				else {
+					buildParserErrorResponse();
+					setShouldDisconnect(true); 
+				}
+			}
+			
 					
 			if (bytes == 0) {
 				time_t timestamp;
@@ -183,6 +192,10 @@ class Client : public IoEndpoint {
 		void buildParserErrorResponse();
 
 		void sendResponse() {
+			if (m_cgiRunner && m_cgiRunner->isDone()) {
+				writerSetup(m_cgiRunner->getResponse());
+				m_cgiRunner.reset();
+			}
 			if (!responseReady()){
 				return;
 			}

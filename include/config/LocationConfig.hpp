@@ -4,7 +4,6 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <map>
-#include "Colors.hpp"
 
 class LocationConfig {
 	private:
@@ -33,27 +32,18 @@ class LocationConfig {
 		void	setPath(const std::string& path)																{ m_path = path; }
 		void 	clearDefaultMethods()																						{ m_allowedMethods.clear(); }
 		void 	setDefaultValues();
-		const std::string& 									getPath() const												{ return m_path; }
-		bool 																getAutoIndex() const 									{ return m_autoIndex; } 
-		const std::string& 									getRoot() const 											{ return m_root; }
-		int 																getMaxBodySize() const								{ return m_maxBodySize; }
-		const std::vector<std::string>& 		getIndex() const 											{ return m_index; }
-		const std::map<int, std::string>&		getErrorPages() const									{ return m_errorPages; }
-		const std::vector<std::string>& 		getAllowedMethods() const							{ return m_allowedMethods; }
-		const std::string& 									getUploadStore() const 								{ return m_upload_store; }
-		const std::pair<int, std::string>& 	getReturn() const											{ return m_return; }
-		const	std::unordered_map<std::string, std::string>& getCgiHandler() const	{ return m_cgiHandlers; }
 		
-			const std::string& 								getPath()												{ return m_path; }
-		int 																getAutoIndex() 									{ return m_autoIndex; } 
-		const std::string& 									getRoot() 											{ return m_root; }
-		int 																getMaxBodySize()								{ return m_maxBodySize; }
-		const std::vector<std::string>& 		getIndex() 											{ return m_index; }
-		const std::map<int, std::string>&		getErrorPages()									{ return m_errorPages; }
-		const std::vector<std::string>& 		getAllowedMethods()							{ return m_allowedMethods; }
-		const std::string& 									getUploadStore() 								{ return m_upload_store; }
-		const std::pair<int, std::string>& 	getReturn()											{ return m_return; }
-		const	std::unordered_map<std::string, std::string>& getCgiHandler()	{ return m_cgiHandlers; }
+		const std::string& getPath() const { return m_path; }
+		int getAutoIndex() const { return m_autoIndex; } 
+		const std::string& getRoot() const { return m_root; }
+		int getMaxBodySize() const { return m_maxBodySize; }
+		const std::vector<std::string>& getIndex() const { return m_index; }
+		const std::map<int, std::string>& getErrorPages() const { return m_errorPages; }
+		const std::vector<std::string>& getAllowedMethods() const { return m_allowedMethods; }
+		const std::string& getUploadStore() const { return m_upload_store; }
+		const std::pair<int, std::string>& getReturn() const { return m_return; }
+		const std::unordered_map<std::string, std::string>& getCgiHandler() const { return m_cgiHandlers; }
+	
 		void	printValues() const;
 
 };

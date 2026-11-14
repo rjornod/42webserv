@@ -69,7 +69,11 @@ bool ClientTimeoutManager::isTimedOut()
 		if (sinceStarted > m_clientHeaderTimeout) {
 			return true;
 		}
+		break;
 	case TimerState::REQUEST_BODY:
+		if (sinceStarted > m_clientHeaderTimeout) {
+			return true;
+		}
 		return sinceRead > m_clientBodyTimeout;
 	case TimerState::CGI_WORKING:
 		return sinceStarted > m_cgiTimeout; // the hangup and pipe errors are handled by the cgi processor itself

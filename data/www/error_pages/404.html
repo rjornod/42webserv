@@ -1,19 +1,29 @@
-<html style="background-color:darkmagenta; margin:0;">
+<html>
 	<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>404 // NOT FOUND</title>
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Comic+Neue:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="style.css">
-	<style>
-		.bowlby-one-regular {
-			font-family: "Bowlby One", sans-serif;
-			font-weight: 400;
-			font-style: normal;
-			color:whitesmoke;
-			font-size: 300%;
-		}
-	</style>
-	<body class="bowlby-one-regular">
-		<h1>404<br>NOT FOUND</h1>
+	<link rel="stylesheet" href="/style.css">
+	<link rel="stylesheet" href="/error-pages.css">
+	</head>
+	<body>
+		<main class="error-shell">
+			<div class="error-window">
+				<div class="error-titlebar">
+					<span>WEBSERVER.EXE</span>
+					<span>[ X ]</span>
+				</div>
+				<div class="error-content">
+					<img src="/img/fire-up.gif" alt="Animated flames">
+					<h1>404<br>NOT FOUND</h1>
+					<p class="error-copy">THE REQUESTED PAGE DOES NOT EXIST.</p>
+					<img src="/img/fire.gif" alt="Animated flames">
+					<p class="error-footer"> press any key to return to the homepage // connection lost </p>
+				</div>
+			</div>
+		</main>
 	</body>
 </html>
