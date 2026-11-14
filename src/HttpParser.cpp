@@ -81,6 +81,12 @@ void HttpParser::parse(std::string_view chunk, int maxBodySize) {
     case HttpParserState::COMPLETE:
       break;
 
+    case HttpParserState::CHUNKED_BODY:
+      if (!parseChunkedBody()) {
+          reportErrors();
+          return;
+      }
+
     //Not sure if it will ever fall here (reportErrors is triggered on errors)
     case HttpParserState::ERROR:
       std::cout << "Error on parsing: " << m_errorMessage << std::endl;
@@ -337,7 +343,8 @@ HttpVersion HttpParser::validateHttpVersion(std::string_view versionStr) {
 // }
 
 void HttpParser::clearParser() {
-  *this = HttpParser{};
+  if (m_state == HttpParserState::COMPLETE || m_state == HttpParserState::ERROR)
+    *this = HttpParser{};
 
 }
 
