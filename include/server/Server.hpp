@@ -49,7 +49,6 @@ class Server {
 		void 		sendResponse(Client& client);
 		void		eraseClient(int fd);
 		void		closeAllFds();
-		void		checkTimeouts();
 		bool		handleIncoming(int fd);
 		bool		handleOutgoing(size_t i);
 		void 		checkFdEvents();

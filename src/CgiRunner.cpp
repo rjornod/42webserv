@@ -40,6 +40,7 @@ static std::vector<char*> prepareEnv(RequestContext &ctx) {
 }
 
 void CgiRunner::forceKill() {
+	setTimeoutManager(nullptr);
 	m_done = true;
 	m_isError = true;
 	if (waitpid(m_pid, nullptr, WNOHANG) == 0) {
@@ -175,6 +176,20 @@ void CgiRunner::handleHangup() {
 	}
 	m_isError = (WEXITSTATUS(exitStatus)) != 0;
 	m_done = true;
+}
+
+void CgiRunner::setTimeoutManager(ClientTimeoutManager *toManager) {
+	m_toManager = toManager;
+	if (m_toManager) {
+		m_toManager->startCgi();
+	}
+}
+
+void CgiRunner::checkTimeout() {
+	if (m_toManager && m_toManager->isTimedOut()) {
+		m_body = "CGI Timeout";
+		forceKill();
+	}
 }
 
 bool CgiRunner::isDone() const { return m_done; }

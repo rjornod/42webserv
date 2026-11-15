@@ -1,6 +1,6 @@
 #include "ResponseWriter.hpp"
 
-ResponseWriter::ResponseWriter(HttpResponse response) : m_response(std::move(response)), m_state(WriterState::WRITING_HEADERS) {
+ResponseWriter::ResponseWriter(HttpResponse response, ClientTimeoutManager &toManager) : m_response(std::move(response)), m_state(WriterState::WRITING_HEADERS), m_toManager(toManager) {
   m_headersBuffer = m_response.getStatusLine();
 
   std::vector<std::pair<std::string, std::string>> headers = m_response.getHeaders();
@@ -86,8 +86,10 @@ WriteResult ResponseWriter::writeBuffer(int socketFd, const char* data, size_t l
     return WriteResult::COMPLETE;
 
   ssize_t n = send(socketFd, data + bytesSent, len - bytesSent, MSG_NOSIGNAL);
-  if (n > 0)
+  if (n > 0) {
+    m_toManager.writtenData();
     bytesSent += static_cast<size_t>(n);
+  }
   //if n <= 0; the reason is unknown, try again on the next POLLOUT, handle outside
 
   return bytesSent == len ? WriteResult::COMPLETE : WriteResult::IN_PROGRESS;

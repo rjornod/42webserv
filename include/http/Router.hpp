@@ -2,10 +2,9 @@
 #include "HttpRequest.hpp"
 #include "RequestContext.hpp"
 #include "GlobalConfig.hpp"
-#include "IRouter.hpp"
 #include "Client.hpp"
 
-class Router : public IRouter {
+class Router {
 
   public:
 
