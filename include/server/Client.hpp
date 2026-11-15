@@ -157,7 +157,7 @@ class Client : public IoEndpoint {
 			if (parser.getParserState() == HttpParserState::COMPLETE ||
 					parser.getParserState() == HttpParserState::ERROR) {
 				setClientState(ClientState::RequestFinished);
-				m_toManager.startResponse(); // TODO integrate with CGI
+				m_toManager.startResponse();
 
 				std::cout << "-------------------" << MAGENTA << " REQUEST FROM: FD " <<  m_fd << RESET << "-------------------" << std::endl;
 				// std::cout << "-------------------" << MAGENTA << "connection through index: " << getServerConfigIndex() << " of the global config " << RESET << "-------------------" << std::endl;

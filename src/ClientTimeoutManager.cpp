@@ -79,3 +79,5 @@ bool ClientTimeoutManager::isTimedOut()
 	}
 	return true; // something is terribly wrong
 }
+
+bool ClientTimeoutManager::isCgi() { return m_state == TimerState::CGI_WORKING; }

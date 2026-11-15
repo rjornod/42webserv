@@ -32,4 +32,5 @@ class ClientTimeoutManager {
 		void setKeepAlive(bool value);
 
 		bool isTimedOut();
+		bool isCgi();
 };

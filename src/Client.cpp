@@ -6,6 +6,7 @@
 
 void Client::startCgi(std::unique_ptr<CgiRunner> cgiRunner) {
 	m_cgiRunner = std::shared_ptr<CgiRunner>(cgiRunner.release());
+	m_cgiRunner->setTimeoutManager(&m_toManager);
 	spawn(std::make_unique<PipeEnd>(m_cgiRunner->getInFd(), PipeEnd::PipeType::IN, m_cgiRunner));
 	spawn(std::make_unique<PipeEnd>(m_cgiRunner->getOutFd(), PipeEnd::PipeType::OUT, m_cgiRunner));
 	spawn(std::make_unique<PipeEnd>(m_cgiRunner->getErrFd(), PipeEnd::PipeType::ERR, m_cgiRunner));
@@ -62,6 +63,10 @@ bool Client::validate() {
 		std::cout << YELLOW << "------------------"<< " END OF RESPONSE " << "--------------------" << RESET << std::endl;
 		writerSetup(std::move(response));
 		m_closeConnection = true;
+		return true;
+	}
+	if (m_toManager.isCgi()) {
+		m_toManager.startResponse();
 		return true;
 	}
 	return false;
