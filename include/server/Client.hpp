@@ -99,7 +99,6 @@ class Client : public IoEndpoint {
 		void clearParser() {m_parser.clearParser();}
 
 		std::string printState() {
-			std::cout << "Client fd: " << m_fd << " - ";
 			if (m_clientState == ClientState::ReadingRequest)
 				return "ReadingRequest";
 			else if (m_clientState == ClientState::RequestFinished)

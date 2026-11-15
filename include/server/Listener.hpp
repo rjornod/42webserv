@@ -27,8 +27,7 @@ class Listener : public IoEndpoint {
 	public:
 		Listener(int fd, int port, const ServerConfig &serverConfig) : IoEndpoint(fd), m_serverConfig(serverConfig) {
 			m_port = port;
-			std::cout << "Listener Object created\nFd: " << m_fd 
-								<< "\nPort: " << m_port << std::endl;
+			std::cout << "\nlocalhost:" << m_port << std::endl;
 
 		}
 

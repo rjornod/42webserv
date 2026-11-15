@@ -77,17 +77,3 @@ class ConfigParser {
 		Token&	currentTokenPlus(unsigned int amount);
 		void		resolveInheritances();
 };
-
-/**
- * Error codes meaning and when they should get called:
- * 
- * 400 Bad Request - malformed request line, broken headers, etc
- * 403 Forbidden - File exists but no permissions to access it
- * 404 Not Found - Requested path doesn't contain any file
- * 405 Method Not Allowed - Path exists but but doesn' accept the specified HTTP method
- * 408 Request Timeout - Client connected but never aent a request within a certain amount of time
- * 413 Content Too Large - Body exceeds client_max_body_size
- * 500 Internal Server Error - Server fails (example: cgi crash, file read error)
- * 505 HTTP version not supported - Client sends anything other than HTTP/1.1
- * 
- */
