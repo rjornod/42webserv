@@ -91,18 +91,6 @@ void Server::eraseClient(int fd) {
 	m_endpoints.erase(fd);
 }
 
-/*
-	TO DO: figure out if there should be a timeout to disconnect users after a set time
-*/
-void Server::checkTimeouts() {
-	for (auto it = m_connectedClients.begin(); it != m_connectedClients.end(); ++it) {
-		if (time(nullptr) - it->second.getLastActivity() > 60
-			 && it->second.getClientState() == ClientState::ReadingRequest) {
-					// it->second.setShouldDisconnect(true);
-		}
-	}
-}
-
 int Server::serverCore() {
 	signal(SIGINT, signalHandler);
 	while (serverRunning) {
@@ -118,6 +106,15 @@ int Server::serverCore() {
 					m_poller->registerFd(fd);
 				}
 			}
+		}
+		std::vector<int> invalidFds;
+		for (auto &[fd, ep] : m_endpoints) {
+			if (!ep->validate()) {
+				invalidFds.push_back(fd);
+			}
+		}
+		for (auto fd : invalidFds) {
+			eraseClient(fd);
 		}
 	}
 	return 0;
