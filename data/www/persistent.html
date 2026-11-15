@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Webserv Cookie Tester</title>
+
+	<style>
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			font-family: Arial, sans-serif;
+			margin: 0;
+			padding: 40px;
+			min-height: 100vh;
+			transition: background-color 0.2s;
+		}
+
+		.container {
+			max-width: 650px;
+			margin: auto;
+			padding: 30px;
+			background: white;
+			border-radius: 12px;
+			box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+		}
+
+		h1 {
+			margin-top: 0;
+		}
+
+		.field {
+			margin: 20px 0;
+		}
+
+		label {
+			display: block;
+			font-weight: bold;
+			margin-bottom: 8px;
+		}
+
+		input {
+			width: 100%;
+			padding: 10px;
+			border: 1px solid #ccc;
+			border-radius: 6px;
+			font-size: 16px;
+		}
+
+		button {
+			padding: 11px 18px;
+			margin: 5px 5px 5px 0;
+			border: none;
+			border-radius: 6px;
+			cursor: pointer;
+			font-size: 14px;
+		}
+
+		.primary {
+			background: #2563eb;
+			color: white;
+		}
+
+		.secondary {
+			background: #e5e7eb;
+		}
+
+		pre {
+			padding: 15px;
+			background: #1e293b;
+			color: #a7f3d0;
+			border-radius: 6px;
+			overflow-wrap: anywhere;
+			white-space: pre-wrap;
+		}
+
+		.info {
+			color: #555;
+			font-size: 14px;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<h1>🍪 Webserv Cookie Tester</h1>
+
+		<p class="info">
+			Change the values below, save them as cookies,
+			and reload this same page to test your server.
+		</p>
+
+		<div class="field">
+			<label for="username">Username</label>
+			<input type="text" id="username" placeholder="Enter username">
+		</div>
+
+		<div class="field">
+			<label for="bgcolor">Background color</label>
+			<input type="color" id="bgcolor" value="#dbeafe">
+		</div>
+
+		<button class="primary" onclick="saveCookies()">
+			Save cookies
+		</button>
+
+		<button class="secondary" onclick="reloadPage()">
+			Reload same page
+		</button>
+
+		<button class="secondary" onclick="clearCookies()">
+			Clear cookies
+		</button>
+
+		<hr>
+
+		<h2>Current preferences</h2>
+		<p id="welcome">Welcome, Guest!</p>
+
+		<h3>Browser cookies</h3>
+		<pre id="cookies"></pre>
+
+		<h3>Request information</h3>
+		<pre id="request"></pre>
+	</div>
+
+	<script>
+		function getCookie(name) {
+			const cookies = document.cookie.split(";");
+
+			for (let cookie of cookies) {
+				const parts = cookie.trim().split("=");
+
+				if (parts[0] === name) {
+					return decodeURIComponent(
+						parts.slice(1).join("=")
+					);
+				}
+			}
+
+			return null;
+		}
+
+		function updatePage() {
+			const username = getCookie("username") || "Guest";
+			const bgcolor = getCookie("bgcolor") || "#ffffff";
+
+			document.body.style.backgroundColor = bgcolor;
+
+			document.getElementById("username").value =
+				username === "Guest" ? "" : username;
+
+			document.getElementById("bgcolor").value = bgcolor;
+
+			document.getElementById("welcome").textContent =
+				"Welcome, " + username + "!";
+
+			document.getElementById("cookies").textContent =
+				document.cookie || "(No cookies found)";
+
+			document.getElementById("request").textContent =
+				"Requested file: " + window.location.pathname +
+				"\nMethod: GET" +
+				"\nCookies: " + (document.cookie || "(none)");
+		}
+
+		function saveCookies() {
+			const username =
+				document.getElementById("username").value;
+
+			const bgcolor =
+				document.getElementById("bgcolor").value;
+
+			document.cookie =
+				"username=" + encodeURIComponent(username) +
+				"; Path=/; Max-Age=3600; SameSite=Lax";
+
+			document.cookie =
+				"bgcolor=" + encodeURIComponent(bgcolor) +
+				"; Path=/; Max-Age=3600; SameSite=Lax";
+
+			updatePage();
+		}
+
+		function reloadPage() {
+			window.location.reload();
+		}
+
+		function clearCookies() {
+			document.cookie =
+				"username=; Path=/; Max-Age=0";
+
+			document.cookie =
+				"bgcolor=; Path=/; Max-Age=0";
+			document.cookie = 
+				"token=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+
+			updatePage();
+		}
+
+		updatePage();
+	</script>
+</body>
+
+</html>

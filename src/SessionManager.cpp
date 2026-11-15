@@ -31,6 +31,7 @@ Session &SessionManager::getSessionFromRequest(
     const std::unordered_map<std::string, std::string> &cookies) {
 	auto cit = cookies.find("SESSION_ID");
 	auto &session = (cit == cookies.end()) ? createSession() : getSession(cit->second);
+	session.clear();
 	for (auto &[key, value] : cookies) {
 		if (key == "SESSION_ID") {
 			continue;
@@ -46,8 +47,4 @@ Session &SessionManager::getEmptySession() {
 
 void SessionManager::deleteSession(const std::string& id) {
     m_sessions.erase(id);
-}
-
-void SessionManager::cleanExpiredSessions() {
-	// todo cleanup
 }

@@ -17,5 +17,4 @@ public:
     Session& getSessionFromRequest(const std::unordered_map<std::string, std::string>& cookies);
 	Session& getEmptySession();
     void deleteSession(const std::string& id);
-    void cleanExpiredSessions();
 };

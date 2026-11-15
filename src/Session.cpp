@@ -20,7 +20,9 @@ std::string Session::get(const std::string &key) const {
 	return "";
 }
 
-#include <iostream>
+void Session::clear() {
+	m_data.clear();
+}
 
 std::string Session::buildHeaderValue() {
 	std::string result = "SESSION_ID=" + m_id;
