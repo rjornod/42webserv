@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RequestContext.hpp"
+#include "ClientTimeoutManager.hpp"
 
 class HttpResponse;
 
@@ -18,6 +19,8 @@ class CgiRunner {
 		bool m_isError;
 		std::string m_body;
 		std::string m_setCookie;
+
+		ClientTimeoutManager *m_toManager;
 	public:
 		CgiRunner() = delete;
 		CgiRunner(std::string path, RequestContext &ctx);
@@ -33,6 +36,9 @@ class CgiRunner {
 		void doNextErr();
 		void handleHangup();
 
+		void setTimeoutManager(ClientTimeoutManager *toManager);
+
+		void checkTimeout();
 		bool isDone() const;
 		HttpResponse getResponse();
 };

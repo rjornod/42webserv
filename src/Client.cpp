@@ -6,6 +6,7 @@
 
 void Client::startCgi(std::unique_ptr<CgiRunner> cgiRunner) {
 	m_cgiRunner = std::shared_ptr<CgiRunner>(cgiRunner.release());
+	m_cgiRunner->setTimeoutManager(&m_toManager);
 	spawn(std::make_unique<PipeEnd>(m_cgiRunner->getInFd(), PipeEnd::PipeType::IN, m_cgiRunner));
 	spawn(std::make_unique<PipeEnd>(m_cgiRunner->getOutFd(), PipeEnd::PipeType::OUT, m_cgiRunner));
 	spawn(std::make_unique<PipeEnd>(m_cgiRunner->getErrFd(), PipeEnd::PipeType::ERR, m_cgiRunner));
@@ -34,9 +35,40 @@ void Client::buildParserErrorResponse() {
 	RequestProcessor processor;
 	HttpResponse response = processor.buildErrorResponse(getParser().getErrorStatus(), ctx);
 
+	m_closeConnection = true;
 	response.addHeader("Connection", "close");
 	response.addHeader("Set-Cookie", ctx.getSession().buildHeaderValue());
 
 	std::cout << response << std::endl;
 	writerSetup(std::move(response));
+}
+
+bool Client::validate() {
+	if (!m_toManager.isTimedOut()) {
+		m_closeConnection = true;
+		return true;
+	}
+	auto st = m_parser.getParserState();
+	if (st == HttpParserState::REQUEST_LINE || st == HttpParserState::HEADERS ||
+		st == HttpParserState::BODY || st == HttpParserState::CHUNKED_BODY) {
+		m_parser.setParserState(HttpParserState::ERROR);
+
+		HttpResponse response(408);
+		response.makeStatusLine();
+		response.addHeader("Content-Length", "7");
+		response.addHeader("Content-Type", "text/plain");
+		response.setBodySource(std::string("Timeout"));
+	
+		std::cout << YELLOW << "-------------------"  << " RESPONSE "   << "-------------------" << RESET << std::endl;
+		std::cout << response << std::endl;
+		std::cout << YELLOW << "------------------"<< " END OF RESPONSE " << "--------------------" << RESET << std::endl;
+		writerSetup(std::move(response));
+		m_closeConnection = true;
+		return true;
+	}
+	if (m_toManager.isCgi()) {
+		m_toManager.startResponse();
+		return true;
+	}
+	return false;
 }

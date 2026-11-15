@@ -34,4 +34,5 @@ class IoEndpoint {
 		IoEndpointList collectSpawned() noexcept;
 
 		virtual EndpointResult processEvent(IoEvent ev) noexcept = 0;
+		virtual bool validate() = 0;
 };

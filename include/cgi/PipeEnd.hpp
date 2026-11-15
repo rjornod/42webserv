@@ -56,4 +56,6 @@ class PipeEnd : public IoEndpoint {
 			}
 			return EndpointResult::SPAWNED;
 		}
+
+		bool validate() override;
 };
