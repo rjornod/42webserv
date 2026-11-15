@@ -1,13 +1,13 @@
 SERV = webserv
 CXX = c++ -Wall -Wextra -Werror
 CXXFLAGS += -g -std=c++20 -fsanitize=address -g -O0 
-INCL = -Iinclude -Iinclude/config -Iinclude/server -Iinclude/utils -Iinclude/http -Iinterfaces -Iinclude/cgi
+INCL = -Iinclude -Iinclude/config -Iinclude/server -Iinclude/utils -Iinclude/http -Iinterfaces -Iinclude/cgi -Iinclude/session
 SRC_DIR = ./src
 OBJ_DIR = ./obj
 SRC_CORE = Server.cpp  ConfigParser.cpp TokenType.cpp LocationConfig.cpp ServerConfig.cpp \
 	HttpParser.cpp ChunkDecoder.cpp HttpRequest.cpp HttpResponse.cpp Router.cpp RequestProcessor.cpp \
 	FileResolver.cpp ResponseWriter.cpp Polling.cpp IoEndpoint.cpp Client.cpp \
-	CgiRunner.cpp PipeEnd.cpp
+	CgiRunner.cpp PipeEnd.cpp Session.cpp SessionManager.cpp
 OBJ_CORE = $(SRC_CORE:%.cpp=$(OBJ_DIR)/%.o)
 
 GTEST_REPO = https://github.com/google/googletest.git

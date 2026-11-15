@@ -17,7 +17,7 @@ class CgiRunner {
 		bool m_done;
 		bool m_isError;
 		std::string m_body;
-
+		std::string m_setCookie;
 	public:
 		CgiRunner() = delete;
 		CgiRunner(std::string path, RequestContext &ctx);

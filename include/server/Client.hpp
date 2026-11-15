@@ -32,11 +32,13 @@ class Client : public IoEndpoint {
 		HttpParser 	m_parser;
 		std::unique_ptr<ResponseWriter> m_writer; //A pointer that will be null until the response is ready
 		std::shared_ptr<CgiRunner> m_cgiRunner;
+		SessionManager &m_sessionManager;
 
 		void startCgi(std::unique_ptr<CgiRunner> cgiRunner);
 
 	public:
-		Client(int clientFd, const std::string& clientIp, int localPort, const ServerConfig &serverConfig) : IoEndpoint(clientFd), m_serverConfig(serverConfig) {
+		Client(int clientFd, const std::string& clientIp, int localPort, const ServerConfig &serverConfig) : IoEndpoint(clientFd), m_serverConfig(serverConfig),
+				m_sessionManager(const_cast<ServerConfig&>(m_serverConfig).getSessionManager()) {
 			m_clientIp = clientIp;
 			m_localPort = localPort;
 			m_keepAlive = true;

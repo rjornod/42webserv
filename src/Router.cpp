@@ -10,7 +10,8 @@ if it's unique... (?!)
 */
 RequestContext Router::createContext(const HttpRequest& request, const ServerConfig& serverConfig){  
   auto uri = request.getURI();
-  RequestContext ctx;
+  auto &sm = const_cast<ServerConfig&>(serverConfig).getSessionManager();
+  RequestContext ctx(sm.getSessionFromRequest(request.getCookies()));
   ctx.setServerConfig(&serverConfig);
   ctx.setHttpRequest(request);
   ctx.setLocationConfig(matchLocation(serverConfig.getLocationConfigs(), uri));
@@ -21,7 +22,8 @@ RequestContext Router::createContext(const HttpRequest& request, const ServerCon
 /* Builds a context when there was an error in the parser. Therefore it builds it 
 as usual, but leaves the request empty, since it's irrelevant */
 RequestContext Router::createErrorContext(const ServerConfig& serverConfig) {
-  RequestContext ctx;
+  auto &sm = const_cast<ServerConfig&>(serverConfig).getSessionManager();
+  RequestContext ctx(sm.getEmptySession());
   ctx.setServerConfig(&serverConfig);
   ctx.setHttpRequest(HttpRequest());   // empty request
   ctx.setLocationConfig(matchLocation(serverConfig.getLocationConfigs(), "/"));

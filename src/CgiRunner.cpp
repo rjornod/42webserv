@@ -49,6 +49,7 @@ void CgiRunner::forceKill() {
 
 // need all the context
 CgiRunner::CgiRunner(std::string path, RequestContext &ctx) : m_input(ctx.getHttpRequest().getBody()), m_written(0), m_done(false), m_isError(false) {
+	m_setCookie = ctx.getSession().buildHeaderValue();
 	int	inFildes[2];
 	int	outFildes[2];
 	int	errFildes[2];
@@ -190,6 +191,7 @@ HttpResponse CgiRunner::getResponse() {
 	response.makeStatusLine();
 	response.addHeader("Content-Length", std::to_string(m_body.size()));
 	response.addHeader("Content-Type", "text/plain");
+	response.addHeader("Set-Cookie", m_setCookie);
 	response.setBodySource(m_body);
 	return response;
 }

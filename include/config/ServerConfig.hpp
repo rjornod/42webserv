@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include "LocationConfig.hpp"
 #include "Colors.hpp"
+#include "SessionManager.hpp"
 
 class ServerConfig {
 	private:
@@ -22,6 +23,7 @@ class ServerConfig {
 		std::unordered_map<std::string, std::string>	m_cgiHandlers;
 		std::unordered_set<std::string> 							m_seenLocations;
 		std::unordered_set<std::string> 							m_seendirectives;
+		SessionManager m_sessionManager;
 	public:
 		ServerConfig() 																												{ setDefaultValues(); }
 		~ServerConfig() 																											{};
@@ -58,4 +60,6 @@ class ServerConfig {
 		const std::unordered_map<std::string, std::string>& getCgiHandler() const 	{ return m_cgiHandlers; }
 		const std::vector<LocationConfig>&	getLocationConfigs() const 							{ return m_locationConfigs; }
 		std::vector<LocationConfig>&				getLocationConfigs() 										{ return m_locationConfigs; }
+
+		SessionManager&								getSessionManager() { return m_sessionManager; }
 	};

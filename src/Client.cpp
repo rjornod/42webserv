@@ -17,13 +17,13 @@ void Client::buildResponse() {
 	RequestProcessor processor;
 	HttpResponse response = processor.process(ctx);
 
-	std::cout << YELLOW << "-------------------"  << " RESPONSE "   << "-------------------" << RESET << std::endl;
-	std::cout << response << std::endl;
-	std::cout << YELLOW << "------------------"<< " END OF RESPONSE " << "--------------------" << RESET << std::endl;
-
 	if (response.isCgi()) {
 		startCgi(response.getCgiRunner());
 	} else {
+		response.addHeader("Set-Cookie", ctx.getSession().buildHeaderValue());
+		std::cout << YELLOW << "-------------------"  << " RESPONSE "   << "-------------------" << RESET << std::endl;
+		std::cout << response << std::endl;
+		std::cout << YELLOW << "------------------"<< " END OF RESPONSE " << "--------------------" << RESET << std::endl;
 		writerSetup(std::move(response));
 	}
 }
@@ -35,6 +35,7 @@ void Client::buildParserErrorResponse() {
 	HttpResponse response = processor.buildErrorResponse(getParser().getErrorStatus(), ctx);
 
 	response.addHeader("Connection", "close");
+	response.addHeader("Set-Cookie", ctx.getSession().buildHeaderValue());
 
 	std::cout << response << std::endl;
 	writerSetup(std::move(response));

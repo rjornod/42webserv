@@ -2,6 +2,7 @@
 #include "LocationConfig.hpp"
 #include "ServerConfig.hpp"
 #include "HttpRequest.hpp"
+#include "Session.hpp"
 #include <filesystem>
 
 class RequestContext {
@@ -11,9 +12,10 @@ class RequestContext {
     const LocationConfig* m_locationConfig;
     const ServerConfig*   m_serverConfig; // For "global" settings
     std::filesystem::path    m_filePath;
+	Session& m_session;
 
   public:
-    RequestContext() : m_locationConfig(nullptr) {};
+    RequestContext(Session& session) : m_locationConfig(nullptr), m_session(session) {};
     
     const LocationConfig* getLocationConfig() const {return m_locationConfig;}
     const ServerConfig*   getServerConfig() const {return m_serverConfig;}
@@ -21,6 +23,7 @@ class RequestContext {
     const HttpRequest& getHttpRequest() const {return m_httpRequest;}
     std::filesystem::path    getFilePath() const {return m_filePath;}
     std::string getFilePathName() const {return m_filePath.string();}
+	Session& getSession() {return m_session;}
     void           setHttpRequest(const HttpRequest& request) {m_httpRequest = request;}
     void           setServerConfig(const ServerConfig* serverConfig) {m_serverConfig = serverConfig;}
     void           setLocationConfig(const LocationConfig* locationConfig) {m_locationConfig = locationConfig;}
