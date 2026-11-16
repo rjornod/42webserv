@@ -9,7 +9,7 @@ class RequestContext {
   private:
     HttpRequest    m_httpRequest;
     const LocationConfig* m_locationConfig;
-    const ServerConfig*   m_serverConfig; // For "global" settings
+    const ServerConfig*   m_serverConfig;
     std::filesystem::path    m_filePath;
 
   public:

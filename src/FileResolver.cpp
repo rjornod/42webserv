@@ -24,12 +24,12 @@ Result<Resolution, FileResolutionError> FileResolver::resolve(const RequestConte
         std::cout << "Invalid URI: " << to_string(decodedUri.error()) << std::endl;
         return Result<Resolution, FileResolutionError>::Err(
           FileResolutionError::BAD_REQUEST);
-        // break;
+      
       case UriDecodeError::INVALID_BYTE:
         std::cout << "Invalid URI: " << to_string(decodedUri.error()) << std::endl;
         return Result<Resolution, FileResolutionError>::Err(
           FileResolutionError::BAD_REQUEST);
-        // break;
+
       default:
         return Result<Resolution, FileResolutionError>::Err(
           FileResolutionError::BAD_REQUEST);
@@ -45,7 +45,6 @@ Result<Resolution, FileResolutionError> FileResolver::resolve(const RequestConte
   }
 
   fSPString = makeFSPath(locationRoot, segments.value());
-  // std::cout << fSPString << std::endl;
 
   std::filesystem::path candidate = fSPString;
   std::filesystem::path root = locationRoot;
@@ -165,9 +164,6 @@ std::vector<std::string_view> splitUri(std::string_view uri) {
   return segments;
 }
 
-
-//Careful! Stack is made of string_views -- don't let it live further than
-// decodedURI, before using the result
 Result<std::vector<std::string_view>, PathResolutionError> FileResolver::normalizeSegments(std::string_view decodedUri) {
   
   std::vector<std::string_view> rawSegments = splitUri(decodedUri);
@@ -296,8 +292,6 @@ Result<Resolution, FileResolutionError> FileResolver::resolveIndex(
   return Result<Resolution, FileResolutionError>::Ok(Resolution{ Resolution::DIRECTORY, directory});
 }
 
-// TO DO: Refactor to extract the first part that is the same as the usual resolve
-// File resolution for DELETE and POST
 // Processes the URI (decodes it and generates the segments)
 // Identifies the full path (candidate) and the parent directory to validate it
 // and check that it falls within the root
@@ -499,7 +493,6 @@ Result<std::filesystem::path, FileResolutionError> FileResolver::resolveForMulti
   std::filesystem::path target = store / name;
   auto st = std::filesystem::symlink_status(target, ec);
   if (!ec && st.type() != std::filesystem::file_type::not_found)
-    //The file already exists... Bad Request for now, should probably return 409 conflict
     return Result<std::filesystem::path, FileResolutionError>::Err(FileResolutionError::DUPLICATE);   // exists (file, dir or symlink): never overwrite or follow
 
   return Result<std::filesystem::path, FileResolutionError>::Ok(target);

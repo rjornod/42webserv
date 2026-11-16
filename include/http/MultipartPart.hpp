@@ -4,7 +4,6 @@
 #include <string_view>
 #include <sstream>
 
-// TO DO: Re design or put this somewhere else (STRUCT?)
 class MultipartPart {
   public: 
     std::string name;
@@ -45,7 +44,6 @@ constexpr const char* to_string(MultipartError error)
     return "ERROR";
 }
 
-// std::ostream& operator<<(std::ostream& os, const MultipartPart& part);
 
 inline std::string to_string(const MultipartPart& part) {
     std::stringstream ss;

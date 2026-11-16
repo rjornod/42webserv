@@ -24,8 +24,6 @@ class HttpResponse {
     HttpResponse() : m_statusCode(200) {}
     HttpResponse(int statusCode) : m_statusCode(statusCode) {}
 
-    // HttpResponse &operator=(const HttpResponse & other);
-
     int getStatusCode() const {return m_statusCode;}
     const std::string& getStatusLine() const {return m_statusLine;}
     const std::string& getHttpVersion() const {return m_httpVersion;}

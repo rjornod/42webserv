@@ -18,16 +18,13 @@ void HttpParser::fail(int status) {
 
 void HttpParser::parse(std::string_view chunk, int maxBodySize) {
 
-  // std::cout << "Parser called -- status: " << to_string(m_state) << std::endl;
   m_buffer += chunk;
-  // std::cout << "Buffer: [" << m_buffer << "]" << std::endl;
   EncodingType encType;
 
   switch (getParserState()) {
     case HttpParserState::REQUEST_LINE:
       if (!parseRequestLine()) {
         reportErrors();
-        // std::cout << "Buffer: [" << m_buffer << "]" << std::endl;
         return;
       }
       m_state = HttpParserState::HEADERS;
@@ -42,7 +39,6 @@ void HttpParser::parse(std::string_view chunk, int maxBodySize) {
       encType = determineBodyEncoding();
       if (encType == EncodingType::BOTH || encType == EncodingType::BAD_TRANSFER_ENCODING)
         return;
-      //TO DO: Is it correct to put EncodingType::None here?
       if (encType == EncodingType::CONTENT_LENGTH || encType == EncodingType::NONE) {
         determineBodyLength();
         if (m_expectedBodyLen == 0) {
@@ -87,7 +83,6 @@ void HttpParser::parse(std::string_view chunk, int maxBodySize) {
     case HttpParserState::COMPLETE:
       break;
 
-    //Not sure if it will ever fall here (reportErrors is triggered on errors)
     case HttpParserState::ERROR:
       std::cout << "Error on parsing: " << m_errorMessage << std::endl;
       
@@ -140,7 +135,7 @@ bool HttpParser::parseRequestLine() {
     m_errorMessage = "Missing HTTP version";
     return false;
   }
-  //TO DO: Method, URI, Version validation
+
   std::string_view versionStr = reqLine.substr(secondSpace + 1);
   HttpVersion version = validateHttpVersion(versionStr);
   if (version == HttpVersion::UNSUPPORTED) {
@@ -337,10 +332,6 @@ HttpVersion HttpParser::validateHttpVersion(std::string_view versionStr) {
     return HttpVersion::HTTP_1_0;
   return HttpVersion::HTTP_1_1;
 }
-
-// HttpVersion HttpParser::parseHttpVersion(std::string_view version) {
-//   if 
-// }
 
 void HttpParser::clearParser() {
   if (m_state == HttpParserState::COMPLETE || m_state == HttpParserState::ERROR)

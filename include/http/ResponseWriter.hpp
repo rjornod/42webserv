@@ -41,9 +41,7 @@ class ResponseWriter {
 
     explicit ResponseWriter(HttpResponse response);
     ~ResponseWriter() {};
-    
-    // Called by the poll() loop whenever the socket is writable
-    // Sends amap without blocking, updates the state and returns
+
     WriteResult writeTo(int socketFd);
     WriteResult writeBuffer(int socketFd, const char* data, size_t len, size_t& bytesSent);
     const WriterState& getState() const {return m_state;}
