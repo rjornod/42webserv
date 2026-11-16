@@ -1,6 +1,8 @@
 #include "Polling.hpp"
 
 #include <poll.h>
+#include <sys/epoll.h>
+#include <cstring>
 
 class DefaultPoller : public Poller {
 	private:
@@ -66,6 +68,69 @@ class DefaultPoller : public Poller {
 		virtual ~DefaultPoller() override {};
 };
 
+class EpollPoller : public Poller {
+	private:
+		const int EVENT_MASK = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLPRI | EPOLLERR | EPOLLHUP;
+  		int m_EpollFd;
+
+	public:
+		EpollPoller() : Poller() {
+			m_EpollFd = epoll_create(1);
+			if (m_EpollFd < 0) {
+			throw std::exception();
+			}
+		};
+
+		virtual bool registerFd(int fd) override {
+			epoll_event ev;
+			std::memset(&ev, 0, sizeof(ev));
+			ev.events = EVENT_MASK;
+			ev.data.fd = fd;
+			return epoll_ctl(m_EpollFd, EPOLL_CTL_ADD, fd, &ev) == 0;
+		};
+
+		virtual void unregisterFd(int fd) override {
+			epoll_ctl(m_EpollFd, EPOLL_CTL_DEL, fd, nullptr);
+		};
+
+		virtual std::vector<IoEvent> doPoll() override {
+			const int MAX_EVENTS = 128;
+			epoll_event events[MAX_EVENTS];
+			int numEvents = epoll_wait(m_EpollFd, events, MAX_EVENTS, 0);
+			if (numEvents < 0) {
+			throw std::exception();
+			}
+			std::vector<IoEvent> result;
+			for (int i = 0; i < numEvents; i++) {
+				IoEvent ev{events[i].data.fd, false, false, false};
+				if (events[i].events & EPOLLIN) {
+					ev.isRead = true;
+				}
+				if (events[i].events & EPOLLOUT) {
+					ev.isWrite = true;
+				}
+				if (events[i].events & EPOLLRDHUP) {
+					ev.isError = true;
+				}
+				if (events[i].events & EPOLLPRI) {
+					ev.isError = true;
+				}
+				if (events[i].events & EPOLLERR) {
+					ev.isError = true;
+				}
+				if (events[i].events & EPOLLHUP) {
+					ev.isError = true;
+				}
+				result.push_back(ev);
+			}
+			return result;
+		};
+
+		virtual ~EpollPoller() override {
+			close(m_EpollFd);
+		};
+};
+
 std::unique_ptr<Poller> createPoller() {
-	return std::make_unique<DefaultPoller>();
+	return std::make_unique<EpollPoller>();
 }

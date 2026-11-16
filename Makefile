@@ -1,6 +1,6 @@
 SERV = webserv
 CXX = c++ -Wall -Wextra -Werror
-CXXFLAGS += -g -std=c++20 -fsanitize=address -g -O0 
+CXXFLAGS += -g -std=c++20 -O2
 INCL = -Iinclude -Iinclude/config -Iinclude/server -Iinclude/utils -Iinclude/http -Iinterfaces -Iinclude/cgi -Iinclude/session
 SRC_DIR = ./src
 OBJ_DIR = ./obj
