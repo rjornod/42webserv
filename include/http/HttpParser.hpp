@@ -35,7 +35,6 @@ class HttpParser {
 
   public:
 
-    // TO DO -- check if you actually need to initialize expected body len
     HttpParser() : m_expectedBodyLen(-1), m_state(HttpParserState::REQUEST_LINE) {}
     ~HttpParser() {}
 
@@ -59,11 +58,9 @@ class HttpParser {
     void reportErrors();
     void fail(int status);
 
-    //Mainly for the tests, clear the parser in order to reuse it
     void clearParser();
 
     HttpVersion validateHttpVersion(std::string_view versionStr);
-    // HttpVersion  parseHttpVersion(std::string_view version);
 
     //DEBUG
     void printHeaders();

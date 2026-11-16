@@ -17,7 +17,6 @@ class RequestProcessor {
 
   private:
 
-    // Key-value pairs of the form <file_extension> : <mime_type>
     static const std::unordered_map<std::string, std::string> M_MIME_TYPES;
 
 	std::unique_ptr<CgiRunner> tryCgiForPost(RequestContext& ctx);
@@ -40,7 +39,6 @@ class RequestProcessor {
     bool postHeadersPresent(const HttpRequest& req);
     bool checkContentLength(const RequestContext& ctx);
 
-    //Re factoring
     bool resolvePath(RequestContext& ctx, Resolution& out, HttpResponse& errResponse);
     HttpResponse handleGet(RequestContext& ctx);
     HttpResponse handleDelete(RequestContext& ctx);

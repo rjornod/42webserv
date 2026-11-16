@@ -15,7 +15,6 @@ static int statusFromError(FileResolutionError e) {
 
 HttpResponse RequestProcessor::process(RequestContext &ctx) {
 
-  // std::cout << "Processing request" << std::endl;
   if (!checkContentLength(ctx))
     return buildErrorResponse(413, ctx);
   if (!allowedMethod(ctx))
@@ -24,7 +23,6 @@ HttpResponse RequestProcessor::process(RequestContext &ctx) {
       ctx.getLocationConfig()->getReturn().first != 0)
     return buildReturnResponse(ctx.getLocationConfig()->getReturn().first,
                                ctx.getLocationConfig()->getReturn().second);
-  // TO DO: no return in server config?
 
   switch (ctx.getHttpRequest().getMethod()) {
   case HttpMethod::GET:
@@ -125,9 +123,6 @@ HttpResponse RequestProcessor::handlePost(RequestContext &ctx) {
       return buildErrorResponse(400, ctx);
     }
     std::vector<MultipartPart> partsVec = parts.value();
-    for (auto vec : partsVec) {
-      std::cout << BLUE << to_string(vec) << RESET << std::endl;
-    }
     return handleMultipart(ctx, partsVec);
   }
   if (auto cgiRunner = tryCgiForPost(ctx)) {
@@ -156,12 +151,9 @@ HttpResponse RequestProcessor::handleMultipart(RequestContext& ctx, std::vector<
   };
   
   for (const auto& part : parts) {
-    // std::cout << BLUE << part << RESET << std::endl;
     if (!part.fileName.has_value() || part.fileName->empty())
       continue;
  
-
-    //TO DO: validate name, if it's not valid, generate one
     auto path = resolveForMultipart(ctx, std::string(part.fileName.value()));
     if (!path) {
       cleanup();
@@ -373,9 +365,6 @@ Result<MultipartPart, MultipartError> RequestProcessor::parsePartHeaders(std::st
   return Result<MultipartPart, MultipartError>::Ok(std::move(part));
 }
 
-
-
-//TO DO: return a FileSystem error instead of an int in case of error
 int RequestProcessor::writeFileAtomically(const std::filesystem::path& target, const std::string& data) {
 
   // Temp file in the SAME directory, so rename() stays on one filesystem
@@ -412,18 +401,9 @@ HttpResponse RequestProcessor::handleRawUpload(RequestContext &ctx) {
 
   FileResolver fileResolver;
   auto target = fileResolver.resolveTargetUpload(ctx);
-  // auto target = fileResolver.resolveForWrite(ctx);
   if (!target)
     return buildErrorResponse(statusFromError(target.error()), ctx);
-  
-  // std::cout << "Target: " << target.value().path << std::endl;
-  // // If the file exists we refuse to overwrite (POLICY)
-  // Not checking anymore because we always generate a name; and we generate
-  // until the file name doesn't exist
-  // std::error_code ec;
-  // if (std::filesystem::exists(target.value().path, ec))
-  //   return buildErrorResponse(409, ctx);
-
+ 
   // Write the body to disk
   int err = writeFileAtomically(target.value().path, req.getBody());
   if (err != 0) {
@@ -472,10 +452,8 @@ bool RequestProcessor::parseContentType(
   else
     type = contentTypeHeader.substr(0, colon);
   std::for_each(type.begin(), type.end(), [](char& c) {c = tolower(c);});
- 
-  //TO DO trim from white space
-  
-  //TO DO parse parameters --- assumes now there is a SINGLE parameter
+
+  //assumes now there is a SINGLE parameter
   std::string paramsStr = contentTypeHeader.substr(colon + 1);
 
   while (paramsStr[0] == ' ')
@@ -519,21 +497,6 @@ bool RequestProcessor::checkContentLength(const RequestContext &ctx) {
   else
     maxBodySize = ctx.getServerConfig()->getClientMaxBody();
   
-  //TODO: instead of this, check the actual body size against the maxBodySize
-  // std::unordered_map<std::string, std::string> headers = ctx.getHttpRequest().getHeaders();
-  // auto contentLen = headers.find("content-length");
-
-  // if (contentLen == headers.end())
-  //   return true;
-  // try {
-  //   int len = std::stoi(contentLen->second);
-  //   return len <= maxBodySize;
-  // }
-  // catch (const std::out_of_range& oor) {
-  //   return false;
-  // }
-  // END TODO
-
   std::string body = ctx.getHttpRequest().getBody();
   return static_cast<int>(body.size()) <= maxBodySize;
 
@@ -555,8 +518,7 @@ bool RequestProcessor::allowedMethod(const RequestContext &ctx) {
   if (ctx.getLocationConfig())
     allowedMethods = ctx.getLocationConfig()->getAllowedMethods();
   else
-    // TODO change in ServerConfig
-    allowedMethods.emplace_back("GET");
+    allowedMethods = ctx.getServerConfig()->getAllowedMethods();
 
   if (std::find(allowedMethods.begin(), allowedMethods.end(),
                 to_string(requestMethod)) == allowedMethods.end()) {
@@ -716,11 +678,7 @@ HttpResponse RequestProcessor::buildDefaultErrorResponse(int errorCode) {
 HttpResponse RequestProcessor::buildAutoIndexResponse(RequestContext &ctx) {
   HttpResponse response;
 
-  // This should always be true because we already check in the file resolver
-  //  if (ctx.getLocationConfig()->getAutoIndex()) {
   response.makeStatusLine();
-  // std::string listing = "Index Listing should be sent here. Directory: " +
-  // ctx.getFilePath().string();
 
   std::string listing =
       generateAutoIndex(ctx.getFilePath(), ctx.getHttpRequest().getURI());
@@ -729,8 +687,6 @@ HttpResponse RequestProcessor::buildAutoIndexResponse(RequestContext &ctx) {
 
   response.setBodySource(listing);
   return response;
-  // }
-  // return buildDefaultErrorResponse(403);
 }
 
 static std::string htmlEscape(const std::string &s) {

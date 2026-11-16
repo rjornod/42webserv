@@ -45,7 +45,6 @@ bool Router::isPrefixMatch(std::string_view path, std::string uri) {
   return false;
 }
 
-// What if there's no matching location?!
 const LocationConfig* Router::matchLocation(const std::vector<LocationConfig>& locationConfigs, std::string uri) {
   
   size_t maxLen = 0;
@@ -56,17 +55,9 @@ const LocationConfig* Router::matchLocation(const std::vector<LocationConfig>& l
     if (path == "/" || isPrefixMatch(path, uri)) {
       if (path.size() > maxLen) {
         maxLen = path.size();
-        matchingLocation = &location; // Not sure if this is too costly
-        // std::cout << "Path: " << path << " is prefix of length "<< maxLen << std::endl;
+        matchingLocation = &location;
       }
     }
-    // else
-    //   std::cout << "Path: " << path << "is NOT prefix" << std::endl;
   }
   return matchingLocation;
 }
-
-
-// bool Router::mapEffectiveRoot(std::string_view root, std::string_view uri) {
-//   return false;
-// }

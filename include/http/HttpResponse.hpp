@@ -28,8 +28,6 @@ class HttpResponse {
     HttpResponse(int statusCode) : m_statusCode(statusCode) {}
     HttpResponse(std::unique_ptr<CgiRunner> &&cgiRunner) : m_statusCode(200), m_cgiRunner(std::move(cgiRunner)) {}
 
-    // HttpResponse &operator=(const HttpResponse & other);
-
     int getStatusCode() const {return m_statusCode;}
     const std::string& getStatusLine() const {return m_statusLine;}
     const std::string& getHttpVersion() const {return m_httpVersion;}
