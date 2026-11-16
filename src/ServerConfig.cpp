@@ -13,7 +13,7 @@ void ServerConfig::setDefaultValues() {
 	m_autoIndex = -1;
 	m_errorPages.clear();
 	m_allowedMethods.emplace_back("GET");
-	m_upload_store = "www/uploads";
+	m_upload_store = "data/www/uploads";
 }
 
 void ServerConfig::seenDirective(std::string directive) {
