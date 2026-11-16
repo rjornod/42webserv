@@ -18,6 +18,7 @@ class CgiRunner {
 		bool m_done;
 		bool m_isError;
 		std::string m_body;
+		std::string m_setCookie;
 
 		ClientTimeoutManager *m_toManager;
 	public:

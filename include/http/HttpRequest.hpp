@@ -6,6 +6,7 @@
 #include "URI.hpp"
 #include "HttpMethod.hpp"
 #include "HttpVersion.hpp"
+#include "Session.hpp"
 
 class URI;
 
@@ -16,8 +17,11 @@ class HttpRequest {
     std::string m_rawPath;
     HttpVersion m_version; 
     std::unordered_map<std::string, std::string> m_headers;
+	std::unordered_map<std::string, std::string> m_cookies;
     std::string m_body;
     int m_bodySize;
+
+	void extractCookie();
 
   public: 
 
@@ -27,11 +31,12 @@ class HttpRequest {
     const HttpVersion& getVersion() const {return m_version;}
     const std::string& getBody() const {return m_body;}
     std::unordered_map<std::string, std::string> getHeaders() const {return m_headers;}
+	const std::unordered_map<std::string, std::string>& getCookies() const {return m_cookies;}
     int getBodySize() {return m_bodySize;}
     void setMethod(HttpMethod method) {m_method = method;}
     void setURI(std::string_view rawPath) {m_rawPath = rawPath;}
     void setVersion(HttpVersion version) {m_version = version;}
-    void setHeaders(std::unordered_map<std::string, std::string> headers) {m_headers = headers;}
+    void setHeaders(std::unordered_map<std::string, std::string> headers) {m_headers = headers; extractCookie();}
     void setBody(std::string body) {m_body = body;}
     void setBodySize(long size) {m_bodySize = size;}
     void clearBody() {m_body = "";}

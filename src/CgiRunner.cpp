@@ -9,7 +9,7 @@
 
 #include "HttpResponse.hpp"
 
-static std::vector<char*> prepareEnv(RequestContext &ctx) {
+static std::vector<char*> prepareEnv(RequestContext &ctx, std::string cookie) {
 	std::vector<char*> env;
 	switch (ctx.getHttpRequest().getMethod())
 	{
@@ -35,6 +35,7 @@ static std::vector<char*> prepareEnv(RequestContext &ctx) {
 	env.push_back(strdup("SERVER_PROTOCOL=HTTP/1.0"));
 	env.push_back(strdup(("SCRIPT_NAME=" + ctx.getFilePath().string()).c_str()));
 	env.push_back(strdup(("UPLOAD_DIR=" + ctx.getLocationConfig()->getUploadStore()).c_str()));
+	env.push_back(strdup(("HTTP_COOKIE=" + cookie).c_str()));
 	env.push_back(nullptr);
 	return env;
 }
@@ -50,6 +51,7 @@ void CgiRunner::forceKill() {
 
 // need all the context
 CgiRunner::CgiRunner(std::string path, RequestContext &ctx) : m_input(ctx.getHttpRequest().getBody()), m_written(0), m_done(false), m_isError(false) {
+	m_setCookie = ctx.getSession().buildHeaderValue();
 	int	inFildes[2];
 	int	outFildes[2];
 	int	errFildes[2];
@@ -105,7 +107,7 @@ CgiRunner::CgiRunner(std::string path, RequestContext &ctx) : m_input(ctx.getHtt
 			exit(1);
 		}
 		std::vector<char*> argv;
-		std::vector<char*> env = prepareEnv(ctx);
+		std::vector<char*> env = prepareEnv(ctx, m_setCookie);
 		argv.push_back(strdup(path.c_str()));
 		argv.push_back(strdup(ctx.getFilePath().c_str()));
 		argv.push_back(nullptr);
@@ -205,6 +207,7 @@ HttpResponse CgiRunner::getResponse() {
 	response.makeStatusLine();
 	response.addHeader("Content-Length", std::to_string(m_body.size()));
 	response.addHeader("Content-Type", "text/plain");
+	response.addHeader("Set-Cookie", m_setCookie);
 	response.setBodySource(m_body);
 	return response;
 }

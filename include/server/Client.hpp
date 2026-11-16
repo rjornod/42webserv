@@ -39,11 +39,13 @@ class Client : public IoEndpoint {
 		std::unique_ptr<ResponseWriter> m_writer; //A pointer that will be null until the response is ready
 		ClientTimeoutManager m_toManager;
 		std::shared_ptr<CgiRunner> m_cgiRunner;
+		SessionManager &m_sessionManager;
 
 		void startCgi(std::unique_ptr<CgiRunner> cgiRunner);
 
 	public:
-		Client(int clientFd, const std::string& clientIp, int localPort, const ServerConfig &serverConfig) : IoEndpoint(clientFd), m_serverConfig(serverConfig), m_toManager(getFromConfig(serverConfig)) {
+		Client(int clientFd, const std::string& clientIp, int localPort, const ServerConfig &serverConfig) : IoEndpoint(clientFd), m_serverConfig(serverConfig), m_toManager(getFromConfig(serverConfig)),
+				m_sessionManager(const_cast<ServerConfig&>(m_serverConfig).getSessionManager()) {
 			m_clientIp = clientIp;
 			m_localPort = localPort;
 			m_closeConnection = false;
@@ -203,11 +205,13 @@ class Client : public IoEndpoint {
 			}
 			switch(writeToSocket()) {
 				case WriteResult::ERROR:
+					m_toManager.finishResponse();
 					setShouldDisconnect(true);
 					return;
 				case WriteResult::IN_PROGRESS:
 					return;
 				case WriteResult::COMPLETE:
+					m_toManager.finishResponse();
 					clearParser();
 					setClientState(ClientState::ReadingRequest);
 			}
