@@ -7,6 +7,8 @@
 #include <variant>
 #include <filesystem>
 
+#include "CgiRunner.hpp"
+
 
 class HttpResponse {
 
@@ -18,11 +20,13 @@ class HttpResponse {
     std::vector<std::pair<std::string, std::string>> m_headers;
     std::variant<std::string, std::filesystem::path> m_bodySource;
     static const std::map<int, std::string> M_STATUSCODES;
+    std::unique_ptr<CgiRunner> m_cgiRunner;
 
   public:
 
     HttpResponse() : m_statusCode(200) {}
     HttpResponse(int statusCode) : m_statusCode(statusCode) {}
+    HttpResponse(std::unique_ptr<CgiRunner> &&cgiRunner) : m_statusCode(200), m_cgiRunner(std::move(cgiRunner)) {}
 
     // HttpResponse &operator=(const HttpResponse & other);
 
@@ -41,6 +45,9 @@ class HttpResponse {
     void makeStatusLine();
     void updateStatus(int status) {setStatusCode(status); makeStatusLine();}
     void addHeader(std::string name, std::string value);
+
+    bool isCgi() { return m_cgiRunner.get(); } // only checked once
+    std::unique_ptr<CgiRunner> getCgiRunner() { return std::move(m_cgiRunner); }
 };
 
 std::ostream &operator<<(std::ostream &out, const HttpResponse &response);

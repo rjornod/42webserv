@@ -19,6 +19,7 @@ enum class FileResolutionError {
   BAD_REQUEST,    // From UriDecodeError -- client sent garbage
   FORBIDDEN,      // Path escaped root
   NOT_FOUND,
+  DUPLICATE,
 //   IS_DIRECTORY_NO_INDEX_FILE, //It's a directory and no index file was found
   SERVER_ERROR
 };
@@ -36,7 +37,8 @@ class FileResolver {
 
     Result<Resolution, FileResolutionError> resolve(const RequestContext& ctx); // Instead of string a std::filesystem::path
     Result<Resolution, FileResolutionError> resolveForWrite(const RequestContext& ctx);
-    Result<Resolution, FileResolutionError> ResolveTargetUpload(const RequestContext& ctx);
+    Result<Resolution, FileResolutionError> resolveTargetUpload(const RequestContext& ctx);
+    Result<std::filesystem::path, FileResolutionError> resolveForMultiPart(const RequestContext& ctx, std::string name); 
     Result<std::string, UriDecodeError> percentDecode(std::string_view raw);
     Result<std::vector<std::string_view>, PathResolutionError> normalizeSegments(std::string_view decodedUri);
     std::string joinPath(std::string_view base, std::string_view suffix);
@@ -70,6 +72,7 @@ constexpr const char* to_string(FileResolutionError error)
         case FileResolutionError::BAD_REQUEST: return "BAD_REQUEST";
         case FileResolutionError::FORBIDDEN: return "FORBIDDEN";
         case FileResolutionError::NOT_FOUND: return "NOT_FOUND";
+        case FileResolutionError::DUPLICATE: return "DUPLICATE";
         // case FileResolutionError::IS_DIRECTORY_NO_INDEX_FILE: return "IS_DIRECTORY_NO_INDEX_FILE";
         case FileResolutionError::SERVER_ERROR: return "SERVER_ERROR";
     }

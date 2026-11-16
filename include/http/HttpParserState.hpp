@@ -4,6 +4,7 @@ enum class HttpParserState {
     REQUEST_LINE,
     HEADERS,
     BODY,
+    CHUNKED_BODY,
     COMPLETE,
     ERROR
 };
@@ -14,6 +15,7 @@ constexpr const char* to_string(HttpParserState state)
         case HttpParserState::REQUEST_LINE:    return "REQUEST_LINE";
         case HttpParserState::HEADERS:   return "HEADERS";
         case HttpParserState::BODY: return "BODY";
+        case HttpParserState::CHUNKED_BODY: return "CHUNKED_BODY";
         case HttpParserState::COMPLETE: return "COMPLETE";
         case HttpParserState::ERROR: return "ERROR";
     }

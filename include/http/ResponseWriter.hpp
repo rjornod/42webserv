@@ -1,6 +1,7 @@
 #pragma once
 
 #include "HttpResponse.hpp"
+#include "ClientTimeoutManager.hpp"
 #include <fstream>
 #include <array>
 #include <unistd.h>
@@ -14,7 +15,7 @@ enum class WriterState {
 };
 
 enum class WriteResult {
-  WOULD_BLOCK,
+  IN_PROGRESS,
   COMPLETE,
   ERROR
 };
@@ -36,10 +37,11 @@ class ResponseWriter {
     std::array<char, 65536> m_chunkBuffer{}; //holds the current 64 KB of data from the file
     size_t m_chunkFilled = 0; // Where the data ends in chunkBuffer
     size_t m_chunkSent = 0; //How many bytes (out of the chunkFilled) have been sent to the socket
+    ClientTimeoutManager &m_toManager;
 
   public:
 
-    explicit ResponseWriter(HttpResponse response);
+    ResponseWriter(HttpResponse response, ClientTimeoutManager &toManager);
     ~ResponseWriter() {};
     
     // Called by the poll() loop whenever the socket is writable
@@ -57,7 +59,7 @@ class ResponseWriter {
 constexpr const char* to_string(WriteResult result)
 {
     switch (result) {
-        case WriteResult::WOULD_BLOCK:    return "WOULD_BLOCK";
+        case WriteResult::IN_PROGRESS:    return "IN_PROGRESS";
         case WriteResult::COMPLETE:   return "COMPLETE";
         case WriteResult::ERROR: return "ERROR";
     }

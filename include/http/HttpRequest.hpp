@@ -25,7 +25,7 @@ class HttpRequest {
     HttpMethod getMethod() const {return m_method;}
     const std::string& getURI() const {return m_rawPath;}
     const HttpVersion& getVersion() const {return m_version;}
-    std::string getBody() const {return m_body;}
+    const std::string& getBody() const {return m_body;}
     std::unordered_map<std::string, std::string> getHeaders() const {return m_headers;}
     int getBodySize() {return m_bodySize;}
     void setMethod(HttpMethod method) {m_method = method;}
