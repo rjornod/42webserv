@@ -31,7 +31,7 @@ class Server {
 	public:
 		Server(const GlobalConfig& parsedConfig) : m_config(parsedConfig), m_poller(createPoller()) {}
 		~Server() {
-			std::cout << "Server object destroyed" << std::endl;
+			// std::cout << "Server object destroyed" << std::endl;
 		}
 		const GlobalConfig& getParsedConfig() const {return m_config;}
 		int 								setTcpAddress() 	{
