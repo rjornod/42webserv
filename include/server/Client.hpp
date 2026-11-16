@@ -54,12 +54,12 @@ class Client : public IoEndpoint {
 			m_bytesSent = 0;
 			m_shouldDisconnect = false;
 			m_toManager.startRequest();
-			std::cout << "Client Object created\nClientFd: " << m_fd 
-								<< "\nClient Ip: " << m_clientIp << std::endl;
+			// std::cout << "Client Object created\nClientFd: " << m_fd 
+			// 					<< "\nClient Ip: " << m_clientIp << std::endl;
 
 		}
 		~Client(){
-			std::cout << "Client Object with fd [" << m_fd << "] destroyed" << std::endl;
+			// std::cout << "Client Object with fd [" << m_fd << "] destroyed" << std::endl;
 			if (m_cgiRunner) {
 				m_cgiRunner->forceKill();
 			}

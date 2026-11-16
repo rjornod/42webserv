@@ -554,7 +554,6 @@ void ConfigParser::handleCGI(int scope) {
 			!isType(currentTokenPlus(2), TokenType::EndDirective)
 			)
 		throw ConfigParseException("cgi_handler directive is malformed");
-	checkCgiExtension(currentToken().value);
 	if (scope == GLOBAL)
 		currentServer().setCgiHandler(currentToken().value, currentTokenPlus(1).value);
 	else if (scope == LOCAL)

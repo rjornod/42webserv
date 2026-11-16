@@ -22,9 +22,9 @@ void Client::buildResponse() {
 		startCgi(response.getCgiRunner());
 	} else {
 		response.addHeader("Set-Cookie", ctx.getSession().buildHeaderValue());
-		std::cout << YELLOW << "-------------------"  << " RESPONSE "   << "-------------------" << RESET << std::endl;
-		std::cout << response << std::endl;
-		std::cout << YELLOW << "------------------"<< " END OF RESPONSE " << "--------------------" << RESET << std::endl;
+		// std::cout << YELLOW << "-------------------"  << " RESPONSE "   << "-------------------" << RESET << std::endl;
+		// std::cout << response << std::endl;
+		// std::cout << YELLOW << "------------------"<< " END OF RESPONSE " << "--------------------" << RESET << std::endl;
 		writerSetup(std::move(response));
 	}
 }

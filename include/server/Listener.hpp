@@ -16,14 +16,14 @@ class Listener : public IoEndpoint {
 		const ServerConfig &m_serverConfig;
 		int m_port;
 
-		void printNewClient(sockaddr_in clientAddress) {
-			// TO DO: remove these debug prints
-			time_t timestamp;
-			time(&timestamp);
-			std::cout << GREEN << "New client connected: " << RESET << inet_ntoa(clientAddress.sin_addr) << ":" 
-			<< ntohs(clientAddress.sin_port) << std::endl;
-			std::cout << ctime(&timestamp) << std::endl;					// displays the exact time a client connected	
-		}
+		// void printNewClient(sockaddr_in clientAddress) {
+		// 	// TO DO: remove these debug prints
+		// 	time_t timestamp;
+		// 	time(&timestamp);
+		// 	// std::cout << GREEN << "New client connected: " << RESET << inet_ntoa(clientAddress.sin_addr) << ":" 
+		// 	// << ntohs(clientAddress.sin_port) << std::endl;
+		// 	// std::cout << ctime(&timestamp) << std::endl;					// displays the exact time a client connected	
+		// }
 	public:
 		Listener(int fd, int port, const ServerConfig &serverConfig) : IoEndpoint(fd), m_serverConfig(serverConfig) {
 			m_port = port;
@@ -58,7 +58,7 @@ class Listener : public IoEndpoint {
 						continue;
 					}
 
-					printNewClient(clientAddress);
+					// printNewClient(clientAddress);
 
 					spawn(std::make_unique<Client>(clientFd, inet_ntoa(clientAddress.sin_addr), m_port, m_serverConfig));
 				}

@@ -139,7 +139,7 @@ HttpResponse RequestProcessor::handlePost(RequestContext &ctx) {
     if (it == params.end())
       return buildErrorResponse(400, ctx);
     std::string boundary = it->second;
-    std::cout << "BOUNDARY: " << boundary << std::endl;
+    // std::cout << "BOUNDARY: " << boundary << std::endl;
     const std::string body = req.getBody();
     Result<std::vector<MultipartPart>, MultipartError> parts = parseMultipart(body, boundary);
     if (!parts) {
