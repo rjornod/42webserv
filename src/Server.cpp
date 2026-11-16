@@ -82,7 +82,7 @@ int Server::serverSetup() {
 		m_endpoints[fd] = std::make_unique<Listener>(fd, serverConfig.getPort(), serverConfig);
 		m_poller->registerFd(fd); // add listening socket to the poll watch list
 	}
-	std::cout << BLUE << "\n[ SERVER IS LISTENING ]" << RESET << std::endl;
+	std::cout << BLUE << "\n[ SERVERS ARE UP AND RUNNING ]" << RESET << std::endl;
 	return 0;
 }
 

@@ -18,9 +18,9 @@ int main(int argc, char **argv) {
 	}
 
 	/* For Debug: Prints the value of all the configurations of server and location*/
-	for (unsigned long i = 0; i < globalConfig.getServerConfigs().size(); i++) {
-		globalConfig.getServerConfigs()[i].printValues(); 
-	}
+	// for (unsigned long i = 0; i < globalConfig.getServerConfigs().size(); i++) {
+	// 	globalConfig.getServerConfigs()[i].printValues(); 
+	// }
 	
 	Server server(globalConfig);
 	if (server.serverSetup() > 0) {
