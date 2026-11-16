@@ -67,7 +67,8 @@ WriteResult ResponseWriter::writeBuffer(int socketFd, const char* data, size_t l
   ssize_t n = send(socketFd, data + bytesSent, len - bytesSent, MSG_NOSIGNAL);
   if (n > 0)
     bytesSent += static_cast<size_t>(n);
-  //if n <= 0; the reason is unknown, try again on the next POLLOUT, handle outside
+  if (n <= 0)
+    return WriteResult::ERROR;
 
   return bytesSent == len ? WriteResult::COMPLETE : WriteResult::IN_PROGRESS;
 

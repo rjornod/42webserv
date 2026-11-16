@@ -94,7 +94,7 @@ class Client : public IoEndpoint {
 
 		// bool writerError(const WriteResult& result) const {return result == WriteResult::ERROR;}
 
-		void writeToSocket() {m_writer->writeTo(m_fd);}
+		WriteResult writeToSocket() {return m_writer->writeTo(m_fd);}
 
 		void resetWriter() {m_writer = nullptr;}
 
@@ -185,12 +185,16 @@ class Client : public IoEndpoint {
 			if (!responseReady()){
 				return;
 			}
-			writeToSocket();
-			if (writerFinished()) {
-				clearParser();
-				// client.setShouldDisconnect(true);// TODO KEEP-ALIVE/ keep connection?!
+			switch(writeToSocket()) {
+				case WriteResult::ERROR:
+					setShouldDisconnect(true);
+					return;
+				case WriteResult::IN_PROGRESS:
+					return;
+				case WriteResult::COMPLETE:
+					clearParser();
+					setClientState(ClientState::ReadingRequest);
 			}
-
 		}
 
 		EndpointResult processEvent(IoEvent ev) noexcept override {
