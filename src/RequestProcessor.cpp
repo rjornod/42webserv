@@ -739,21 +739,21 @@ static std::string htmlEscape(const std::string &s) {
   return out;
 }
 
-static std::string urlEncode(const std::string &s) {
-  static const char *hex = "0123456789ABCDEF";
-  std::string out;
-  for (size_t i = 0; i < s.size(); ++i) {
-    unsigned char c = s[i];
-    if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')
-      out += c;
-    else {
-      out += '%';
-      out += hex[c >> 4];
-      out += hex[c & 15];
-    }
-  }
-  return out;
-}
+// static std::string urlEncode(const std::string &s) {
+//   static const char *hex = "0123456789ABCDEF";
+//   std::string out;
+//   for (size_t i = 0; i < s.size(); ++i) {
+//     unsigned char c = s[i];
+//     if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')
+//       out += c;
+//     else {
+//       out += '%';
+//       out += hex[c >> 4];
+//       out += hex[c & 15];
+//     }
+//   }
+//   return out;
+// }
 
 std::string RequestProcessor::generateAutoIndex(const std::string &dirPath,
                                                 const std::string &uri) {
@@ -770,8 +770,7 @@ std::string RequestProcessor::generateAutoIndex(const std::string &dirPath,
   for (const auto &e : entries) {
     std::string name = e.path().filename().string();
     std::string suffix = e.is_directory() ? "/" : "";
-    html << "<li><a href= \"" << urlEncode(name) << suffix << "\">"
-         << htmlEscape(name) << suffix << "</a></li> " << std::endl;
+    html << "<li>" << htmlEscape(name) << suffix << "</li> " << std::endl;
   }
 
   html << "</ul>\n<hr>\n</body>\n</html>\n";
