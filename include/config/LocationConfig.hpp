@@ -43,7 +43,8 @@ class LocationConfig {
 		const std::string& getUploadStore() const { return m_upload_store; }
 		const std::pair<int, std::string>& getReturn() const { return m_return; }
 		const std::unordered_map<std::string, std::string>& getCgiHandler() const { return m_cgiHandlers; }
-	
+		bool 																isCgi(const std::string &ext);
+		std::string 												getCgiBin(const std::string &ext);
 		void	printValues() const;
 
 };
