@@ -47,9 +47,17 @@ HttpResponse RequestProcessor::handleGet(RequestContext &ctx) {
 
   if (res.kind == Resolution::DIRECTORY)
     return buildAutoIndexResponse(ctx);
-  if (ctx.getLocationConfig()->getCgiHandler().contains(res.path.extension())) {
-    return HttpResponse(std::make_unique<CgiRunner>(
-        ctx.getLocationConfig()->getCgiHandler().at(res.path.extension()), ctx));
+  if (ctx.getLocationConfig()) {
+    if (ctx.getLocationConfig()->getCgiHandler().contains(res.path.extension())) {
+      return HttpResponse(std::make_unique<CgiRunner>(
+          ctx.getLocationConfig()->getCgiHandler().at(res.path.extension()), ctx));
+    }
+  }
+  else {
+    if (ctx.getServerConfig()->getCgiHandler().contains(res.path.extension())) {
+      return HttpResponse(std::make_unique<CgiRunner>(
+          ctx.getServerConfig()->getCgiHandler().at(res.path.extension()), ctx));
+    }
   }
   return staticHandler(ctx);
 }
@@ -71,9 +79,17 @@ HttpResponse RequestProcessor::handleDelete(RequestContext &ctx) {
   if (res.kind == Resolution::DIRECTORY)
     return buildErrorResponse(409, ctx);
   ctx.setFilePath(res.path);
-  if (ctx.getLocationConfig()->getCgiHandler().contains(res.path.extension())) {
+  if (ctx.getLocationConfig()){
+    if (ctx.getLocationConfig()->getCgiHandler().contains(res.path.extension())) {
     return HttpResponse(std::make_unique<CgiRunner>(
         ctx.getLocationConfig()->getCgiHandler().at(res.path.extension()), ctx));
+    }
+  }
+  else {
+    if (ctx.getServerConfig()->getCgiHandler().contains(res.path.extension())) {
+    return HttpResponse(std::make_unique<CgiRunner>(
+        ctx.getServerConfig()->getCgiHandler().at(res.path.extension()), ctx));
+    }
   }
   return deleteHandler(ctx);
 }
@@ -86,9 +102,17 @@ std::unique_ptr<CgiRunner> RequestProcessor::tryCgiForPost(RequestContext &ctx) 
     return nullptr; // it will be handled later
   if (res.kind == Resolution::DIRECTORY)
     return nullptr; // later
-  if (ctx.getLocationConfig()->getCgiHandler().contains(res.path.extension())) {
-    return std::make_unique<CgiRunner>(
-        ctx.getLocationConfig()->getCgiHandler().at(res.path.extension()), ctx);
+  if (ctx.getLocationConfig()) {
+    if (ctx.getLocationConfig()->getCgiHandler().contains(res.path.extension())) {
+      return std::make_unique<CgiRunner>(
+          ctx.getLocationConfig()->getCgiHandler().at(res.path.extension()), ctx);
+    }
+  }
+  else {
+    if (ctx.getServerConfig()->getCgiHandler().contains(res.path.extension())) {
+      return std::make_unique<CgiRunner>(
+          ctx.getServerConfig()->getCgiHandler().at(res.path.extension()), ctx);
+    }
   }
   return nullptr;
 }
@@ -715,21 +739,21 @@ static std::string htmlEscape(const std::string &s) {
   return out;
 }
 
-static std::string urlEncode(const std::string &s) {
-  static const char *hex = "0123456789ABCDEF";
-  std::string out;
-  for (size_t i = 0; i < s.size(); ++i) {
-    unsigned char c = s[i];
-    if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')
-      out += c;
-    else {
-      out += '%';
-      out += hex[c >> 4];
-      out += hex[c & 15];
-    }
-  }
-  return out;
-}
+// static std::string urlEncode(const std::string &s) {
+//   static const char *hex = "0123456789ABCDEF";
+//   std::string out;
+//   for (size_t i = 0; i < s.size(); ++i) {
+//     unsigned char c = s[i];
+//     if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')
+//       out += c;
+//     else {
+//       out += '%';
+//       out += hex[c >> 4];
+//       out += hex[c & 15];
+//     }
+//   }
+//   return out;
+// }
 
 std::string RequestProcessor::generateAutoIndex(const std::string &dirPath,
                                                 const std::string &uri) {
@@ -746,8 +770,7 @@ std::string RequestProcessor::generateAutoIndex(const std::string &dirPath,
   for (const auto &e : entries) {
     std::string name = e.path().filename().string();
     std::string suffix = e.is_directory() ? "/" : "";
-    html << "<li><a href= \"" << urlEncode(name) << suffix << "\">"
-         << htmlEscape(name) << suffix << "</a></li> " << std::endl;
+    html << "<li>" << htmlEscape(name) << suffix << "</li> " << std::endl;
   }
 
   html << "</ul>\n<hr>\n</body>\n</html>\n";
