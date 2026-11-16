@@ -47,9 +47,17 @@ HttpResponse RequestProcessor::handleGet(RequestContext &ctx) {
 
   if (res.kind == Resolution::DIRECTORY)
     return buildAutoIndexResponse(ctx);
-  if (ctx.getLocationConfig()->getCgiHandler().contains(res.path.extension())) {
-    return HttpResponse(std::make_unique<CgiRunner>(
-        ctx.getLocationConfig()->getCgiHandler().at(res.path.extension()), ctx));
+  if (ctx.getLocationConfig()) {
+    if (ctx.getLocationConfig()->getCgiHandler().contains(res.path.extension())) {
+      return HttpResponse(std::make_unique<CgiRunner>(
+          ctx.getLocationConfig()->getCgiHandler().at(res.path.extension()), ctx));
+    }
+  }
+  else {
+    if (ctx.getServerConfig()->getCgiHandler().contains(res.path.extension())) {
+      return HttpResponse(std::make_unique<CgiRunner>(
+          ctx.getServerConfig()->getCgiHandler().at(res.path.extension()), ctx));
+    }
   }
   return staticHandler(ctx);
 }
@@ -71,9 +79,17 @@ HttpResponse RequestProcessor::handleDelete(RequestContext &ctx) {
   if (res.kind == Resolution::DIRECTORY)
     return buildErrorResponse(409, ctx);
   ctx.setFilePath(res.path);
-  if (ctx.getLocationConfig()->getCgiHandler().contains(res.path.extension())) {
+  if (ctx.getLocationConfig()){
+    if (ctx.getLocationConfig()->getCgiHandler().contains(res.path.extension())) {
     return HttpResponse(std::make_unique<CgiRunner>(
         ctx.getLocationConfig()->getCgiHandler().at(res.path.extension()), ctx));
+    }
+  }
+  else {
+    if (ctx.getServerConfig()->getCgiHandler().contains(res.path.extension())) {
+    return HttpResponse(std::make_unique<CgiRunner>(
+        ctx.getServerConfig()->getCgiHandler().at(res.path.extension()), ctx));
+    }
   }
   return deleteHandler(ctx);
 }
@@ -86,9 +102,17 @@ std::unique_ptr<CgiRunner> RequestProcessor::tryCgiForPost(RequestContext &ctx) 
     return nullptr; // it will be handled later
   if (res.kind == Resolution::DIRECTORY)
     return nullptr; // later
-  if (ctx.getLocationConfig()->getCgiHandler().contains(res.path.extension())) {
-    return std::make_unique<CgiRunner>(
-        ctx.getLocationConfig()->getCgiHandler().at(res.path.extension()), ctx);
+  if (ctx.getLocationConfig()) {
+    if (ctx.getLocationConfig()->getCgiHandler().contains(res.path.extension())) {
+      return std::make_unique<CgiRunner>(
+          ctx.getLocationConfig()->getCgiHandler().at(res.path.extension()), ctx);
+    }
+  }
+  else {
+    if (ctx.getServerConfig()->getCgiHandler().contains(res.path.extension())) {
+      return std::make_unique<CgiRunner>(
+          ctx.getServerConfig()->getCgiHandler().at(res.path.extension()), ctx);
+    }
   }
   return nullptr;
 }
