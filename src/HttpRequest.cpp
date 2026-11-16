@@ -41,7 +41,7 @@ inline void trim(std::string &s) {
 
 void HttpRequest::extractCookie() {
 	m_cookies.clear();
-	auto it = m_headers.find("Cookie");
+	auto it = m_headers.find("cookie");
 	if (it == m_headers.end()) {
 		return;
 	}
@@ -56,6 +56,7 @@ void HttpRequest::extractCookie() {
         {
             std::string key = item.substr(0, pos);
             std::string value = item.substr(pos + 1);
+            trim(key);
 			trim(value);
             m_cookies[key] = value;
         }

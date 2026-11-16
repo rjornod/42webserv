@@ -45,7 +45,6 @@ void Client::buildParserErrorResponse() {
 
 bool Client::validate() {
 	if (!m_toManager.isTimedOut()) {
-		m_closeConnection = true;
 		return true;
 	}
 	auto st = m_parser.getParserState();
@@ -59,9 +58,6 @@ bool Client::validate() {
 		response.addHeader("Content-Type", "text/plain");
 		response.setBodySource(std::string("Timeout"));
 	
-		std::cout << YELLOW << "-------------------"  << " RESPONSE "   << "-------------------" << RESET << std::endl;
-		std::cout << response << std::endl;
-		std::cout << YELLOW << "------------------"<< " END OF RESPONSE " << "--------------------" << RESET << std::endl;
 		writerSetup(std::move(response));
 		m_closeConnection = true;
 		return true;

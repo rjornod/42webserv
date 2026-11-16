@@ -33,9 +33,6 @@ void ClientTimeoutManager::startResponse() {
 }
 
 void ClientTimeoutManager::finishResponse() {
-	if (!m_keepAlive) {
-		return;
-	}
 	m_state = TimerState::WAITING_FOR_REQUEST;
 	m_started = std::chrono::high_resolution_clock::now();
 }

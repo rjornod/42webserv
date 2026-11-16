@@ -205,11 +205,13 @@ class Client : public IoEndpoint {
 			}
 			switch(writeToSocket()) {
 				case WriteResult::ERROR:
+					m_toManager.finishResponse();
 					setShouldDisconnect(true);
 					return;
 				case WriteResult::IN_PROGRESS:
 					return;
 				case WriteResult::COMPLETE:
+					m_toManager.finishResponse();
 					clearParser();
 					setClientState(ClientState::ReadingRequest);
 			}
