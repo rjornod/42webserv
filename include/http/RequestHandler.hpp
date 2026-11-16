@@ -1,7 +1,10 @@
 #pragma once
-#include "IRequestHandler.hpp"
 
-class RequestHandler : public IRequestHandler {
+#include "HttpResponse.hpp"
+#include "HttpRequest.hpp"
+#include "RequestContext.hpp"
+
+class RequestHandler {
 
   public:
 

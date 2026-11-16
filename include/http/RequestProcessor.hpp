@@ -19,6 +19,8 @@ class RequestProcessor {
 
     static const std::unordered_map<std::string, std::string> M_MIME_TYPES;
 
+	std::unique_ptr<CgiRunner> tryCgiForPost(RequestContext& ctx);
+
   public:
 
     HttpResponse process(RequestContext& ctx);
