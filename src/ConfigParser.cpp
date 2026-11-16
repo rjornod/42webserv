@@ -423,9 +423,9 @@ void ConfigParser::handleAutoIndex(int scope) {
  */
 std::string ConfigParser::findURI() {
 	unsigned long i = m_tokenIndex;
-	while (!isType(m_tokens[i + 1], TokenType::EndDirective) && isValidToken(m_tokens[i + 1]))	
+	while (i + 1 < m_tokens.size() && !isType(m_tokens[i + 1], TokenType::EndDirective) && isValidToken(m_tokens[i + 1]))	
 		i++;
-	if (!isType(m_tokens[i + 1], TokenType::EndDirective))
+	if (i + 1 >= m_tokens.size() || !isType(m_tokens[i + 1], TokenType::EndDirective))
 		throw ConfigParseException("error_page directive is missing a semicolon");
 	return m_tokens[i].value;
 }
