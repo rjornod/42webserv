@@ -60,6 +60,6 @@ class ServerConfig {
 		const std::unordered_map<std::string, std::string>& getCgiHandler() const 	{ return m_cgiHandlers; }
 		const std::vector<LocationConfig>&	getLocationConfigs() const 							{ return m_locationConfigs; }
 		std::vector<LocationConfig>&				getLocationConfigs() 										{ return m_locationConfigs; }
-
+		const std::unordered_set<std::string> getSeenDirectives() const							{ return m_seendirectives; }
 		SessionManager&								getSessionManager() { return m_sessionManager; }
 	};

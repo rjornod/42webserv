@@ -264,6 +264,8 @@ static bool validateDigits(std::string_view digits) {
  * Ports below 1024 need sudo requirement and above 65535 don't exist;
  */
 void ConfigParser::handleListen() {
+	if (currentServer().getSeenDirectives().find("listen") != currentServer().getSeenDirectives().end())
+		throw ConfigParseException("Only 1 listen directive per server is allowed!");
 	incTokenIndex(1);
 	if 	(!isType(currentToken(), TokenType::Word) || 
 			!isValidToken(currentToken()))
