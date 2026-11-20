@@ -2,6 +2,8 @@
 
 # Webserv
 
+![Webserv screenshot](webserv.png)
+
 ## Description
 
 Webserv is a lightweight HTTP server written in C++ as part of the 42 curriculum. The project implements the core pieces of a web server from scratch: configuration parsing, TCP socket setup, non-blocking client handling, HTTP request parsing, routing, static file resolution, response generation, directory autoindexing, uploads, redirects, error pages, and CGI configuration.
